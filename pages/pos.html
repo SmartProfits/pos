@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS System - Sales</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <!-- 收银员姓名输入模态框 -->
+    <div id="cashierNameModal" class="modal">
+        <div class="modal-content">
+            <h2><i class="material-icons">person</i> Cashier Information</h2>
+            <p>Please enter the name of the current cashier on duty</p>
+            <form id="cashierNameForm">
+                <div class="form-group">
+                    <label for="cashierName"><i class="material-icons">badge</i> Name:</label>
+                    <input type="text" id="cashierName" required>
+                </div>
+                <button type="submit"><i class="material-icons">save</i> Confirm</button>
+            </form>
+            <div class="tip-container">
+                <p class="tip"><i class="material-icons">tips_and_updates</i> Tips:</p>
+                <ul>
+                    <li>When changing shifts, click the edit button in the sidebar to update cashier information</li>
+                    <li>Cashier names will be displayed on all sales records and receipts</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="pos-container">
+        <div class="sidebar">
+            <div class="store-info">
+                <h2 id="storeName">Store Name</h2>
+                <p id="storeId">Store ID: </p>
+                <p id="staffName">Staff: </p>
+                <p id="currentCashier"><i class="material-icons">person</i> Cashier: <span id="cashierNameDisplay">Not set</span> <button id="changeCashierBtn" class="small-btn"><i class="material-icons">edit</i></button></p>
+                <button id="viewCashierHistoryBtn" class="sidebar-btn"><i class="material-icons">history</i> View Shift History</button>
+            </div>
+            <div class="nav-menu">
+                <div class="nav-item active" data-view="sales"><i class="material-icons">point_of_sale</i> Sales</div>
+                <div class="nav-item" data-view="salesHistory"><i class="material-icons">history</i> Sales History</div>
+                <div class="nav-item" data-view="inventory"><i class="material-icons">inventory_2</i> Inventory</div>
+                <div class="nav-item" onclick="logout()"><i class="material-icons">logout</i> Logout</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="header">
+                <h1 id="viewTitle">Sales System</h1>
+                <div id="currentDateTime"></div>
+            </div>
+            
+            <!-- Sales View -->
+            <div id="salesView" class="view active">
+                <div class="pos-grid">
+                    <div class="product-container">
+                        <div class="filter-container">
+                            <label for="categoryFilter"><i class="material-icons">category</i> Category:</label>
+                            <select id="categoryFilter">
+                                <option value="all">All Categories</option>
+                                <!-- Categories will be loaded dynamically -->
+                            </select>
+                        </div>
+                        <div class="product-grid" id="productGrid">
+                            <!-- Product list will be loaded dynamically by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <div class="cart-container">
+                        <h3>Shopping Cart</h3>
+                        <div id="cartItems"></div>
+                        <div class="discount-section">
+                            <div class="discount-toggle">
+                                <button id="discountToggleBtn"><i class="material-icons">add</i> Add Discount</button>
+                            </div>
+                            <div id="discountOptions" class="discount-options" style="display: none;">
+                                <div class="form-group">
+                                    <label for="discountType">Discount Type:</label>
+                                    <select id="discountType">
+                                        <option value="percentage">Percentage (%)</option>
+                                        <option value="fixed">Fixed Amount (RM)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="discountValue">Value:</label>
+                                    <input type="number" id="discountValue" min="0" step="0.01" placeholder="Enter value">
+                                </div>
+                                <div class="discount-buttons">
+                                    <button id="applyDiscountBtn" class="apply-discount-btn"><i class="material-icons">check</i> Apply</button>
+                                    <button id="removeDiscountBtn" class="remove-discount-btn"><i class="material-icons">close</i> Remove</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cart-subtotals">
+                            <div class="subtotal-line">
+                                <span>Subtotal:</span>
+                                <span id="cartSubtotal">RM0.00</span>
+                            </div>
+                            <div class="subtotal-line discount-line" id="discountLine" style="display: none;">
+                                <span id="discountLabel">Discount:</span>
+                                <span id="discountAmount">-RM0.00</span>
+                            </div>
+                        </div>
+                        <div class="cart-total">Total: <span id="cartTotal">RM0.00</span></div>
+                        <button id="checkoutBtn" class="checkout-btn"><i class="material-icons">payment</i> Checkout</button>
+                        <button id="clearCartBtn"><i class="material-icons">remove_shopping_cart</i> Clear Cart</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sales History View -->
+            <div id="salesHistoryView" class="view">
+                <div class="history-controls">
+                    <div class="date-filter">
+                        <label for="dateFilter">Select Date:</label>
+                        <input type="date" id="dateFilter" value="">
+                    </div>
+                    <button id="refreshSalesBtn"><i class="material-icons">refresh</i> Refresh</button>
+                </div>
+                <div class="sales-table-container">
+                    <table class="sales-table">
+                        <thead>
+                            <tr>
+                                <th>Bill #</th>
+                                <th>Sale ID</th>
+                                <th>Time</th>
+                                <th>Cashier</th>
+                                <th>Items</th>
+                                <th>Discount</th>
+                                <th>Total</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Inventory Management View -->
+            <div id="inventoryView" class="view">
+                <div class="filter-container">
+                    <label for="inventoryCategoryFilter"><i class="material-icons">category</i> Category:</label>
+                    <select id="inventoryCategoryFilter">
+                        <option value="all">All Categories</option>
+                        <!-- Category options will be loaded dynamically -->
+                    </select>
+                    
+                    <label for="inventoryStockFilter"><i class="material-icons">warning</i> Stock Status:</label>
+                    <select id="inventoryStockFilter">
+                        <option value="all">All</option>
+                        <option value="low">Low Stock</option>
+                        <option value="out">Out of Stock</option>
+                    </select>
+                    
+                    <button id="refreshInventoryBtn"><i class="material-icons">refresh</i> Refresh</button>
+                </div>
+                
+                <h2>Store Inventory</h2>
+                <div class="inventory-container">
+                    <table id="inventoryTable">
+                        <thead>
+                            <tr>
+                                <th>Product ID</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Current Stock</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody">
+                            <!-- Inventory list will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Checkout Success Modal -->
+    <div id="checkoutSuccessModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">check_circle</i> Checkout Successful</h2>
+            <p>Order has been submitted successfully!</p>
+            <div id="receiptDetails"></div>
+            <button id="printReceiptBtn"><i class="material-icons">print</i> Print Receipt</button>
+            <button id="newSaleBtn"><i class="material-icons">add_shopping_cart</i> New Transaction</button>
+        </div>
+    </div>
+    
+    <!-- Sale Details Modal -->
+    <div id="saleDetailModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">receipt</i> Sale Details</h2>
+            <div id="saleDetailContent"></div>
+            <div class="modal-footer">
+                <button id="editSaleBtn"><i class="material-icons">edit</i> Edit</button>
+                <button id="deleteSaleBtn"><i class="material-icons">delete</i> Delete</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Sale Modal -->
+    <div id="editSaleModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">edit</i> Edit Sale</h2>
+            <div id="editSaleContent">
+                <div id="editCartItems">
+                    <!-- Edit cart items will be loaded dynamically -->
+                </div>
+                <div class="cart-total">Total: <span id="editCartTotal">RM0.00</span></div>
+            </div>
+            <div class="modal-footer">
+                <button id="updateSaleBtn"><i class="material-icons">save</i> Update Sale</button>
+                <button id="cancelEditBtn"><i class="material-icons">cancel</i> Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Update Stock Modal -->
+    <div id="updateStockModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">edit</i> Update Stock</h2>
+            <form id="updateStockForm">
+                <input type="hidden" id="updateProductId">
+                
+                <div class="form-group">
+                    <label for="updateProductName">Product Name:</label>
+                    <input type="text" id="updateProductName" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="updateCurrentStock">Current Stock:</label>
+                    <input type="number" id="updateCurrentStock" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="updateOperation">Operation:</label>
+                    <select id="updateOperation">
+                        <option value="add">Add Stock</option>
+                        <option value="subtract">Remove Stock</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="updateQuantity">Quantity:</label>
+                    <input type="number" id="updateQuantity" min="1" value="1" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="updateReason">Reason:</label>
+                    <select id="updateReason" onchange="toggleOtherReason()">
+                        <option value="new_stock">New Stock</option>
+                        <option value="returned">Returned Items</option>
+                        <option value="damaged">Damaged/Lost</option>
+                        <option value="correction">Inventory Correction</option>
+                        <option value="expired">Expired</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="otherReasonContainer" style="display: none;">
+                    <label for="otherReason">Specify Reason:</label>
+                    <input type="text" id="otherReason">
+                </div>
+                
+                <div class="form-group">
+                    <label for="updateNotes">Notes:</label>
+                    <textarea id="updateNotes" rows="3"></textarea>
+                </div>
+                
+                <button type="submit" class="btn-primary"><i class="material-icons">save</i> Update Stock</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Stock History Modal -->
+    <div id="stockHistoryModal" class="modal">
+        <div class="modal-content" style="width: 80%;">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">history</i> Stock History</h2>
+            <div id="stockHistoryContent">
+                <div class="loading"><i class="material-icons">hourglass_empty</i> Loading history...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="../js/firebase-config.js"></script>
+    <script src="../js/database.js"></script>
+    <script src="../js/pos.js"></script>
+</body>
+</html> 

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS System - Admin</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <div class="pos-container">
+        <div class="sidebar">
+            <div class="store-info">
+                <h2>Admin Console</h2>
+                <p id="adminName">Admin: </p>
+            </div>
+            <div class="nav-menu">
+                <div class="nav-item active" data-view="dashboard"><i class="material-icons">dashboard</i> Dashboard</div>
+                <div class="nav-item" data-view="stores"><i class="material-icons">store</i> Stores</div>
+                <div class="nav-item" data-view="products"><i class="material-icons">inventory</i> Products</div>
+                <div class="nav-item" data-view="inventory"><i class="material-icons">inventory_2</i> Inventory</div>
+                <div class="nav-item" data-view="users"><i class="material-icons">people</i> Users</div>
+                <div class="nav-item" onclick="logout()"><i class="material-icons">logout</i> Logout</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="header">
+                <h1 id="viewTitle">Dashboard</h1>
+                <div id="currentDateTime"></div>
+            </div>
+            
+            <!-- Dashboard View -->
+            <div id="dashboardView" class="view active">
+                <div class="filter-container">
+                    <label for="dateFilter"><i class="material-icons">event</i> Date:</label>
+                    <input type="date" id="dateFilter" value="">
+                    
+                    <label for="storeFilter"><i class="material-icons">store</i> Store:</label>
+                    <select id="storeFilter">
+                        <option value="all">All Stores</option>
+                        <!-- Store options will be loaded dynamically -->
+                    </select>
+                    
+                    <button id="refreshStatsBtn"><i class="material-icons">refresh</i> Refresh</button>
+                </div>
+                
+                <div class="stats-container" id="statsContainer">
+                    <!-- Stat cards will be loaded dynamically -->
+                </div>
+                
+                <h2>Sales Details</h2>
+                <div class="sale-details-container">
+                    <table id="saleDetailsTable">
+                        <thead>
+                            <tr>
+                                <th>Bill Number</th>
+                                <th>Store</th>
+                                <th>Time</th>
+                                <th>Cashier</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="saleDetailsBody">
+                            <!-- Sale details will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Stores Management View -->
+            <div id="storesView" class="view">
+                <h2>Store List</h2>
+                <button id="addStoreBtn"><i class="material-icons">add</i> Add Store</button>
+                <div class="stores-container">
+                    <table id="storesTable">
+                        <thead>
+                            <tr>
+                                <th>Store ID</th>
+                                <th>Store Name</th>
+                                <th>Address</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="storesTableBody">
+                            <!-- Store list will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Products Management View -->
+            <div id="productsView" class="view">
+                <h2>Product List</h2>
+                <button id="addProductBtn"><i class="material-icons">add</i> Add Product</button>
+                <div class="product-filter">
+                    <label for="productStoreFilter"><i class="material-icons">store</i> Store:</label>
+                    <select id="productStoreFilter">
+                        <option value="all">All Stores</option>
+                        <!-- Store options will be loaded dynamically -->
+                    </select>
+                </div>
+                <div class="products-container">
+                    <table id="productsTable">
+                        <thead>
+                            <tr>
+                                <th>Product ID</th>
+                                <th>Product Name</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>Category</th>
+                                <th>Store</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTableBody">
+                            <!-- Product list will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Users Management View -->
+            <div id="usersView" class="view">
+                <h2>User List</h2>
+                <button id="addUserBtn"><i class="material-icons">person_add</i> Add User</button>
+                <div class="users-container">
+                    <table id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Store</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- User list will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Inventory Management View -->
+            <div id="inventoryView" class="view">
+                <h2>Inventory Management</h2>
+                <div class="filter-container">
+                    <label for="inventoryStoreFilter"><i class="material-icons">store</i> Store:</label>
+                    <select id="inventoryStoreFilter">
+                        <option value="all">All Stores</option>
+                        <!-- Store options will be loaded dynamically -->
+                    </select>
+                    
+                    <label for="inventoryCategoryFilter"><i class="material-icons">category</i> Category:</label>
+                    <select id="inventoryCategoryFilter">
+                        <option value="all">All Categories</option>
+                        <!-- Category options will be loaded dynamically -->
+                    </select>
+                    
+                    <label for="inventoryStockFilter"><i class="material-icons">warning</i> Stock Status:</label>
+                    <select id="inventoryStockFilter">
+                        <option value="all">All</option>
+                        <option value="low">Low Stock</option>
+                        <option value="out">Out of Stock</option>
+                    </select>
+                    
+                    <button id="refreshInventoryBtn"><i class="material-icons">refresh</i> Refresh</button>
+                </div>
+                
+                <div class="inventory-actions">
+                    <button id="bulkUpdateBtn"><i class="material-icons">update</i> Bulk Update</button>
+                    <button id="exportInventoryBtn"><i class="material-icons">download</i> Export</button>
+                    <button id="importInventoryBtn"><i class="material-icons">upload</i> Import</button>
+                </div>
+                
+                <div class="inventory-container">
+                    <table id="inventoryTable">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAllInventory"></th>
+                                <th>Product ID</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Current Stock</th>
+                                <th>Status</th>
+                                <th>Store</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody">
+                            <!-- Inventory list will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sale Detail Modal -->
+    <div id="saleDetailModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">receipt</i> Sale Details</h2>
+            <div id="saleDetailContent"></div>
+        </div>
+    </div>
+    
+    <!-- Add Store Modal -->
+    <div id="addStoreModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">add_business</i> Add Store</h2>
+            <form id="addStoreForm">
+                <div class="form-group">
+                    <label for="storeId"><i class="material-icons">tag</i> Store ID:</label>
+                    <input type="text" id="storeId" required>
+                </div>
+                <div class="form-group">
+                    <label for="storeName"><i class="material-icons">store</i> Store Name:</label>
+                    <input type="text" id="storeName" required>
+                </div>
+                <div class="form-group">
+                    <label for="storeAddress"><i class="material-icons">location_on</i> Address:</label>
+                    <input type="text" id="storeAddress" required>
+                </div>
+                <button type="submit"><i class="material-icons">save</i> Save</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Add Product Modal -->
+    <div id="addProductModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">add_shopping_cart</i> Add Product</h2>
+            <form id="addProductForm">
+                <div class="form-group">
+                    <label for="productId"><i class="material-icons">tag</i> Product ID:</label>
+                    <input type="text" id="productId" required>
+                </div>
+                <div class="form-group">
+                    <label for="productName"><i class="material-icons">inventory</i> Product Name:</label>
+                    <input type="text" id="productName" required>
+                </div>
+                <div class="form-group">
+                    <label for="productPrice"><i class="material-icons">attach_money</i> Price:</label>
+                    <input type="number" id="productPrice" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="productQuantity"><i class="material-icons">inventory_2</i> Stock:</label>
+                    <input type="number" id="productQuantity" min="0" value="0">
+                </div>
+                <div class="form-group">
+                    <label for="productCategory"><i class="material-icons">category</i> Category:</label>
+                    <input type="text" id="productCategory">
+                </div>
+                <div class="form-group">
+                    <label for="productStoreId"><i class="material-icons">store</i> Store:</label>
+                    <select id="productStoreId" required>
+                        <option value="">Select Store</option>
+                        <!-- Store options will be loaded dynamically -->
+                    </select>
+                </div>
+                <button type="submit"><i class="material-icons">save</i> Save</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">person_add</i> Add User</h2>
+            <form id="addUserForm">
+                <div class="form-group">
+                    <label for="userEmail"><i class="material-icons">email</i> Email:</label>
+                    <input type="email" id="userEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="userPassword"><i class="material-icons">lock</i> Password:</label>
+                    <input type="password" id="userPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="userRole"><i class="material-icons">assignment_ind</i> Role:</label>
+                    <select id="userRole" required>
+                        <option value="staff">Staff</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-group" id="userStoreContainer">
+                    <label for="userStoreId"><i class="material-icons">store</i> Store:</label>
+                    <select id="userStoreId">
+                        <option value="">Select Store</option>
+                        <!-- Store options will be loaded dynamically -->
+                    </select>
+                </div>
+                <button type="submit"><i class="material-icons">save</i> Save</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Update Stock Modal -->
+    <div class="modal" id="updateStockModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">edit</i> Update Stock</h2>
+            <form id="updateStockForm">
+                <input type="hidden" id="updateProductId">
+                
+                <div class="form-group">
+                    <label for="updateProductName">Product Name:</label>
+                    <input type="text" id="updateProductName" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="updateCurrentStock">Current Stock:</label>
+                    <input type="number" id="updateCurrentStock" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="updateOperation">Operation:</label>
+                    <select id="updateOperation">
+                        <option value="add">Add Stock</option>
+                        <option value="subtract">Remove Stock</option>
+                        <option value="set">Set Stock Value</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="updateQuantity">Quantity:</label>
+                    <input type="number" id="updateQuantity" min="1" value="1" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="updateReason">Reason:</label>
+                    <select id="updateReason" onchange="toggleOtherReason()">
+                        <option value="new_stock">New Stock</option>
+                        <option value="returned">Returned Items</option>
+                        <option value="damaged">Damaged/Lost</option>
+                        <option value="correction">Inventory Correction</option>
+                        <option value="expired">Expired</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="otherReasonContainer" style="display: none;">
+                    <label for="otherReason">Specify Reason:</label>
+                    <input type="text" id="otherReason">
+                </div>
+                
+                <div class="form-group">
+                    <label for="updateNotes">Notes:</label>
+                    <textarea id="updateNotes" rows="3"></textarea>
+                </div>
+                
+                <button type="submit" class="btn-primary"><i class="material-icons">save</i> Update Stock</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Bulk Update Modal -->
+    <div class="modal" id="bulkUpdateModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">group_work</i> Bulk Update Stock</h2>
+            
+            <div class="selected-products-summary">
+                <p>Selected Products: <span id="selectedProductsCount">0</span></p>
+            </div>
+            
+            <div class="selected-products-list" id="selectedProductsList">
+                <!-- 选中的产品将在此显示 -->
+            </div>
+            
+            <form id="bulkUpdateForm">
+                <div class="form-group">
+                    <label for="bulkUpdateOperation">Operation:</label>
+                    <select id="bulkUpdateOperation">
+                        <option value="add">Add Stock</option>
+                        <option value="subtract">Remove Stock</option>
+                        <option value="percentage">Adjust by Percentage (%)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bulkUpdateQuantity">Quantity/Percentage:</label>
+                    <input type="number" id="bulkUpdateQuantity" min="1" value="1" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bulkUpdateReason">Reason:</label>
+                    <select id="bulkUpdateReason" onchange="toggleBulkOtherReason()">
+                        <option value="new_stock">New Stock</option>
+                        <option value="returned">Returned Items</option>
+                        <option value="damaged">Damaged/Lost</option>
+                        <option value="correction">Inventory Correction</option>
+                        <option value="expired">Expired</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="bulkOtherReasonContainer" style="display: none;">
+                    <label for="bulkOtherReason">Specify Reason:</label>
+                    <input type="text" id="bulkOtherReason">
+                </div>
+                
+                <div class="form-group">
+                    <label for="bulkUpdateNotes">Notes:</label>
+                    <textarea id="bulkUpdateNotes" rows="3"></textarea>
+                </div>
+                
+                <button type="submit" class="btn-primary"><i class="material-icons">save</i> Update Stock</button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="../js/firebase-config.js"></script>
+    <script src="../js/database.js"></script>
+    <script src="../js/admin.js"></script>
+</body>
+</html> 
