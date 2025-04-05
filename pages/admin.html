@@ -204,7 +204,30 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2><i class="material-icons">receipt</i> Sale Details</h2>
-            <div id="saleDetailContent"></div>
+            <div class="sale-detail-container">
+                <div class="sale-detail-header">
+                    <p><strong>Bill Number:</strong> <span id="sale-detail-bill">-</span></p>
+                    <p><strong>Store:</strong> <span id="sale-detail-store">-</span></p>
+                    <p><strong>Time:</strong> <span id="sale-detail-date">-</span></p>
+                    <p><strong>Cashier:</strong> <span id="sale-detail-cashier">-</span></p>
+                </div>
+                <table class="sale-detail-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sale-details-items">
+                        <!-- Sale items will be loaded dynamically -->
+                    </tbody>
+                </table>
+                <div id="sale-detail-footer">
+                    <!-- Sale summary (subtotal, discount, total) will be loaded dynamically -->
+                </div>
+            </div>
         </div>
     </div>
     

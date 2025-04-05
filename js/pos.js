@@ -16,16 +16,13 @@ let editingSale = null; // 正在编辑的销售记录
 let billNumberCounter = 0; // 账单号计数器
 let cashierName = ''; // 收银员姓名
 let cashierHistory = []; // 收银员历史记录，用于记录换班情况
-let discount = {
-    type: 'none', // 'none', 'percentage', 'fixed'
-    value: 0,     // 折扣值
-    amount: 0     // 折扣金额
-};
+let discountPercent = 0; // 折扣百分比，0表示无折扣
+let discountAmount = 0; // 直接金额折扣
+let discountType = 'percent'; // 折扣类型，percent表示百分比，amount表示金额
 
 // DOM元素
 const productGrid = document.getElementById('productGrid');
 const cartItems = document.getElementById('cartItems');
-const cartSubtotal = document.getElementById('cartSubtotal');
 const cartTotal = document.getElementById('cartTotal');
 const checkoutBtn = document.getElementById('checkoutBtn');
 const clearCartBtn = document.getElementById('clearCartBtn');
@@ -60,16 +57,6 @@ const cashierNameForm = document.getElementById('cashierNameForm');
 const cashierNameDisplay = document.getElementById('cashierNameDisplay');
 const changeCashierBtn = document.getElementById('changeCashierBtn');
 const viewCashierHistoryBtn = document.getElementById('viewCashierHistoryBtn');
-
-// 折扣功能相关DOM元素
-const discountToggleBtn = document.getElementById('discountToggleBtn');
-const discountOptions = document.getElementById('discountOptions');
-const discountTypeSelect = document.getElementById('discountType');
-const discountValueInput = document.getElementById('discountValue');
-const applyDiscountBtn = document.getElementById('applyDiscountBtn');
-const removeDiscountBtn = document.getElementById('removeDiscountBtn');
-const discountLine = document.getElementById('discountLine');
-const discountAmount = document.getElementById('discountAmount');
 
 // 库存管理DOM元素
 const inventoryCategoryFilter = document.getElementById('inventoryCategoryFilter');
@@ -268,17 +255,6 @@ function initEventListeners() {
     clearCartBtn.addEventListener('click', clearCart);
     checkoutBtn.addEventListener('click', checkout);
     
-    // 折扣功能相关事件
-    if (discountToggleBtn) {
-        discountToggleBtn.addEventListener('click', toggleDiscountOptions);
-    }
-    if (applyDiscountBtn) {
-        applyDiscountBtn.addEventListener('click', applyDiscount);
-    }
-    if (removeDiscountBtn) {
-        removeDiscountBtn.addEventListener('click', removeDiscount);
-    }
-    
     // 收银员相关
     cashierNameForm.addEventListener('submit', handleCashierNameSubmit);
     changeCashierBtn.addEventListener('click', () => showModal(cashierNameModal));
@@ -414,12 +390,6 @@ function renderSalesTable(sales) {
         const itemCount = sale.items ? sale.items.reduce((sum, item) => sum + item.quantity, 0) : 0;
         const cashierName = sale.cashierName || 'N/A';
         
-        // 计算折扣信息
-        const hasDiscount = sale.discount && sale.discount.amount > 0;
-        const discountInfo = hasDiscount ? 
-            `${sale.discount.type === 'percentage' ? sale.discount.value + '%' : 'RM' + sale.discount.value.toFixed(2)}` 
-            : 'None';
-        
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${sale.billNumber || 'N/A'}</td>
@@ -427,7 +397,6 @@ function renderSalesTable(sales) {
             <td>${sale.timestamp}</td>
             <td>${cashierName}</td>
             <td>${itemCount}</td>
-            <td>${hasDiscount ? `<span class="discount-applied">-${discountInfo}</span>` : 'None'}</td>
             <td>RM${sale.total_amount.toFixed(2)}</td>
             <td>
                 <button class="view-sale-btn" data-id="${saleId}"><i class="material-icons">visibility</i></button>
@@ -443,7 +412,7 @@ function renderSalesTable(sales) {
     document.querySelectorAll('.view-sale-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             currentSaleId = btn.dataset.id;
-            showSaleDetail(salesData[currentSaleId], currentSaleId);
+            viewSaleDetails(salesData[currentSaleId]);
         });
     });
     
@@ -462,77 +431,82 @@ function renderSalesTable(sales) {
     });
 }
 
-// 显示销售详情
-function showSaleDetail(sale, saleId) {
-    if (!sale) return;
-    
-    // 设置当前销售记录ID
-    currentSaleId = saleId;
-    
-    // 清除旧内容
-    saleDetailContent.innerHTML = '';
-    
-    // 添加销售基本信息
-    const saleInfo = document.createElement('div');
-    saleInfo.className = 'sale-info';
-    saleInfo.innerHTML = `
-        <div><strong>Sale ID:</strong> ${saleId}</div>
-        <div><strong>Bill Number:</strong> ${sale.billNumber || 'N/A'}</div>
-        <div><strong>Date/Time:</strong> ${sale.timestamp}</div>
-        <div><strong>Cashier:</strong> ${sale.cashierName || 'N/A'}</div>
+// 查看销售详情
+function viewSaleDetails(sale) {
+    let detailsHTML = `
+        <div class="receipt">
+            <div class="receipt-header">
+                <h3>${storeData.name}</h3>
+                <p>Bill Number: ${sale.billNumber || 'N/A'}</p>
+                <p>Sale ID: ${currentSaleId}</p>
+                <p>Time: ${sale.timestamp}</p>
+                <p>Cashier: ${sale.cashierName || 'N/A'}</p>
+                ${sale.shiftInfo ? `<p>Shift started at: ${sale.shiftInfo.shiftTime || 'N/A'}</p>` : ''}
+            </div>
+            <div class="receipt-items">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Unit Price</th>
+                            <th>Quantity</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
     `;
-    saleDetailContent.appendChild(saleInfo);
     
-    // 添加商品列表
-    const itemsTable = document.createElement('table');
-    itemsTable.className = 'sale-items-table';
-    itemsTable.innerHTML = `
-        <thead>
+    sale.items.forEach(item => {
+        detailsHTML += `
             <tr>
-                <th>Item</th>
-                <th>Price</th>
-                <th>Qty</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody id="saleItemsList"></tbody>
-        <tfoot>
-            <tr class="subtotal-row">
-                <td colspan="3" class="text-right"><strong>Subtotal:</strong></td>
-                <td>RM${sale.subtotal ? sale.subtotal.toFixed(2) : (sale.total_amount || 0).toFixed(2)}</td>
-            </tr>
-            ${sale.discount && sale.discount.amount > 0 ? 
-                `<tr class="discount-row">
-                    <td colspan="3" class="text-right"><strong>Discount (${sale.discount.type === 'percentage' ? 
-                        sale.discount.value + '%' : 'RM' + sale.discount.value}):</strong></td>
-                    <td>-RM${sale.discount.amount.toFixed(2)}</td>
-                </tr>` : ''}
-            <tr class="total-row">
-                <td colspan="3" class="text-right"><strong>Total:</strong></td>
-                <td>RM${sale.total_amount.toFixed(2)}</td>
-            </tr>
-        </tfoot>
-    `;
-    saleDetailContent.appendChild(itemsTable);
-    
-    const itemsList = document.getElementById('saleItemsList');
-    if (sale.items && sale.items.length > 0) {
-        sale.items.forEach(item => {
-            const row = document.createElement('tr');
-            const itemTotal = item.total || (item.price * item.quantity);
-            row.innerHTML = `
                 <td>${item.name}</td>
                 <td>RM${item.price.toFixed(2)}</td>
                 <td>${item.quantity}</td>
-                <td>RM${itemTotal.toFixed(2)}</td>
+                <td>RM${item.subtotal.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+    
+    detailsHTML += `
+                    </tbody>
+                </table>
+            </div>
+            <div class="receipt-summary">
+    `;
+    
+    // 检查是否有小计和折扣字段（兼容旧数据）
+    if (sale.subtotal !== undefined) {
+        detailsHTML += `
+            <div class="summary-row">
+                <p>Subtotal:</p>
+                <p>RM${sale.subtotal.toFixed(2)}</p>
+            </div>
+        `;
+        
+        // 如果应用了折扣，显示折扣信息
+        if (sale.discountAmount > 0) {
+            const discountType = sale.discountType || 'percent';
+            const discountLabel = discountType === 'percent' ? `Discount (${sale.discountPercent}%):` : 'Discount (Fixed):';
+            
+            detailsHTML += `
+                <div class="summary-row discount">
+                    <p>${discountLabel}</p>
+                    <p>-RM${sale.discountAmount.toFixed(2)}</p>
+                </div>
             `;
-            itemsList.appendChild(row);
-        });
-    } else {
-        itemsList.innerHTML = '<tr><td colspan="4" class="no-data">No items found</td></tr>';
+        }
     }
     
-    // 显示模态框
+    detailsHTML += `
+                <div class="summary-row total">
+                    <p>Total:</p>
+                    <p><strong>RM${sale.total_amount.toFixed(2)}</strong></p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    saleDetailContent.innerHTML = detailsHTML;
     showModal(saleDetailModal);
 }
 
@@ -784,16 +758,14 @@ function renderCart() {
         cartItems.innerHTML = '<div class="empty-cart">Your cart is empty</div>';
         cartTotal.textContent = 'RM0.00';
         checkoutBtn.disabled = true;
-        
-        // 清除折扣
-        removeDiscount();
         return;
     }
     
-    let subtotal = calculateSubtotal();
+    let subtotal = 0;
     
     cart.forEach((item, index) => {
         const itemTotal = item.price * item.quantity;
+        subtotal += itemTotal;
         
         const cartItemElement = document.createElement('div');
         cartItemElement.className = 'cart-item';
@@ -836,25 +808,136 @@ function renderCart() {
         });
     });
     
-    // 计算折扣后的总额
-    const total = subtotal - discount.amount;
+    // 添加折扣控制和显示
+    const discountElement = document.createElement('div');
+    discountElement.className = 'cart-discount';
+    discountElement.innerHTML = `
+        <div class="discount-type-selector">
+            <label>
+                <input type="radio" name="discountType" value="percent" ${discountType === 'percent' ? 'checked' : ''}>
+                Percentage Discount
+            </label>
+            <label>
+                <input type="radio" name="discountType" value="amount" ${discountType === 'amount' ? 'checked' : ''}>
+                Fixed Amount
+            </label>
+        </div>
+        <div class="discount-control ${discountType === 'percent' ? '' : 'hidden'}" id="percentDiscountControl">
+            <label for="discountPercent">Discount (%):</label>
+            <input type="number" id="discountPercent" min="0" max="100" value="${discountPercent}" step="5">
+            <button id="applyPercentDiscountBtn"><i class="material-icons">check</i> Apply</button>
+        </div>
+        <div class="discount-control ${discountType === 'amount' ? '' : 'hidden'}" id="amountDiscountControl">
+            <label for="discountAmount">Discount (RM):</label>
+            <input type="number" id="discountAmount" min="0" max="${subtotal}" value="${discountAmount.toFixed(2)}" step="1">
+            <button id="applyAmountDiscountBtn"><i class="material-icons">check</i> Apply</button>
+        </div>
+    `;
+    cartItems.appendChild(discountElement);
+    
+    // 添加折扣类型切换事件监听
+    discountElement.querySelectorAll('input[name="discountType"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            discountType = radio.value;
+            document.getElementById('percentDiscountControl').classList.toggle('hidden', discountType !== 'percent');
+            document.getElementById('amountDiscountControl').classList.toggle('hidden', discountType !== 'amount');
+        });
+    });
+    
+    // 添加折扣应用按钮事件监听
+    document.getElementById('applyPercentDiscountBtn').addEventListener('click', applyPercentDiscount);
+    document.getElementById('applyAmountDiscountBtn').addEventListener('click', applyAmountDiscount);
+    
+    // 计算折扣金额和总金额
+    let discountValue = 0;
+    
+    if (discountType === 'percent') {
+        discountValue = subtotal * (discountPercent / 100);
+    } else {
+        discountValue = Math.min(discountAmount, subtotal); // 确保折扣不超过小计
+    }
+    
+    const total = subtotal - discountValue;
+    
+    // 添加小计、折扣和总计显示
+    const summaryElement = document.createElement('div');
+    summaryElement.className = 'cart-summary';
+    summaryElement.innerHTML = `
+        <div class="summary-row">
+            <span>Subtotal:</span>
+            <span>RM${subtotal.toFixed(2)}</span>
+        </div>
+        ${discountValue > 0 ? `
+        <div class="summary-row discount">
+            <span>Discount ${discountType === 'percent' ? `(${discountPercent}%)` : '(Fixed)'}:</span>
+            <span>-RM${discountValue.toFixed(2)}</span>
+        </div>
+        ` : ''}
+        <div class="summary-row total">
+            <span>Total:</span>
+            <span>RM${total.toFixed(2)}</span>
+        </div>
+    `;
+    cartItems.appendChild(summaryElement);
     
     cartTotal.textContent = `RM${total.toFixed(2)}`;
     checkoutBtn.disabled = false;
 }
 
+// 应用百分比折扣
+function applyPercentDiscount() {
+    const input = document.getElementById('discountPercent');
+    const value = parseInt(input.value);
+    
+    if (isNaN(value) || value < 0 || value > 100) {
+        alert('Please enter a valid discount percentage (0-100)');
+        input.value = discountPercent;
+        return;
+    }
+    
+    discountPercent = value;
+    discountType = 'percent';
+    renderCart();
+}
+
+// 应用金额折扣
+function applyAmountDiscount() {
+    const input = document.getElementById('discountAmount');
+    const value = parseFloat(input.value);
+    
+    if (isNaN(value) || value < 0) {
+        alert('Please enter a valid discount amount');
+        input.value = discountAmount.toFixed(2);
+        return;
+    }
+    
+    // 计算小计以确保折扣不超过小计
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    if (value > subtotal) {
+        alert(`Discount cannot exceed subtotal (RM${subtotal.toFixed(2)})`);
+        input.value = Math.min(discountAmount, subtotal).toFixed(2);
+        return;
+    }
+    
+    discountAmount = value;
+    discountType = 'amount';
+    renderCart();
+}
+
 // 加载最后一个账单号
 function loadLastBillNumber() {
     const userStoreId = localStorage.getItem('store_id');
+    const today = getCurrentDate(); // 获取当前日期
     
-    database.ref(`bill_numbers/${userStoreId}`).once('value')
+    database.ref(`bill_numbers/${userStoreId}/${today}`).once('value')
         .then(snapshot => {
             const data = snapshot.val() || { counter: 0 };
             billNumberCounter = data.counter;
-            console.log("Loaded last bill number:", billNumberCounter);
+            console.log(`Loaded last bill number for ${today}:`, billNumberCounter);
         })
         .catch(error => {
-            console.error('Failed to load last bill number:', error);
+            console.error(`Failed to load bill number for ${today}:`, error);
             // 如果加载失败，使用默认值0
             billNumberCounter = 0;
         });
@@ -867,12 +950,13 @@ function generateBillNumber() {
     const year = today.getFullYear().toString(); // 使用完整年份
     const month = (today.getMonth() + 1).toString().padStart(2, '0');
     const day = today.getDate().toString().padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`; // 格式化日期为 YYYY-MM-DD
     
     // 增加计数器
     billNumberCounter++;
     
-    // 存储最新的计数器值
-    database.ref(`bill_numbers/${userStoreId}`).set({
+    // 存储最新的计数器值到当天的记录中
+    database.ref(`bill_numbers/${userStoreId}/${dateString}`).set({
         counter: billNumberCounter,
         last_updated: getCurrentDateTime()
     });
@@ -925,145 +1009,188 @@ function checkout() {
     checkoutBtn.disabled = true;
     checkoutBtn.innerHTML = '<i class="material-icons">hourglass_empty</i> Processing...';
     
-    // 生成账单号
-    const billNumber = generateBillNumber();
-    
-    // 准备销售数据
-    const subtotal = calculateSubtotal();
-    const total = subtotal - discount.amount;
-    const saleData = {
-        billNumber: billNumber,
-        items: cart.map(item => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            total: item.price * item.quantity
-        })),
-        subtotal: subtotal,
-        discount: {
-            type: discount.type,
-            value: discount.value,
-            amount: discount.amount
-        },
-        total_amount: total,
-        timestamp: getCurrentDateTime(),
-        cashierName: cashierName
-    };
-    
-    // 保存销售记录到数据库
-    saveSaleToDatabase(saleData)
-        .then(saleId => {
-            console.log('Sale record saved successfully:', saleId);
-            
-            // 更新商品库存
-            updateProductInventory(cart)
-                .then(() => {
-                    console.log('Product inventory updated successfully');
-                })
-                .catch(error => {
-                    console.error('Failed to update product inventory:', error);
-                });
-            
-            // 显示收据
-            showReceipt(saleData, saleId);
-            
-            // 清空购物车
-            cart = [];
-            renderCart();
-            
-            // 重置结账按钮
-            checkoutBtn.disabled = false;
-            checkoutBtn.innerHTML = '<i class="material-icons">shopping_cart_checkout</i> Checkout';
-        })
-        .catch(error => {
-            console.error('Failed to save sale record:', error);
-            alert('Failed to process the sale. Please try again.');
-            
-            // 重置结账按钮
-            checkoutBtn.disabled = false;
-            checkoutBtn.innerHTML = '<i class="material-icons">shopping_cart_checkout</i> Checkout';
-        });
+    try {
+        // 生成账单号
+        let billNumber = generateBillNumber();
+        
+        // 计算小计、折扣和总计
+        let subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        
+        // 根据折扣类型计算折扣金额
+        let discountValue = 0;
+        if (discountType === 'percent') {
+            discountValue = subtotal * (discountPercent / 100);
+        } else {
+            discountValue = Math.min(discountAmount, subtotal); // 确保折扣不超过小计
+        }
+        
+        let total = subtotal - discountValue;
+        
+        // 保存当前购物车的副本，以便在处理过程中避免被修改
+        let cartCopy = cart.map(item => ({...item}));
+        
+        // 准备销售数据
+        let saleData = {
+            billNumber: billNumber,
+            items: cartCopy.map(item => ({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity,
+                subtotal: item.price * item.quantity
+            })),
+            subtotal: subtotal,
+            discountType: discountType,
+            discountPercent: discountType === 'percent' ? discountPercent : 0,
+            discountAmount: discountValue,
+            total_amount: total,
+            cashierName: cashierName, // 添加收银员姓名
+            shiftInfo: {
+                cashierName: cashierName,
+                shiftTime: getCurrentDateTime()
+            }
+        };
+        
+        console.log("准备提交的销售数据:", saleData);
+        
+        // 获取店铺ID
+        let storeId = localStorage.getItem('store_id');
+        
+        // 清空购物车 - 在开始处理前就清空，避免任何可能的引用问题
+        let oldCart = [...cart];
+        cart = [];
+        renderCart();
+        
+        // 更新商品库存
+        updateProductInventory(storeId, oldCart)
+            .then(() => {
+                console.log("商品库存更新成功，正在添加销售记录...");
+                // 添加销售记录到数据库
+                return addSaleRecord(saleData);
+            })
+            .then(saleId => {
+                console.log('销售记录添加成功，ID:', saleId);
+                // 显示成功模态框
+                showSuccessModal(saleData, saleId);
+            })
+            .catch(error => {
+                console.error('结账处理失败:', error);
+                // 显示更详细的错误信息
+                let errorMsg = 'Checkout failed';
+                
+                if (error) {
+                    if (error.message) {
+                        errorMsg += `: ${error.message}`;
+                    } else if (typeof error === 'string') {
+                        errorMsg += `: ${error}`;
+                    } else {
+                        errorMsg += '. Check console for details.';
+                    }
+                }
+                
+                alert(errorMsg + '. Please try again.');
+                
+                // 尽管出错，仍然显示成功模态框，但提示用户数据可能未完全保存
+                let saleId = "ERROR-" + new Date().getTime();
+                showSuccessModal(saleData, saleId);
+                alert("注意: 销售记录可能未完全保存到数据库，但收据已生成。请保存收据以备参考。");
+            })
+            .finally(() => {
+                // 确保按钮恢复正常状态
+                checkoutBtn.disabled = false;
+                checkoutBtn.innerHTML = '<i class="material-icons">payment</i> Checkout';
+            });
+    } catch (error) {
+        console.error('结账过程中发生异常:', error);
+        alert(`An unexpected error occurred: ${error.message || 'Unknown error'}. Please try again.`);
+        checkoutBtn.disabled = false;
+        checkoutBtn.innerHTML = '<i class="material-icons">payment</i> Checkout';
+    }
 }
 
-// 显示收据
-function showReceipt(sale, saleId) {
-    // 准备收据内容
+// 显示结账成功模态框
+function showSuccessModal(saleData, saleId) {
+    const storeId = localStorage.getItem('store_id');
+    const storeName = storeData.name || 'Unknown Store';
+    const subtotal = saleData.subtotal;
+    const discountType = saleData.discountType || 'percent';
+    const discountPercent = saleData.discountPercent || 0;
+    const discountAmount = saleData.discountAmount || 0;
+    const totalAmount = saleData.total_amount;
+    const currentTime = getCurrentDateTime();
+    const billNumber = saleData.billNumber;
+    
     let receiptHTML = `
         <div class="receipt">
             <div class="receipt-header">
-                <h3>${storeData.name || 'Store'}</h3>
-                <p>Bill Number: ${sale.billNumber || 'N/A'}</p>
+                <h3>${storeName}</h3>
+                <p>Store ID: ${storeId}</p>
+                <p>Bill Number: ${billNumber}</p>
                 <p>Sale ID: ${saleId}</p>
-                <p>Time: ${sale.timestamp}</p>
-                <p>Cashier: ${sale.cashierName}</p>
+                <p>Time: ${currentTime}</p>
+                <p>Cashier: ${cashierName}</p>
             </div>
             <div class="receipt-items">
                 <table>
                     <thead>
                         <tr>
-                            <th>Item</th>
-                            <th>Price</th>
-                            <th>Qty</th>
-                            <th>Total</th>
+                            <th>Product</th>
+                            <th>Unit Price</th>
+                            <th>Quantity</th>
+                            <th>Subtotal</th>
                         </tr>
                     </thead>
                     <tbody>
     `;
     
-    // 添加购物车项目
-    sale.items.forEach(item => {
+    saleData.items.forEach(item => {
         receiptHTML += `
             <tr>
                 <td>${item.name}</td>
                 <td>RM${item.price.toFixed(2)}</td>
                 <td>${item.quantity}</td>
-                <td>RM${item.total.toFixed(2)}</td>
+                <td>RM${item.subtotal.toFixed(2)}</td>
             </tr>
         `;
     });
     
-    // 添加小计和总计信息
     receiptHTML += `
                     </tbody>
-                    <tfoot>
-                        <tr class="subtotal-row">
-                            <td colspan="3" class="text-right"><strong>Subtotal:</strong></td>
-                            <td>RM${sale.subtotal.toFixed(2)}</td>
-                        </tr>
+                </table>
+            </div>
+            <div class="receipt-summary">
+                <div class="summary-row">
+                    <p>Subtotal:</p>
+                    <p>RM${subtotal.toFixed(2)}</p>
+                </div>
     `;
     
-    // 如果有折扣，显示折扣信息
-    if (sale.discount && sale.discount.amount > 0) {
-        const discountText = sale.discount.type === 'percentage' ? 
-            `${sale.discount.value}%` : `RM${sale.discount.value.toFixed(2)}`;
-        
+    // 只有应用了折扣时才显示折扣信息
+    if (discountAmount > 0) {
+        const discountLabel = discountType === 'percent' ? `Discount (${discountPercent}%):` : 'Discount (Fixed):';
         receiptHTML += `
-                        <tr class="discount-row">
-                            <td colspan="3" class="text-right"><strong>Discount (${discountText}):</strong></td>
-                            <td>-RM${sale.discount.amount.toFixed(2)}</td>
-                        </tr>
+                <div class="summary-row discount">
+                    <p>${discountLabel}</p>
+                    <p>-RM${discountAmount.toFixed(2)}</p>
+                </div>
         `;
     }
     
-    // 添加总计金额
     receiptHTML += `
-                        <tr class="total-row">
-                            <td colspan="3" class="text-right"><strong>Total:</strong></td>
-                            <td>RM${sale.total_amount.toFixed(2)}</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-            <div class="receipt-footer">
-                <p>Thank you for your purchase!</p>
-                <p>Please come again</p>
+                <div class="summary-row total">
+                    <p>Total:</p>
+                    <p><strong>RM${totalAmount.toFixed(2)}</strong></p>
+                </div>
             </div>
         </div>
     `;
     
     receiptDetails.innerHTML = receiptHTML;
-    showModal(checkoutSuccessModal);
+    checkoutSuccessModal.style.display = 'block';
+    
+    // 重置结账按钮
+    checkoutBtn.disabled = false;
+    checkoutBtn.innerHTML = '<i class="material-icons">payment</i> Checkout';
 }
 
 // 打印小票
@@ -1103,9 +1230,6 @@ function newSale() {
 function clearCart() {
     cart = [];
     renderCart();
-    
-    // 重置折扣
-    removeDiscount();
 }
 
 // 更新当前日期时间
@@ -1620,111 +1744,4 @@ function getCurrentDateTime() {
     const seconds = String(now.getSeconds()).padStart(2, '0');
     
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-}
-
-// 显示/隐藏折扣选项
-function toggleDiscountOptions() {
-    if (discountOptions.style.display === 'none' || discountOptions.style.display === '') {
-        discountOptions.style.display = 'block';
-        discountToggleBtn.innerHTML = '<i class="material-icons">remove</i> Hide Discount';
-    } else {
-        discountOptions.style.display = 'none';
-        discountToggleBtn.innerHTML = '<i class="material-icons">add</i> Add Discount';
-    }
-}
-
-// 应用折扣
-function applyDiscount() {
-    const type = discountTypeSelect.value;
-    const value = parseFloat(discountValueInput.value);
-    
-    // 验证输入
-    if (isNaN(value) || value <= 0) {
-        alert('Please enter a valid discount value greater than 0');
-        return;
-    }
-    
-    // 计算购物车总额（不含折扣）
-    const subtotal = calculateSubtotal();
-    
-    // 根据折扣类型计算折扣金额
-    let discountValue = 0;
-    
-    if (type === 'percentage') {
-        // 百分比折扣
-        if (value > 100) {
-            alert('Percentage discount cannot exceed 100%');
-            return;
-        }
-        
-        discountValue = (subtotal * value) / 100;
-    } else if (type === 'fixed') {
-        // 固定金额折扣
-        if (value > subtotal) {
-            alert('Fixed discount cannot exceed the subtotal');
-            return;
-        }
-        
-        discountValue = value;
-    }
-    
-    // 更新折扣对象
-    discount = {
-        type: type,
-        value: value,
-        amount: discountValue
-    };
-    
-    // 更新UI
-    discountLine.style.display = 'flex';
-    discountAmount.textContent = `RM${discountValue.toFixed(2)}`;
-    
-    // 重新渲染购物车以更新总额
-    renderCart();
-}
-
-// 移除折扣
-function removeDiscount() {
-    // 重置折扣对象
-    discount = {
-        type: 'none',
-        value: 0,
-        amount: 0
-    };
-    
-    // 更新UI
-    discountLine.style.display = 'none';
-    discountAmount.textContent = 'RM0.00';
-    
-    // 重新渲染购物车以更新总额
-    renderCart();
-    
-    // 重置输入字段
-    discountTypeSelect.value = 'percentage';
-    discountValueInput.value = '';
-}
-
-// 计算购物车小计（不含折扣）
-function calculateSubtotal() {
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    
-    // 更新小计显示（如果元素存在）
-    if (cartSubtotal) {
-        cartSubtotal.textContent = `RM${subtotal.toFixed(2)}`;
-    }
-    
-    return subtotal;
-}
-
-// 保存销售记录到数据库
-function saveSaleToDatabase(saleData) {
-    const storeId = localStorage.getItem('store_id');
-    const dateString = getFormattedDate(new Date());
-    const saleRef = database.ref(`sales/${storeId}/${dateString}`).push();
-    
-    return saleRef.set(saleData)
-        .then(() => {
-            console.log('Sale record saved with ID:', saleRef.key);
-            return saleRef.key;
-        });
 } 

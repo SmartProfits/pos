@@ -19,69 +19,111 @@ function getCurrentDateTime() {
 
 // 添加销售记录到数据库
 function addSaleRecord(saleData) {
+    console.log("开始添加销售记录", saleData);
     return new Promise((resolve, reject) => {
-        // 获取当前用户
-        const user = JSON.parse(localStorage.getItem('user'));
-        if (!user) {
-            reject(new Error('用户未登录'));
-            return;
-        }
-
-        const storeId = localStorage.getItem('store_id');
-        if (!storeId) {
-            reject(new Error('未找到店铺ID'));
-            return;
-        }
-
-        // 创建销售记录对象
-        const currentDate = getCurrentDate();
-        const currentDateTime = getCurrentDateTime();
-        const saleRecord = {
-            billNumber: saleData.billNumber,
-            store_id: storeId,
-            items: saleData.items,
-            total_amount: saleData.totalAmount,
-            date: currentDate,
-            timestamp: currentDateTime,
-            staff_id: user.uid,
-            cashierName: saleData.cashierName || 'Unknown',
-            shiftInfo: saleData.shiftInfo || {
-                cashierName: saleData.cashierName || 'Unknown',
-                shiftTime: currentDateTime
+        try {
+            // 获取当前用户
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (!user || !user.uid) {
+                console.error("添加销售记录失败: 用户未登录");
+                reject(new Error('用户未登录'));
+                return;
             }
-        };
 
-        // 生成唯一的销售记录ID
-        const saleId = database.ref().child('sales').push().key;
-        
-        // 创建一个批量更新对象
-        const updates = {};
-        
-        // 更新销售记录
-        updates[`sales/${saleId}`] = saleRecord;
-        
-        // 更新店铺当天销售统计
-        // 使用事务来确保数据一致性
-        const dailySaleRef = database.ref(`daily_sales/${storeId}/${currentDate}`);
-        
-        dailySaleRef.transaction((currentData) => {
-            if (currentData === null) {
-                return {
-                    total_sales: saleData.totalAmount,
-                    transaction_count: 1
-                };
-            } else {
-                return {
-                    total_sales: currentData.total_sales + saleData.totalAmount,
-                    transaction_count: currentData.transaction_count + 1
-                };
+            const storeId = localStorage.getItem('store_id');
+            if (!storeId) {
+                console.error("添加销售记录失败: 未找到店铺ID");
+                reject(new Error('未找到店铺ID'));
+                return;
             }
-        }).then(() => {
+
+            // 使用JSON序列化和反序列化创建深度副本
+            const saleDataCopy = JSON.parse(JSON.stringify(saleData));
+            
+            // 确保total_amount值存在
+            if (saleDataCopy.total_amount === undefined && saleDataCopy.totalAmount !== undefined) {
+                console.log("兼容模式: 使用totalAmount替代total_amount");
+                saleDataCopy.total_amount = saleDataCopy.totalAmount;
+            } else if (saleDataCopy.total_amount === undefined) {
+                console.error("错误: sale_data中缺少total_amount");
+                reject(new Error('销售数据缺少total_amount'));
+                return;
+            }
+
+            // 创建销售记录对象
+            const currentDate = getCurrentDate();
+            const currentDateTime = getCurrentDateTime();
+            const saleRecord = {
+                billNumber: saleDataCopy.billNumber,
+                store_id: storeId,
+                items: saleDataCopy.items, // 已经是深度副本
+                total_amount: saleDataCopy.total_amount,
+                subtotal: saleDataCopy.subtotal || saleDataCopy.total_amount,
+                discountType: saleDataCopy.discountType || 'percent',
+                discountPercent: saleDataCopy.discountPercent || 0,
+                discountAmount: saleDataCopy.discountAmount || 0,
+                date: currentDate,
+                timestamp: currentDateTime,
+                staff_id: user.uid,
+                cashierName: saleDataCopy.cashierName || 'Unknown',
+                shiftInfo: {
+                    cashierName: saleDataCopy.cashierName || 'Unknown',
+                    shiftTime: currentDateTime
+                }
+            };
+
+            console.log("准备添加的销售记录对象:", saleRecord);
+
+            // 生成唯一的销售记录ID
+            const saleId = database.ref().child('sales').push().key;
+            
+            // 创建一个批量更新对象
+            const updates = {};
+            
+            // 更新销售记录
+            updates[`sales/${saleId}`] = saleRecord;
+            
+            // 确保使用correct的total_amount值更新统计
+            const totalAmount = saleDataCopy.total_amount;
+            
+            // 直接更新数据 - 避免使用事务，可能导致错误
+            console.log("执行批量更新:", updates);
+            
+            // 使用单独的变量存储统计更新
+            let dailySalesUpdate;
+            
             // 执行批量更新
             database.ref().update(updates)
-                .then(() => resolve(saleId))
-                .catch(error => reject(error));
-        }).catch(error => reject(error));
+                .then(() => {
+                    // 成功添加销售记录后，再更新每日销售统计
+                    console.log("销售记录添加成功，ID:", saleId);
+                    
+                    // 获取当前的每日销售统计
+                    return database.ref(`daily_sales/${storeId}/${currentDate}`).once('value');
+                })
+                .then(snapshot => {
+                    const dailyData = snapshot.val() || { total_sales: 0, transaction_count: 0 };
+                    
+                    // 更新每日销售统计
+                    dailySalesUpdate = {
+                        total_sales: Number(dailyData.total_sales || 0) + Number(totalAmount || 0),
+                        transaction_count: Number(dailyData.transaction_count || 0) + 1
+                    };
+                    
+                    return database.ref(`daily_sales/${storeId}/${currentDate}`).set(dailySalesUpdate);
+                })
+                .then(() => {
+                    console.log("每日销售统计更新成功", dailySalesUpdate);
+                    resolve(saleId);
+                })
+                .catch(error => {
+                    console.error("销售记录或统计更新失败:", error);
+                    reject(error);
+                });
+        } catch (error) {
+            console.error("添加销售记录过程中发生异常:", error);
+            reject(error);
+        }
     });
 }
 

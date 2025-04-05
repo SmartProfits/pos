@@ -69,41 +69,11 @@
                     </div>
                     
                     <div class="cart-container">
-                        <h3>Shopping Cart</h3>
-                        <div id="cartItems"></div>
-                        <div class="discount-section">
-                            <div class="discount-toggle">
-                                <button id="discountToggleBtn"><i class="material-icons">add</i> Add Discount</button>
-                            </div>
-                            <div id="discountOptions" class="discount-options" style="display: none;">
-                                <div class="form-group">
-                                    <label for="discountType">Discount Type:</label>
-                                    <select id="discountType">
-                                        <option value="percentage">Percentage (%)</option>
-                                        <option value="fixed">Fixed Amount (RM)</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="discountValue">Value:</label>
-                                    <input type="number" id="discountValue" min="0" step="0.01" placeholder="Enter value">
-                                </div>
-                                <div class="discount-buttons">
-                                    <button id="applyDiscountBtn" class="apply-discount-btn"><i class="material-icons">check</i> Apply</button>
-                                    <button id="removeDiscountBtn" class="remove-discount-btn"><i class="material-icons">close</i> Remove</button>
-                                </div>
-                            </div>
+                        <h2><i class="material-icons">shopping_cart</i> Cart</h2>
+                        <div class="cart-items" id="cartItems">
+                            <!-- Cart items will be loaded dynamically by JavaScript -->
                         </div>
-                        <div class="cart-subtotals">
-                            <div class="subtotal-line">
-                                <span>Subtotal:</span>
-                                <span id="cartSubtotal">RM0.00</span>
-                            </div>
-                            <div class="subtotal-line discount-line" id="discountLine" style="display: none;">
-                                <span id="discountLabel">Discount:</span>
-                                <span id="discountAmount">-RM0.00</span>
-                            </div>
-                        </div>
-                        <div class="cart-total">Total: <span id="cartTotal">RM0.00</span></div>
+                        <div class="cart-total">Total: <span id="cartTotal">$0.00</span></div>
                         <button id="checkoutBtn" class="checkout-btn"><i class="material-icons">payment</i> Checkout</button>
                         <button id="clearCartBtn"><i class="material-icons">remove_shopping_cart</i> Clear Cart</button>
                     </div>
@@ -112,28 +82,30 @@
             
             <!-- Sales History View -->
             <div id="salesHistoryView" class="view">
-                <div class="history-controls">
-                    <div class="date-filter">
-                        <label for="dateFilter">Select Date:</label>
-                        <input type="date" id="dateFilter" value="">
-                    </div>
+                <div class="filter-container">
+                    <label for="dateFilter"><i class="material-icons">event</i> Date:</label>
+                    <input type="date" id="dateFilter" value="">
+                    
                     <button id="refreshSalesBtn"><i class="material-icons">refresh</i> Refresh</button>
                 </div>
-                <div class="sales-table-container">
-                    <table class="sales-table">
+                
+                <h2>Sales History</h2>
+                <div class="sale-details-container">
+                    <table id="salesTable">
                         <thead>
                             <tr>
-                                <th>Bill #</th>
+                                <th>Bill Number</th>
                                 <th>Sale ID</th>
                                 <th>Time</th>
                                 <th>Cashier</th>
                                 <th>Items</th>
-                                <th>Discount</th>
                                 <th>Total</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="salesTableBody"></tbody>
+                        <tbody id="salesTableBody">
+                            <!-- Sales records will be loaded dynamically -->
+                        </tbody>
                     </table>
                 </div>
             </div>

@@ -174,6 +174,17 @@ function initEventListeners() {
         });
     });
     
+    // 销售详情模态框关闭按钮
+    const saleDetailModal = document.getElementById('saleDetailModal');
+    if (saleDetailModal) {
+        const saleDetailCloseBtn = saleDetailModal.querySelector('.close');
+        if (saleDetailCloseBtn) {
+            saleDetailCloseBtn.addEventListener('click', () => {
+                hideModal(saleDetailModal);
+            });
+        }
+    }
+    
     // 库存管理相关事件监听
     inventoryStoreFilter.addEventListener('change', loadInventory);
     inventoryCategoryFilter.addEventListener('change', loadInventory);
@@ -345,7 +356,7 @@ function renderStores() {
 }
 
 // 填充店铺下拉菜单
-能function populateStoreDropdowns() {
+function populateStoreDropdowns() {
     // 清空并重新填充店铺过滤器
     const dropdowns = [storeFilter, productStoreFilter, productStoreId, userStoreId, inventoryStoreFilter];
     
@@ -528,6 +539,16 @@ function renderSaleDetails(sales) {
         const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0);
         const cashierName = sale.cashierName || 'N/A';
         
+        // 计算折扣信息的显示
+        let discountInfo = '';
+        if (sale.discountAmount > 0) {
+            const discountType = sale.discountType || 'percent';
+            const discountIcon = discountType === 'percent' ? '%' : '$';
+            discountInfo = ` <span class="discount-info" title="${discountType === 'percent' ? `${sale.discountPercent}% discount` : 'Fixed discount'}">
+                <i class="material-icons" style="font-size: 16px; color: #e53935;">local_offer</i>${discountIcon}
+            </span>`;
+        }
+        
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${sale.billNumber || 'N/A'}</td>
@@ -535,7 +556,7 @@ function renderSaleDetails(sales) {
             <td>${sale.timestamp}</td>
             <td>${cashierName}</td>
             <td>${itemCount}</td>
-            <td>RM${sale.total_amount.toFixed(2)}</td>
+            <td>RM${sale.total_amount.toFixed(2)}${discountInfo}</td>
             <td><button class="view-details-btn" data-id="${saleId}">View</button></td>
         `;
         
@@ -551,52 +572,66 @@ function renderSaleDetails(sales) {
     });
 }
 
-// 显示销售详情模态框
+// 显示销售详情
 function showSaleDetails(sale) {
-    const saleDetailModal = document.getElementById('saleDetailModal');
-    const saleDetailContent = document.getElementById('saleDetailContent');
-    
     const storeName = stores[sale.store_id]?.name || sale.store_id;
-    const cashierName = sale.cashierName || 'N/A';
+    const saleDetailModal = document.getElementById('saleDetailModal');
     
-    let detailsHTML = `
-        <div class="sale-detail-header">
-            <p><strong>Bill Number:</strong> ${sale.billNumber || 'N/A'}</p>
-            <p><strong>Store:</strong> ${storeName}</p>
-            <p><strong>Time:</strong> ${sale.timestamp}</p>
-            <p><strong>Cashier:</strong> ${cashierName}</p>
-            ${sale.shiftInfo ? `<p><strong>Shift started at:</strong> ${sale.shiftInfo.shiftTime || 'N/A'}</p>` : ''}
-            <p><strong>Total Amount:</strong> RM${sale.total_amount.toFixed(2)}</p>
-        </div>
-        <table class="sale-detail-table">
-            <thead>
-                <tr>
-                    <th>Product</th>
-                    <th>Unit Price</th>
-                    <th>Quantity</th>
-                    <th>Subtotal</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+    // 设置销售详情的基本信息
+    document.getElementById('sale-detail-bill').textContent = sale.billNumber || 'N/A';
+    document.getElementById('sale-detail-store').textContent = storeName;
+    document.getElementById('sale-detail-date').textContent = sale.timestamp;
+    document.getElementById('sale-detail-cashier').textContent = sale.cashierName || 'N/A';
+    
+    // 渲染商品列表
+    const detailsBody = document.getElementById('sale-details-items');
+    detailsBody.innerHTML = '';
     
     sale.items.forEach(item => {
-        detailsHTML += `
-            <tr>
-                <td>${item.name}</td>
-                <td>RM${item.price.toFixed(2)}</td>
-                <td>${item.quantity}</td>
-                <td>RM${item.subtotal.toFixed(2)}</td>
-            </tr>
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${item.name}</td>
+            <td>${item.quantity}</td>
+            <td>RM${item.price.toFixed(2)}</td>
+            <td>RM${(item.quantity * item.price).toFixed(2)}</td>
         `;
+        detailsBody.appendChild(row);
     });
     
-    detailsHTML += `
-            </tbody>
-        </table>
-    `;
+    // 显示总计、折扣和小计
+    const summaryContainer = document.getElementById('sale-detail-footer');
+    summaryContainer.innerHTML = '';
     
-    saleDetailContent.innerHTML = detailsHTML;
+    // 创建小计、折扣和总计的容器
+    const summaryDiv = document.createElement('div');
+    summaryDiv.className = 'sale-detail-summary';
+    
+    // 如果有小计信息（为了向后兼容检查是否存在）
+    if (sale.subtotal) {
+        const subtotalP = document.createElement('p');
+        subtotalP.innerHTML = `Subtotal: <strong>RM${sale.subtotal.toFixed(2)}</strong>`;
+        summaryDiv.appendChild(subtotalP);
+        
+        // 如果有折扣信息
+        if (sale.discountAmount > 0) {
+            const discountP = document.createElement('p');
+            if (sale.discountType === 'percent') {
+                discountP.innerHTML = `Discount (${sale.discountPercent}%): <strong>-RM${sale.discountAmount.toFixed(2)}</strong>`;
+            } else {
+                discountP.innerHTML = `Discount (Fixed): <strong>-RM${sale.discountAmount.toFixed(2)}</strong>`;
+            }
+            summaryDiv.appendChild(discountP);
+        }
+    }
+    
+    // 总计信息
+    const totalP = document.createElement('p');
+    totalP.innerHTML = `<strong>Total: RM${sale.total_amount.toFixed(2)}</strong>`;
+    summaryDiv.appendChild(totalP);
+    
+    summaryContainer.appendChild(summaryDiv);
+    
+    // 显示模态框
     showModal(saleDetailModal);
 }
 

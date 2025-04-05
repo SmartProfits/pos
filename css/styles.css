@@ -764,115 +764,136 @@ tr:hover {
     background-color: #f1f1f1;
 }
 
-/* 折扣样式 */
-.discount-section {
-    margin: 10px 0;
-    border-top: 1px dashed #ddd;
-    padding-top: 10px;
+/* 折扣功能样式 */
+.cart-discount {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
 }
 
-.discount-toggle button {
-    background-color: transparent;
-    border: 1px solid #4caf50;
-    color: #4caf50;
-    border-radius: 4px;
-    padding: 5px 10px;
-    cursor: pointer;
+.discount-type-selector {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.discount-type-selector label {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 100%;
-    transition: all 0.3s;
+    gap: 5px;
+    cursor: pointer;
 }
 
-.discount-toggle button:hover {
-    background-color: #e8f5e9;
-}
-
-.discount-toggle button i {
-    margin-right: 5px;
-}
-
-.discount-options {
-    margin-top: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 10px;
-    background-color: #f9f9f9;
-}
-
-.discount-options .form-group {
-    margin-bottom: 10px;
-}
-
-.discount-options label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
-}
-
-.discount-options select,
-.discount-options input {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-.discount-buttons {
+.discount-control {
     display: flex;
+    align-items: center;
     gap: 10px;
-    margin-top: 10px;
 }
 
-.apply-discount-btn {
+.discount-control.hidden {
+    display: none;
+}
+
+.discount-control label {
+    font-weight: bold;
+}
+
+.discount-control input {
+    width: 70px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.discount-control button {
     background-color: #4caf50;
     color: white;
     border: none;
     border-radius: 4px;
     padding: 5px 10px;
     cursor: pointer;
-    flex: 1;
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 5px;
 }
 
-.remove-discount-btn {
-    background-color: #f44336;
-    color: white;
-    border: none;
+.discount-control button:hover {
+    background-color: #388e3c;
+}
+
+.cart-summary {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
     border-radius: 4px;
-    padding: 5px 10px;
-    cursor: pointer;
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
-.discount-buttons button i {
-    margin-right: 5px;
-}
-
-.cart-subtotals {
-    margin: 10px 0;
-    border-top: 1px solid #ddd;
-    padding-top: 10px;
-}
-
-.subtotal-line {
+.summary-row {
     display: flex;
     justify-content: space-between;
     margin-bottom: 5px;
 }
 
-.discount-line {
-    color: #f44336;
-    font-weight: 500;
+.summary-row.discount {
+    color: #e53935;
 }
 
-.discount-applied {
-    color: #f44336;
-    font-weight: 500;
+.summary-row.total {
+    font-weight: bold;
+    font-size: 1.2em;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #ddd;
+}
+
+/* Sale Detail Modal Styles */
+.sale-detail-header {
+    margin-bottom: 20px;
+    background-color: #f5f5f5;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.sale-detail-header p {
+    margin: 5px 0;
+}
+
+.sale-detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.sale-detail-table th, .sale-detail-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.sale-detail-table th {
+    background-color: #f5f5f5;
+}
+
+.sale-detail-summary {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+}
+
+.sale-detail-summary p {
+    margin: 8px 0;
+    text-align: right;
+    font-size: 14px;
+}
+
+.sale-detail-summary p:last-child {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #ddd;
+    font-size: 16px;
+    font-weight: bold;
 } 
