@@ -1,0 +1,17 @@
+{
+  "name": "SmartProfits POS",
+  "short_name": "POS",
+  "description": "Point of Sale System with Inventory Management",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007bff",
+  "icons": [
+    {
+      "src": "icons/pos-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+} 

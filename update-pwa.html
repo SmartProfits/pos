@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS系统 - PWA更新管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #007bff;
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .code-box {
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: monospace;
+        }
+        .info {
+            background: #e9f5ff;
+            border-left: 4px solid #007bff;
+            padding: 10px 15px;
+            margin: 15px 0;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 10px 15px;
+            margin: 15px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>POS系统 - PWA更新管理</h1>
+        
+        <div class="info">
+            <p>当前PWA缓存版本: <span id="currentVersion">正在检查...</span></p>
+        </div>
+        
+        <div class="form-group">
+            <label for="newVersion">新版本名称:</label>
+            <input type="text" id="newVersion" placeholder="例如: pos-system-v2">
+        </div>
+        
+        <button id="updateBtn">生成更新代码</button>
+        
+        <div class="success" id="successMessage">
+            <p>代码已生成！请复制下面的代码，替换sw.js文件中的第一行。</p>
+        </div>
+        
+        <div class="code-box" id="codeOutput">
+            <!-- 这里将显示生成的代码 -->
+        </div>
+        
+        <h2>使用说明</h2>
+        <ol>
+            <li>输入新的缓存版本名称（例如：pos-system-v2）</li>
+            <li>点击"生成更新代码"按钮</li>
+            <li>复制生成的代码，替换sw.js文件中的第一行</li>
+            <li>保存并上传新的sw.js文件</li>
+            <li>用户下次访问网站时将自动更新到新版本</li>
+        </ol>
+        
+        <div class="info">
+            <p><strong>注意:</strong> 更改缓存版本名称会导致所有用户重新下载网站资源。请确保在发布新功能或修复严重错误时才这样做。</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 尝试从service worker获取当前缓存版本
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistration()
+                    .then(reg => {
+                        if (reg && reg.active) {
+                            // 读取sw.js文件内容
+                            fetch('sw.js')
+                                .then(response => response.text())
+                                .then(text => {
+                                    // 解析第一行来获取缓存版本
+                                    const match = text.match(/const CACHE_NAME = ['"](.+)['"]/);
+                                    if (match && match[1]) {
+                                        document.getElementById('currentVersion').textContent = match[1];
+                                    } else {
+                                        document.getElementById('currentVersion').textContent = '无法检测';
+                                    }
+                                })
+                                .catch(err => {
+                                    document.getElementById('currentVersion').textContent = '无法检测 (错误)';
+                                    console.error('无法读取sw.js文件:', err);
+                                });
+                        } else {
+                            document.getElementById('currentVersion').textContent = '未激活的Service Worker';
+                        }
+                    })
+                    .catch(err => {
+                        document.getElementById('currentVersion').textContent = '无法检测';
+                        console.error('检查Service Worker时出错:', err);
+                    });
+            } else {
+                document.getElementById('currentVersion').textContent = '浏览器不支持Service Worker';
+            }
+
+            // 更新按钮事件处理
+            document.getElementById('updateBtn').addEventListener('click', function() {
+                const newVersion = document.getElementById('newVersion').value.trim();
+                if (!newVersion) {
+                    alert('请输入新的版本名称');
+                    return;
+                }
+                
+                // 生成代码
+                const code = `const CACHE_NAME = '${newVersion}';`;
+                document.getElementById('codeOutput').textContent = code;
+                document.getElementById('successMessage').style.display = 'block';
+                
+                // 选中生成的代码，方便复制
+                const range = document.createRange();
+                range.selectNode(document.getElementById('codeOutput'));
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+            });
+        });
+    </script>
+    <script src="js/update-notification.js"></script>
+</body>
+</html> 
