@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pos-system-v3';
+const CACHE_NAME = 'pos-system-v4';
 // 增加版本号以便于识别更新
 const APP_VERSION = '1.0.0'; 
 const urlsToCache = [
