@@ -1,4 +1,6 @@
 const CACHE_NAME = 'pos-system-v3';
+// 增加版本号以便于识别更新
+const APP_VERSION = '1.0.0'; 
 const urlsToCache = [
   '/',
   '/index.html',
@@ -45,12 +47,12 @@ self.addEventListener('activate', event => {
       // 确保service worker立即控制所有客户端页面
       console.log('新版本已激活: ' + CACHE_NAME);
       
-      // 向所有客户端发送更新消息
+      // 通知所有客户端页面已更新
       self.clients.matchAll().then(clients => {
         clients.forEach(client => {
           client.postMessage({
-            type: 'APP_UPDATE',
-            version: CACHE_NAME
+            type: 'UPDATE_AVAILABLE',
+            version: APP_VERSION
           });
         });
       });
@@ -93,4 +95,11 @@ self.addEventListener('fetch', event => {
         );
       })
   );
+});
+
+// 监听来自客户端的消息
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 }); 
