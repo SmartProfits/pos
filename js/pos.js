@@ -317,7 +317,13 @@ function initEventListeners() {
     
     // 添加商品按钮事件监听
     if (addProductBtn) {
-        addProductBtn.addEventListener('click', () => showModal(addProductModal));
+        addProductBtn.addEventListener('click', () => {
+            // 生成自动产品ID并显示模态框
+            generateProductId().then(productId => {
+                document.getElementById('productId').value = productId;
+                showModal(addProductModal);
+            });
+        });
     }
     
     // 添加商品表单提交事件
@@ -664,12 +670,60 @@ function deleteSale() {
     deleteSaleBtn.disabled = true;
     deleteSaleBtn.innerHTML = '<i class="material-icons">hourglass_empty</i> Deleting...';
     
-    // 从数据库删除销售记录
-    database.ref(`sales/${currentSaleId}`).remove()
+    // 获取销售记录的完整信息以便恢复库存
+    const sale = salesData[currentSaleId];
+    if (!sale || !sale.items || sale.items.length === 0) {
+        alert('Cannot retrieve sale details. Operation aborted.');
+        deleteSaleBtn.disabled = false;
+        deleteSaleBtn.innerHTML = '<i class="material-icons">delete</i> Delete';
+        return;
+    }
+    
+    const userStoreId = localStorage.getItem('store_id');
+    if (!userStoreId) {
+        alert('Store ID not found. Operation aborted.');
+        deleteSaleBtn.disabled = false;
+        deleteSaleBtn.innerHTML = '<i class="material-icons">delete</i> Delete';
+        return;
+    }
+    
+    // 准备库存更新
+    const updates = {};
+    
+    // 为每个商品恢复库存
+    sale.items.forEach(item => {
+        if (item.id && item.quantity) {
+            updates[`store_products/${userStoreId}/${item.id}/stock`] = firebase.database.ServerValue.increment(item.quantity);
+            
+            // 为每个恢复的商品添加库存记录
+            const historyEntry = {
+                timestamp: getCurrentDateTime(),
+                previous_stock: products[item.id] ? (products[item.id].stock || 0) : 0,
+                new_stock: products[item.id] ? (products[item.id].stock || 0) + item.quantity : item.quantity,
+                operation: 'add',
+                quantity: item.quantity,
+                reason: 'Sale Deleted',
+                notes: `Automatic inventory restoration from deleted sale ${currentSaleId}`,
+                cashier: cashierName || 'Unknown',
+                user_id: JSON.parse(localStorage.getItem('user') || '{}').uid || 'unknown'
+            };
+            
+            // 生成唯一ID
+            const historyId = database.ref().child(`stock_history/${userStoreId}/${item.id}`).push().key;
+            updates[`stock_history/${userStoreId}/${item.id}/${historyId}`] = historyEntry;
+        }
+    });
+    
+    // 删除销售记录并更新库存
+    Promise.all([
+        database.ref(`sales/${currentSaleId}`).remove(),
+        database.ref().update(updates)
+    ])
         .then(() => {
-            alert('Sale deleted successfully!');
+            alert('Sale deleted successfully and inventory restored!');
             hideModal(saleDetailModal);
             loadSalesHistory(selectedDate); // 重新加载销售记录
+            loadProducts(userStoreId); // 重新加载产品数据以更新库存显示
         })
         .catch(error => {
             console.error('Failed to delete sale:', error);
@@ -1757,6 +1811,43 @@ function getCurrentDateTime() {
     const seconds = String(now.getSeconds()).padStart(2, '0');
     
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+// 获取上一个产品ID序列号并生成新的产品ID
+function generateProductId() {
+    const userStoreId = localStorage.getItem('store_id');
+    if (!userStoreId) {
+        return Promise.reject('Store ID not found');
+    }
+    
+    // 获取店铺前缀
+    let storePrefix = storeData.name || userStoreId;
+    // 移除空格并转为大写
+    storePrefix = storePrefix.replace(/\s+/g, '').toUpperCase();
+    // 不再限制名称长度，使用完整的店铺名称
+    
+    // 获取当前最高序列号
+    return database.ref(`product_sequences/${userStoreId}`).once('value')
+        .then(snapshot => {
+            let sequence = 1; // 默认从1开始
+            
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                sequence = (data.last_sequence || 0) + 1;
+            }
+            
+            // 更新序列号
+            database.ref(`product_sequences/${userStoreId}`).set({
+                last_sequence: sequence,
+                last_updated: getCurrentDateTime()
+            });
+            
+            // 生成5位数序列号，左填充0
+            const sequenceStr = sequence.toString().padStart(5, '0');
+            
+            // 返回完整的产品ID
+            return `${storePrefix}${sequenceStr}`;
+        });
 }
 
 // 处理添加商品表单提交
