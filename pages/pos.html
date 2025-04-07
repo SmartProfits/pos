@@ -130,6 +130,7 @@
                 </div>
                 
                 <h2>Store Inventory</h2>
+                <button id="addProductBtn"><i class="material-icons">add</i> Add Product</button>
                 <div class="inventory-container">
                     <table id="inventoryTable">
                         <thead>
@@ -261,6 +262,37 @@
             <div id="stockHistoryContent">
                 <div class="loading"><i class="material-icons">hourglass_empty</i> Loading history...</div>
             </div>
+        </div>
+    </div>
+    
+    <!-- Add Product Modal -->
+    <div id="addProductModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">add_shopping_cart</i> Add Product</h2>
+            <form id="addProductForm">
+                <div class="form-group">
+                    <label for="productId"><i class="material-icons">tag</i> Product ID:</label>
+                    <input type="text" id="productId" required>
+                </div>
+                <div class="form-group">
+                    <label for="productName"><i class="material-icons">inventory</i> Product Name:</label>
+                    <input type="text" id="productName" required>
+                </div>
+                <div class="form-group">
+                    <label for="productPrice"><i class="material-icons">attach_money</i> Price:</label>
+                    <input type="number" id="productPrice" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="productQuantity"><i class="material-icons">inventory_2</i> Stock:</label>
+                    <input type="number" id="productQuantity" min="0" value="0">
+                </div>
+                <div class="form-group">
+                    <label for="productCategory"><i class="material-icons">category</i> Category:</label>
+                    <input type="text" id="productCategory">
+                </div>
+                <button type="submit"><i class="material-icons">save</i> Save</button>
+            </form>
         </div>
     </div>
     

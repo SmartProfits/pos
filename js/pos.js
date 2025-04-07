@@ -67,6 +67,9 @@ const updateStockModal = document.getElementById('updateStockModal');
 const updateStockForm = document.getElementById('updateStockForm');
 const stockHistoryModal = document.getElementById('stockHistoryModal');
 const stockHistoryContent = document.getElementById('stockHistoryContent');
+const addProductBtn = document.getElementById('addProductBtn');
+const addProductModal = document.getElementById('addProductModal');
+const addProductForm = document.getElementById('addProductForm');
 
 // 页面加载时初始化
 window.addEventListener('DOMContentLoaded', () => {
@@ -310,6 +313,16 @@ function initEventListeners() {
     }
     if (updateStockForm) {
         updateStockForm.addEventListener('submit', handleUpdateStock);
+    }
+    
+    // 添加商品按钮事件监听
+    if (addProductBtn) {
+        addProductBtn.addEventListener('click', () => showModal(addProductModal));
+    }
+    
+    // 添加商品表单提交事件
+    if (addProductForm) {
+        addProductForm.addEventListener('submit', handleAddProduct);
     }
 }
 
@@ -1744,4 +1757,55 @@ function getCurrentDateTime() {
     const seconds = String(now.getSeconds()).padStart(2, '0');
     
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+// 处理添加商品表单提交
+function handleAddProduct(e) {
+    e.preventDefault();
+    
+    const userStoreId = localStorage.getItem('store_id');
+    if (!userStoreId) {
+        alert('Store ID not found. Please refresh the page.');
+        return;
+    }
+    
+    const productIdInput = document.getElementById('productId');
+    const productNameInput = document.getElementById('productName');
+    const productPriceInput = document.getElementById('productPrice');
+    const productQuantityInput = document.getElementById('productQuantity');
+    const productCategoryInput = document.getElementById('productCategory');
+    
+    const productId = productIdInput.value.trim();
+    const name = productNameInput.value.trim();
+    const price = parseFloat(productPriceInput.value);
+    const stock = parseInt(productQuantityInput.value) || 0;
+    const category = productCategoryInput.value.trim();
+    
+    if (!productId || !name || isNaN(price)) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    // 添加商品到数据库
+    const productData = {
+        name,
+        price,
+        stock,
+        category: category || '',
+        store_id: userStoreId
+    };
+    
+    database.ref(`store_products/${userStoreId}/${productId}`).set(productData)
+        .then(() => {
+            hideModal(addProductModal);
+            // 重置表单
+            addProductForm.reset();
+            // 刷新商品列表
+            loadProducts(userStoreId);
+            alert('Product added successfully!');
+        })
+        .catch(error => {
+            console.error('Failed to add product:', error);
+            alert('Failed to add product. Please try again.');
+        });
 } 
