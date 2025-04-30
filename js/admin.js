@@ -8,6 +8,8 @@ let stores = {}; // 存储店铺数据
 let products = {}; // 存储商品数据
 let users = {}; // 存储用户数据
 let selectedDate = getCurrentDate(); // 默认选择当前日期
+let selectedStoreId = 'all'; // 默认选择所有店铺
+let selectedStoreInDashboard = null; // 仪表盘中当前选择的店铺
 
 // DOM元素
 const adminName = document.getElementById('adminName');
@@ -15,13 +17,20 @@ const currentDateTime = document.getElementById('currentDateTime');
 const viewTitle = document.getElementById('viewTitle');
 const navItems = document.querySelectorAll('.nav-item');
 const views = document.querySelectorAll('.view');
+const storesSubmenu = document.getElementById('storesSubmenu');
 
 // 统计面板DOM元素
 const dateFilter = document.getElementById('dateFilter');
-const storeFilter = document.getElementById('storeFilter');
+const storeButtons = document.getElementById('storeButtons');
 const refreshStatsBtn = document.getElementById('refreshStatsBtn');
+const viewSalesSummaryBtn = document.getElementById('viewSalesSummaryBtn');
 const statsContainer = document.getElementById('statsContainer');
 const saleDetailsBody = document.getElementById('saleDetailsBody');
+const salesSummaryModal = document.getElementById('salesSummaryModal');
+const salesSummaryContent = document.getElementById('salesSummaryContent');
+const summarySortBy = document.getElementById('summarySortBy');
+const exportSummaryBtn = document.getElementById('exportSummaryBtn');
+const screenshotSummaryBtn = document.getElementById('screenshotSummaryBtn');
 
 // 店铺管理DOM元素
 const addStoreBtn = document.getElementById('addStoreBtn');
@@ -117,6 +126,12 @@ function initEventListeners() {
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             const targetView = item.dataset.view;
+            
+            // 当点击dashboard菜单项时，切换子菜单的展开/折叠状态
+            if (targetView === 'dashboard') {
+                toggleStoresSubmenu();
+            }
+            
             switchView(targetView);
         });
     });
@@ -124,14 +139,49 @@ function initEventListeners() {
     // 刷新统计按钮
     refreshStatsBtn.addEventListener('click', loadStats);
     
+    // 查看销售汇总按钮
+    viewSalesSummaryBtn.addEventListener('click', showSalesSummary);
+    
+    // 销售汇总排序选择变化
+    if (summarySortBy) {
+        summarySortBy.addEventListener('change', () => {
+            sortAndRenderSalesSummary();
+        });
+    }
+    
+    // 导出销售汇总按钮
+    if (exportSummaryBtn) {
+        exportSummaryBtn.addEventListener('click', exportSalesSummary);
+    }
+    
+    // 截图销售汇总按钮
+    if (screenshotSummaryBtn) {
+        screenshotSummaryBtn.addEventListener('click', screenshotSalesSummary);
+    }
+    
     // 日期过滤器变化
     dateFilter.addEventListener('change', (e) => {
         selectedDate = e.target.value;
         loadStats();
     });
     
-    // 店铺过滤器变化
-    storeFilter.addEventListener('change', loadStats);
+    // 初始化默认的All Stores按钮点击事件
+    const allStoresButton = storeButtons.querySelector('[data-store="all"]');
+    if (allStoresButton) {
+        allStoresButton.addEventListener('click', function() {
+            // 更新选中状态
+            document.querySelectorAll('.store-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            // 更新选中的店铺ID
+            selectedStoreId = 'all';
+            
+            // 重新加载统计数据
+            loadStats();
+        });
+    }
     
     // 添加店铺按钮
     addStoreBtn.addEventListener('click', () => showModal(addStoreModal));
@@ -191,8 +241,16 @@ function initEventListeners() {
     inventoryStockFilter.addEventListener('change', loadInventory);
     refreshInventoryBtn.addEventListener('click', loadInventory);
     bulkUpdateBtn.addEventListener('click', showBulkUpdateModal);
-    exportInventoryBtn.addEventListener('click', exportInventory);
-    importInventoryBtn.addEventListener('click', () => alert('Import functionality will be implemented soon'));
+    
+    // 确保导出和导入按钮在下拉菜单中仍然可以工作
+    document.querySelectorAll('.dropdown-item').forEach(item => {
+        if (item.id === 'exportInventoryBtn') {
+            item.addEventListener('click', exportInventory);
+        } else if (item.id === 'importInventoryBtn') {
+            item.addEventListener('click', () => alert('Import functionality will be implemented soon'));
+        }
+    });
+    
     selectAllInventory.addEventListener('change', toggleSelectAllInventory);
     
     // 更新库存表单提交
@@ -222,7 +280,11 @@ function switchView(viewName) {
     // 更新视图标题
     switch (viewName) {
         case 'dashboard':
-            viewTitle.textContent = 'Sales Dashboard';
+            if (selectedStoreInDashboard) {
+                viewTitle.textContent = `Sales Dashboard - ${stores[selectedStoreInDashboard].name}`;
+            } else {
+                viewTitle.textContent = 'Sales Dashboard - All Stores';
+            }
             break;
         case 'stores':
             viewTitle.textContent = 'Store Management';
@@ -233,8 +295,6 @@ function switchView(viewName) {
         case 'inventory':
             viewTitle.textContent = 'Inventory Management';
             // 确保库存视图的下拉菜单正确填充
-            console.log("当前店铺数据:", stores);
-            console.log("当前店铺选择器:", inventoryStoreFilter);
             if (inventoryStoreFilter && Object.keys(stores).length > 0) {
                 // 重新填充库存管理的店铺下拉菜单
                 while (inventoryStoreFilter.options.length > 1) {
@@ -246,7 +306,6 @@ function switchView(viewName) {
                     option.value = storeId;
                     option.textContent = stores[storeId].name;
                     inventoryStoreFilter.appendChild(option);
-                    console.log("添加店铺选项:", storeId, stores[storeId].name);
                 });
             }
             break;
@@ -306,6 +365,11 @@ function toggleStoreSelection() {
     }
 }
 
+// 切换店铺子菜单的展开/折叠状态
+function toggleStoresSubmenu() {
+    storesSubmenu.classList.toggle('expanded');
+}
+
 // 加载所有店铺
 function loadStores() {
     getAllStores()
@@ -313,6 +377,7 @@ function loadStores() {
             stores = storeData;
             renderStores();
             populateStoreDropdowns();
+            populateStoresSubmenu(); // 填充店铺子菜单
         })
         .catch(error => {
             console.error('Failed to load stores:', error);
@@ -358,7 +423,7 @@ function renderStores() {
 // 填充店铺下拉菜单
 function populateStoreDropdowns() {
     // 清空并重新填充店铺过滤器
-    const dropdowns = [storeFilter, productStoreFilter, productStoreId, userStoreId, inventoryStoreFilter];
+    const dropdowns = [productStoreFilter, productStoreId, userStoreId, inventoryStoreFilter];
     
     dropdowns.forEach(dropdown => {
         if (!dropdown) return;
@@ -385,13 +450,123 @@ function populateStoreDropdowns() {
         }
     });
     
-    console.log("已填充所有下拉菜单，包括库存管理的下拉菜单");
+    // 为销售仪表板添加店铺按钮
+    populateStoreButtons();
+    
+    // 填充店铺子菜单
+    populateStoresSubmenu();
+    
+    console.log("已填充所有下拉菜单、店铺按钮和子菜单");
+}
+
+// 填充店铺按钮
+function populateStoreButtons() {
+    // 清空除了"All Stores"按钮外的所有按钮
+    const allStoresButton = storeButtons.querySelector('[data-store="all"]');
+    storeButtons.innerHTML = '';
+    storeButtons.appendChild(allStoresButton);
+    
+    // 添加店铺按钮
+    Object.keys(stores).forEach(storeId => {
+        const button = document.createElement('button');
+        button.className = 'store-button';
+        button.setAttribute('data-store', storeId);
+        button.textContent = stores[storeId].name;
+        
+        // 设置点击事件
+        button.addEventListener('click', function() {
+            // 更新选中状态
+            document.querySelectorAll('.store-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            // 更新选中的店铺ID
+            selectedStoreId = this.getAttribute('data-store');
+            
+            // 重新加载统计数据
+            loadStats();
+        });
+        
+        storeButtons.appendChild(button);
+    });
+    
+    // 设置当前选中的按钮
+    const currentButton = storeButtons.querySelector(`[data-store="${selectedStoreId}"]`);
+    if (currentButton) {
+        document.querySelectorAll('.store-button').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        currentButton.classList.add('active');
+    }
+}
+
+// 填充店铺子菜单
+function populateStoresSubmenu() {
+    // 清空子菜单
+    storesSubmenu.innerHTML = '';
+    
+    // 添加"All Stores"选项
+    const allStoresItem = document.createElement('div');
+    allStoresItem.className = 'submenu-item';
+    if (selectedStoreInDashboard === null) {
+        allStoresItem.classList.add('active');
+    }
+    allStoresItem.innerHTML = '<i class="material-icons">store</i> All Stores';
+    allStoresItem.addEventListener('click', () => {
+        // 移除所有子菜单项的active类
+        document.querySelectorAll('.submenu-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        // 为当前项添加active类
+        allStoresItem.classList.add('active');
+        
+        // 更新当前选中的店铺
+        selectedStoreInDashboard = null;
+        selectedStoreId = 'all';
+        
+        // 更新页面标题并加载数据
+        viewTitle.textContent = 'Sales Dashboard - All Stores';
+        loadStats();
+    });
+    storesSubmenu.appendChild(allStoresItem);
+    
+    // 添加各个店铺选项
+    Object.keys(stores).forEach(storeId => {
+        const storeName = stores[storeId].name;
+        const storeItem = document.createElement('div');
+        storeItem.className = 'submenu-item';
+        if (selectedStoreInDashboard === storeId) {
+            storeItem.classList.add('active');
+        }
+        storeItem.innerHTML = `<i class="material-icons">storefront</i> ${storeName}`;
+        storeItem.addEventListener('click', () => {
+            // 移除所有子菜单项的active类
+            document.querySelectorAll('.submenu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            // 为当前项添加active类
+            storeItem.classList.add('active');
+            
+            // 更新当前选中的店铺
+            selectedStoreInDashboard = storeId;
+            selectedStoreId = storeId;
+            
+            // 更新页面标题并加载数据
+            viewTitle.textContent = `Sales Dashboard - ${storeName}`;
+            loadStats();
+        });
+        storesSubmenu.appendChild(storeItem);
+    });
+    
+    // 默认展开子菜单
+    storesSubmenu.classList.add('expanded');
 }
 
 // 加载销售统计数据
 function loadStats() {
     const date = dateFilter.value || selectedDate;
-    const storeId = storeFilter.value;
+    const storeId = selectedStoreId;
     
     // 显示加载状态
     statsContainer.innerHTML = '<div class="loading"><i class="material-icons">hourglass_empty</i> Loading...</div>';
@@ -639,31 +814,32 @@ function showSaleDetails(sale) {
 function handleAddStore(e) {
     e.preventDefault();
     
-    const storeIdInput = document.getElementById('storeId');
-    const storeNameInput = document.getElementById('storeName');
-    const storeAddressInput = document.getElementById('storeAddress');
-    
-    const storeId = storeIdInput.value.trim();
-    const name = storeNameInput.value.trim();
-    const address = storeAddressInput.value.trim();
-    
-    if (!storeId || !name) {
-        alert('Please fill in store ID and name');
-        return;
-    }
+    const storeId = document.getElementById('storeId').value.trim();
+    const storeName = document.getElementById('storeName').value.trim();
+    const storeAddress = document.getElementById('storeAddress').value.trim();
     
     // 检查店铺ID是否已存在
     if (stores[storeId]) {
-        alert('Store ID already exists');
+        alert('Store ID already exists. Please use a different Store ID.');
         return;
     }
     
-    // 添加店铺到数据库
-    addStore(storeId, name, address)
+    // 添加店铺
+    addStore(storeId, storeName, storeAddress)
         .then(() => {
-            hideModal(addStoreModal);
+            // 隐藏模态框
+            hideModal(document.getElementById('addStoreModal'));
+            
+            // 清空表单
+            document.getElementById('storeId').value = '';
+            document.getElementById('storeName').value = '';
+            document.getElementById('storeAddress').value = '';
+            
+            // 重新加载店铺列表
             loadStores();
-            alert('Store added successfully!');
+            
+            // 向用户显示成功消息
+            alert(`Store "${storeName}" has been added successfully.`);
         })
         .catch(error => {
             console.error('Failed to add store:', error);
@@ -679,20 +855,39 @@ function editStore(storeId) {
 
 // 删除店铺
 function deleteStore(storeId) {
-    if (!confirm(`Are you sure you want to delete store ${storeId}?`)) {
-        return;
-    }
+    const storeName = stores[storeId].name;
     
-    // 删除数据库中的店铺
-    removeStore(storeId)
-        .then(() => {
-            loadStores();
-            alert('Store deleted successfully!');
-        })
-        .catch(error => {
-            console.error('Failed to delete store:', error);
-            alert('Failed to delete store. Please try again.');
-        });
+    // 确认删除
+    if (confirm(`Are you sure you want to delete store "${storeName}"?`)) {
+        // 检查是否有关联商品
+        const hasProducts = Object.values(products).some(product => product.storeId === storeId);
+        
+        if (hasProducts) {
+            alert(`Cannot delete store "${storeName}" because it has associated products. Please delete or reassign the products first.`);
+            return;
+        }
+        
+        // 删除店铺
+        removeStore(storeId)
+            .then(() => {
+                // 如果当前选中的店铺被删除，重置选中状态
+                if (selectedStoreInDashboard === storeId) {
+                    selectedStoreInDashboard = null;
+                    selectedStoreId = 'all';
+                    viewTitle.textContent = 'Sales Dashboard - All Stores';
+                }
+                
+                // 重新加载店铺列表
+                loadStores();
+                
+                // 向用户显示成功消息
+                alert(`Store "${storeName}" has been deleted successfully.`);
+            })
+            .catch(error => {
+                console.error('Failed to delete store:', error);
+                alert('Failed to delete store. Please try again.');
+            });
+    }
 }
 
 // 加载商品
@@ -1448,8 +1643,10 @@ function renderInventory(productsEntries) {
             <td><span class="stock-status ${statusClass}">${statusText}</span></td>
             <td>${storeName}</td>
             <td>
-                <button class="update-stock-btn" data-id="${productId}"><i class="material-icons">edit</i></button>
-                <button class="view-history-btn" data-id="${productId}"><i class="material-icons">history</i></button>
+                <div class="inventory-action-buttons">
+                    <button class="update-stock-btn icon-button" title="Update Stock" data-id="${productId}"><i class="material-icons">edit</i></button>
+                    <button class="view-history-btn icon-button" title="Stock History" data-id="${productId}"><i class="material-icons">history</i></button>
+                </div>
             </td>
         `;
         
@@ -2041,4 +2238,309 @@ function initializeFirebase() {
     
     // 获取数据库引用
     database = firebase.database();
+}
+
+// 显示销售汇总
+let currentSalesSummary = []; // Store the current sales summary data
+
+function showSalesSummary() {
+    const date = dateFilter.value || selectedDate;
+    const storeId = selectedStoreId;
+    
+    // 显示模态框
+    showModal(salesSummaryModal);
+    
+    // 显示加载状态
+    salesSummaryContent.innerHTML = '<div class="loading"><i class="material-icons">hourglass_empty</i> Loading sales summary...</div>';
+    
+    // 获取销售数据
+    let salesPromise;
+    if (storeId === 'all') {
+        salesPromise = database.ref('sales').orderByChild('date').equalTo(date).once('value');
+    } else {
+        salesPromise = getStoreSaleDetails(storeId, date);
+    }
+    
+    salesPromise
+        .then(snapshot => {
+            let sales;
+            if (snapshot.val) {
+                sales = snapshot.val() || {};
+            } else {
+                sales = snapshot || {};
+            }
+            
+            // 生成销售汇总
+            generateSalesSummary(sales);
+        })
+        .catch(error => {
+            console.error('Failed to load sales data for summary:', error);
+            salesSummaryContent.innerHTML = '<div class="error"><i class="material-icons">error</i> Failed to load sales summary</div>';
+        });
+}
+
+// 生成销售汇总
+function generateSalesSummary(sales) {
+    // 如果没有销售数据
+    if (Object.keys(sales).length === 0) {
+        salesSummaryContent.innerHTML = '<div class="no-data"><i class="material-icons">info</i> No sales data available for this date</div>';
+        currentSalesSummary = [];
+        return;
+    }
+    
+    // 按产品汇总销售数据
+    const productSummary = {};
+    
+    // 处理每个销售记录
+    Object.values(sales).forEach(sale => {
+        if (!sale.items || !Array.isArray(sale.items)) return;
+        
+        // 处理每个销售项目
+        sale.items.forEach(item => {
+            const productId = item.id;
+            const productName = item.name;
+            const quantity = item.quantity || 0;
+            const unitPrice = item.price || 0;
+            const subtotal = item.subtotal || (quantity * unitPrice);
+            
+            // 如果产品ID为空，则跳过
+            if (!productId) return;
+            
+            // 如果产品尚未在汇总中，初始化它
+            if (!productSummary[productId]) {
+                productSummary[productId] = {
+                    id: productId,
+                    name: productName,
+                    totalQuantity: 0,
+                    totalRevenue: 0,
+                    unitPrice: unitPrice,
+                    saleCount: 0
+                };
+            }
+            
+            // 累加数量和收入
+            productSummary[productId].totalQuantity += quantity;
+            productSummary[productId].totalRevenue += subtotal;
+            productSummary[productId].saleCount += 1;
+            
+            // 如果价格与现有价格不同，取平均值
+            if (productSummary[productId].unitPrice !== unitPrice) {
+                // Update to the latest price
+                productSummary[productId].unitPrice = unitPrice;
+            }
+        });
+    });
+    
+    // 转换为数组以便排序
+    currentSalesSummary = Object.values(productSummary);
+    
+    // 排序并渲染
+    sortAndRenderSalesSummary();
+}
+
+// 排序并渲染销售汇总
+function sortAndRenderSalesSummary() {
+    const sortBy = summarySortBy.value;
+    
+    // 复制数组以避免修改原始数据
+    const sortedSummary = [...currentSalesSummary];
+    
+    // 根据选择的字段排序
+    switch (sortBy) {
+        case 'quantity':
+            sortedSummary.sort((a, b) => b.totalQuantity - a.totalQuantity);
+            break;
+        case 'revenue':
+            sortedSummary.sort((a, b) => b.totalRevenue - a.totalRevenue);
+            break;
+        case 'name':
+            sortedSummary.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+        default:
+            sortedSummary.sort((a, b) => b.totalQuantity - a.totalQuantity);
+    }
+    
+    // 计算总计
+    const totalQuantity = sortedSummary.reduce((sum, product) => sum + product.totalQuantity, 0);
+    const totalRevenue = sortedSummary.reduce((sum, product) => sum + product.totalRevenue, 0);
+    
+    // 渲染表格
+    let tableHTML = `
+        <div class="summary-totals">
+            <div class="summary-total-item">
+                <span>Total Products Sold:</span>
+                <strong>${totalQuantity}</strong>
+            </div>
+            <div class="summary-total-item">
+                <span>Total Revenue:</span>
+                <strong>RM${totalRevenue.toFixed(2)}</strong>
+            </div>
+        </div>
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>Product ID</th>
+                    <th>Product Name</th>
+                    <th>Unit Price</th>
+                    <th>Quantity Sold</th>
+                    <th>Total Revenue</th>
+                    <th>Sale Count</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    sortedSummary.forEach(product => {
+        tableHTML += `
+            <tr>
+                <td>${product.id}</td>
+                <td>${product.name}</td>
+                <td>RM${product.unitPrice.toFixed(2)}</td>
+                <td>${product.totalQuantity}</td>
+                <td>RM${product.totalRevenue.toFixed(2)}</td>
+                <td>${product.saleCount}</td>
+            </tr>
+        `;
+    });
+    
+    tableHTML += `
+            </tbody>
+        </table>
+    `;
+    
+    salesSummaryContent.innerHTML = tableHTML;
+}
+
+// 导出销售汇总为CSV
+function exportSalesSummary() {
+    if (currentSalesSummary.length === 0) {
+        alert('No data to export.');
+        return;
+    }
+    
+    // 构建CSV内容
+    let csvContent = 'Product ID,Product Name,Unit Price,Quantity Sold,Total Revenue,Sale Count\n';
+    
+    currentSalesSummary.forEach(product => {
+        const row = [
+            `"${product.id}"`,
+            `"${product.name.replace(/"/g, '""')}"`,
+            product.unitPrice.toFixed(2),
+            product.totalQuantity,
+            product.totalRevenue.toFixed(2),
+            product.saleCount
+        ].join(',');
+        
+        csvContent += row + '\n';
+    });
+    
+    // 创建下载链接
+    const date = dateFilter.value || selectedDate;
+    const storeId = selectedStoreId;
+    const storeName = storeId === 'all' ? 'All_Stores' : (stores[storeId]?.name || storeId).replace(/\s+/g, '_');
+    const filename = `Sales_Summary_${storeName}_${date}.csv`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    // 创建下载URL
+    if (navigator.msSaveBlob) { // IE
+        navigator.msSaveBlob(blob, filename);
+    } else {
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
+// 销售汇总屏幕截图功能
+function screenshotSalesSummary() {
+    if (currentSalesSummary.length === 0) {
+        alert('No data to screenshot.');
+        return;
+    }
+    
+    // 创建一个全屏视图用于截图
+    const summaryContainer = document.createElement('div');
+    summaryContainer.style.position = 'fixed';
+    summaryContainer.style.top = '0';
+    summaryContainer.style.left = '0';
+    summaryContainer.style.width = '100%';
+    summaryContainer.style.height = '100%';
+    summaryContainer.style.backgroundColor = 'white';
+    summaryContainer.style.zIndex = '9999';
+    summaryContainer.style.padding = '20px';
+    summaryContainer.style.boxSizing = 'border-box';
+    summaryContainer.style.overflow = 'auto';
+    
+    // 创建顶部标题栏
+    const headerBar = document.createElement('div');
+    headerBar.style.display = 'flex';
+    headerBar.style.justifyContent = 'space-between';
+    headerBar.style.alignItems = 'center';
+    headerBar.style.marginBottom = '20px';
+    headerBar.style.padding = '10px';
+    headerBar.style.backgroundColor = '#f5f5f5';
+    headerBar.style.borderRadius = '5px';
+    
+    const date = dateFilter.value || selectedDate;
+    const storeId = selectedStoreId;
+    const storeName = storeId === 'all' ? 'All Stores' : (stores[storeId]?.name || storeId);
+    
+    headerBar.innerHTML = `
+        <div>
+            <h1 style="margin: 0; color: #333; font-size: 24px;">Sales Summary Report</h1>
+            <p style="margin: 5px 0 0 0; color: #666;">Date: ${date} | Store: ${storeName}</p>
+        </div>
+        <button id="closeSummaryScreenshot" style="background: #e74c3c; color: white; border: none; border-radius: 5px; padding: 8px 15px; cursor: pointer;">Close</button>
+    `;
+    
+    // 复制销售汇总内容
+    const summaryContent = document.createElement('div');
+    summaryContent.id = 'summaryScreenshotContent';
+    summaryContent.innerHTML = salesSummaryContent.innerHTML;
+    
+    // 添加到容器
+    summaryContainer.appendChild(headerBar);
+    summaryContainer.appendChild(summaryContent);
+    
+    // 添加到文档
+    document.body.appendChild(summaryContainer);
+    
+    // 添加关闭按钮事件
+    document.getElementById('closeSummaryScreenshot').addEventListener('click', () => {
+        document.body.removeChild(summaryContainer);
+    });
+    
+    // 一秒后截图，确保内容已经完全渲染
+    setTimeout(() => {
+        // 使用 html2canvas 进行截图
+        html2canvas(summaryContainer, {
+            scale: 2, // 提高分辨率
+            logging: false,
+            allowTaint: true,
+            useCORS: true
+        }).then(canvas => {
+            // 转换为图片并下载
+            const imageData = canvas.toDataURL('image/png');
+            const downloadLink = document.createElement('a');
+            const filename = `Sales_Summary_${storeName.replace(/\s+/g, '_')}_${date}.png`;
+            
+            downloadLink.href = imageData;
+            downloadLink.download = filename;
+            downloadLink.click();
+            
+            // 下载完成后询问用户是否关闭全屏视图
+            if (confirm('Screenshot downloaded. Close fullscreen view?')) {
+                document.body.removeChild(summaryContainer);
+            }
+        }).catch(error => {
+            console.error('Screenshot failed:', error);
+            alert('Failed to create screenshot. Please try again.');
+            document.body.removeChild(summaryContainer);
+        });
+    }, 1000);
 } 

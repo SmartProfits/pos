@@ -74,8 +74,14 @@
                             <!-- Cart items will be loaded dynamically by JavaScript -->
                         </div>
                         <div class="cart-total">Total: <span id="cartTotal">$0.00</span></div>
-                        <button id="checkoutBtn" class="checkout-btn"><i class="material-icons">payment</i> Checkout</button>
-                        <button id="clearCartBtn"><i class="material-icons">remove_shopping_cart</i> Clear Cart</button>
+                        <button id="checkoutBtn" class="checkout-btn" aria-label="结算购物车">
+                            <i class="material-icons" aria-hidden="true">payment</i> 
+                            <span>Checkout</span>
+                        </button>
+                        <button id="clearCartBtn" aria-label="清空购物车">
+                            <i class="material-icons" aria-hidden="true">remove_shopping_cart</i> 
+                            <span>Clear Cart</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -86,10 +92,35 @@
                     <label for="dateFilter"><i class="material-icons">event</i> Date:</label>
                     <input type="date" id="dateFilter" value="">
                     
-                    <button id="refreshSalesBtn"><i class="material-icons">refresh</i> Refresh</button>
+                    <button id="refreshSalesBtn" aria-label="刷新销售历史">
+                        <i class="material-icons" aria-hidden="true">refresh</i> 
+                        <span>Refresh</span>
+                    </button>
                 </div>
                 
                 <h2>Sales History</h2>
+                
+                <!-- Total Sales Summary Section -->
+                <div class="sales-summary">
+                    <div class="summary-card">
+                        <div class="summary-icon"><i class="material-icons">payments</i></div>
+                        <div class="summary-content">
+                            <h3>Total Sales</h3>
+                            <div class="summary-value" id="totalSalesAmount">RM0.00</div>
+                            <div class="summary-subtitle">Total transactions: <span id="totalTransactions">0</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-card">
+                        <div class="summary-icon"><i class="material-icons">local_offer</i></div>
+                        <div class="summary-content">
+                            <h3>Discounted Sales</h3>
+                            <div class="summary-value" id="discountedSalesCount">0</div>
+                            <div class="summary-subtitle">Total discount amount: <span id="totalDiscountAmount">RM0.00</span></div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="sale-details-container">
                     <table id="salesTable">
                         <thead>
@@ -99,6 +130,7 @@
                                 <th>Time</th>
                                 <th>Cashier</th>
                                 <th>Items</th>
+                                <th>Discount</th>
                                 <th>Total</th>
                                 <th>Actions</th>
                             </tr>
@@ -112,26 +144,39 @@
             
             <!-- Inventory Management View -->
             <div id="inventoryView" class="view">
-                <div class="filter-container">
-                    <label for="inventoryCategoryFilter"><i class="material-icons">category</i> Category:</label>
-                    <select id="inventoryCategoryFilter">
-                        <option value="all">All Categories</option>
-                        <!-- Category options will be loaded dynamically -->
-                    </select>
+                <div class="inventory-header">
+                    <div class="inventory-filters">
+                        <div class="filter-item">
+                            <label for="inventoryCategoryFilter"><i class="material-icons">category</i> Category:</label>
+                            <select id="inventoryCategoryFilter">
+                                <option value="all">All Categories</option>
+                                <!-- Category options will be loaded dynamically -->
+                            </select>
+                        </div>
+                        
+                        <div class="filter-item">
+                            <label for="inventoryStockFilter"><i class="material-icons">warning</i> Stock Status:</label>
+                            <select id="inventoryStockFilter">
+                                <option value="all">All</option>
+                                <option value="low">Low Stock</option>
+                                <option value="out">Out of Stock</option>
+                            </select>
+                        </div>
+                    </div>
                     
-                    <label for="inventoryStockFilter"><i class="material-icons">warning</i> Stock Status:</label>
-                    <select id="inventoryStockFilter">
-                        <option value="all">All</option>
-                        <option value="low">Low Stock</option>
-                        <option value="out">Out of Stock</option>
-                    </select>
-                    
-                    <button id="refreshInventoryBtn"><i class="material-icons">refresh</i> Refresh</button>
+                    <div class="inventory-actions">
+                        <button id="refreshInventoryBtn" class="icon-button" aria-label="刷新库存">
+                            <i class="material-icons" aria-hidden="true">refresh</i>
+                        </button>
+                        
+                        <button id="addProductBtn" class="action-button" aria-label="添加新产品">
+                            <i class="material-icons" aria-hidden="true">add</i> 
+                            <span>Add Product</span>
+                        </button>
+                    </div>
                 </div>
                 
-                <h2>Store Inventory</h2>
-                <button id="addProductBtn"><i class="material-icons">add</i> Add Product</button>
-                <div class="inventory-container">
+                <div class="inventory-table-container">
                     <table id="inventoryTable">
                         <thead>
                             <tr>
@@ -160,8 +205,14 @@
             <h2><i class="material-icons">check_circle</i> Checkout Successful</h2>
             <p>Order has been submitted successfully!</p>
             <div id="receiptDetails"></div>
-            <button id="printReceiptBtn"><i class="material-icons">print</i> Print Receipt</button>
-            <button id="newSaleBtn"><i class="material-icons">add_shopping_cart</i> New Transaction</button>
+            <button id="printReceiptBtn" aria-label="打印收据">
+                <i class="material-icons" aria-hidden="true">print</i> 
+                <span>Print Receipt</span>
+            </button>
+            <button id="newSaleBtn" aria-label="开始新交易">
+                <i class="material-icons" aria-hidden="true">add_shopping_cart</i> 
+                <span>New Transaction</span>
+            </button>
         </div>
     </div>
     
@@ -172,8 +223,14 @@
             <h2><i class="material-icons">receipt</i> Sale Details</h2>
             <div id="saleDetailContent"></div>
             <div class="modal-footer">
-                <button id="editSaleBtn"><i class="material-icons">edit</i> Edit</button>
-                <button id="deleteSaleBtn"><i class="material-icons">delete</i> Delete</button>
+                <button id="editSaleBtn" aria-label="编辑销售记录">
+                    <i class="material-icons" aria-hidden="true">edit</i> 
+                    <span>Edit</span>
+                </button>
+                <button id="deleteSaleBtn" aria-label="删除销售记录">
+                    <i class="material-icons" aria-hidden="true">delete</i> 
+                    <span>Delete</span>
+                </button>
             </div>
         </div>
     </div>
@@ -190,8 +247,14 @@
                 <div class="cart-total">Total: <span id="editCartTotal">RM0.00</span></div>
             </div>
             <div class="modal-footer">
-                <button id="updateSaleBtn"><i class="material-icons">save</i> Update Sale</button>
-                <button id="cancelEditBtn"><i class="material-icons">cancel</i> Cancel</button>
+                <button id="updateSaleBtn" aria-label="更新销售记录">
+                    <i class="material-icons" aria-hidden="true">save</i> 
+                    <span>Update Sale</span>
+                </button>
+                <button id="cancelEditBtn" aria-label="取消编辑">
+                    <i class="material-icons" aria-hidden="true">cancel</i> 
+                    <span>Cancel</span>
+                </button>
             </div>
         </div>
     </div>
@@ -273,8 +336,7 @@
             <form id="addProductForm">
                 <div class="form-group">
                     <label for="productId"><i class="material-icons">tag</i> Product ID:</label>
-                    <input type="text" id="productId" readonly>
-                    <small class="form-tip">Auto-generated based on store name</small>
+                    <input type="text" id="productId" required>
                 </div>
                 <div class="form-group">
                     <label for="productName"><i class="material-icons">inventory</i> Product Name:</label>

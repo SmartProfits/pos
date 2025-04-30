@@ -3,29 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POS System</title>
+    <title>SmartProfits POS System</title>
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#007bff">
     <link rel="apple-touch-icon" href="icons/pos-512x512.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
 </head>
-<body>
+<body class="login-page">
     <div class="login-container">
-        <h1>POS System Login</h1>
+        <div class="login-header">
+            <div class="logo-container">
+                <img src="icons/pos.png" alt="SmartProfits Logo" class="login-logo">
+            </div>
+            <h1>SmartProfits</h1>
+            <p class="tagline">Point of Sale System</p>
+        </div>
+        
         <div id="loginForm">
             <div class="form-group">
-                <label for="email"><i class="material-icons">email</i> Email:</label>
-                <input type="email" id="email" required>
+                <label for="email">
+                    <i class="material-icons" aria-hidden="true">email</i>
+                    <span>Email</span>
+                </label>
+                <input type="email" id="email" placeholder="Enter your email" required aria-required="true">
             </div>
             <div class="form-group">
-                <label for="password"><i class="material-icons">lock</i> Password:</label>
-                <input type="password" id="password" required>
+                <label for="password">
+                    <i class="material-icons" aria-hidden="true">lock</i>
+                    <span>Password</span>
+                </label>
+                <input type="password" id="password" placeholder="Enter your password" required aria-required="true">
             </div>
-            <button id="loginBtn"><i class="material-icons">login</i> Login</button>
+            <button id="loginBtn" type="submit" aria-label="登录系统">
+                <span>Login</span>
+                <i class="material-icons" aria-hidden="true">arrow_forward</i>
+            </button>
+            <div class="login-options">
+                <a href="#" class="forgot-password">Forgot password?</a>
+            </div>
         </div>
-        <div id="loginMessage"></div>
+        <div id="loginMessage" role="alert" aria-live="assertive"></div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -34,16 +55,16 @@
     <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
     
-    <!-- 注册 Service Worker -->
+    <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                     .then(registration => {
-                        console.log('Service Worker 注册成功:', registration.scope);
+                        console.log('Service Worker registered successfully:', registration.scope);
                     })
                     .catch(error => {
-                        console.log('Service Worker 注册失败:', error);
+                        console.log('Service Worker registration failed:', error);
                     });
             });
         }

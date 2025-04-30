@@ -1,12 +1,13 @@
 /* Import Google Material Icons */
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Roboto', 'Arial', sans-serif;
+    font-family: 'Poppins', 'Roboto', 'Arial', sans-serif;
 }
 
 body {
@@ -14,31 +15,78 @@ body {
     padding: 20px;
 }
 
-/* 登录页面样式 */
+/* Login page specific styles */
+body.login-page {
+    background-color: #f5f7fa;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-image: linear-gradient(135deg, #71b5ff 0%, #ffffff 100%);
+}
+
+/* Login page styles */
 .login-container {
-    max-width: 400px;
-    margin: 50px auto;
+    max-width: 420px;
+    width: 90%;
+    margin: 20px auto;
     background-color: white;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 40px 30px;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+    position: relative;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.logo-container {
+    margin-bottom: 15px;
+}
+
+.login-logo {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
 }
 
 .login-container h1 {
     text-align: center;
-    margin-bottom: 25px;
+    margin-bottom: 5px;
     color: #333;
+    font-weight: 600;
+    font-size: 28px;
+}
+
+.tagline {
+    color: #666;
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 16px;
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 20px;
+    position: relative;
 }
 
 .form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-weight: 500;
     color: #555;
+    font-size: 15px;
+}
+
+.form-group label .material-icons {
+    margin-right: 8px;
+    color: #007bff;
+    font-size: 20px;
 }
 
 input {
@@ -47,6 +95,26 @@ input {
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 16px;
+}
+
+/* Login page specific input styles */
+.login-container input {
+    padding: 12px 15px;
+    border-radius: 6px;
+    font-size: 15px;
+    transition: all 0.3s;
+    background-color: #f9f9f9;
+}
+
+.login-container input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    background-color: #fff;
+}
+
+.login-container input::placeholder {
+    color: #aaa;
 }
 
 button {
@@ -62,14 +130,79 @@ button {
     transition: background-color 0.3s;
 }
 
+/* Login page specific button styles */
+.login-container button {
+    padding: 14px;
+    background-color: #007bff;
+    border-radius: 6px;
+    transition: all 0.3s;
+    font-weight: 500;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 按钮加载状态 */
+.login-container button.loading {
+    background-color: #0069d9;
+    width: 100%;
+    transform: none;
+    text-align: center;
+    animation: pulse 1.5s infinite;
+}
+
+.login-container button.loading:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+.login-container button:hover {
+    background-color: #0069d9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+}
+
+.login-container button:active {
+    transform: translateY(0);
+}
+
 button:hover {
     background-color: #45a049;
+}
+
+.login-options {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.forgot-password {
+    color: #007bff;
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+}
+
+.forgot-password:hover {
+    color: #0056b3;
+    text-decoration: underline;
 }
 
 #loginMessage {
     margin-top: 20px;
     text-align: center;
     color: #e74c3c;
+    font-size: 14px;
+    min-height: 20px;
 }
 
 /* POS系统界面样式 */
@@ -316,19 +449,22 @@ tr:hover {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.7);
+    animation: fadeIn 0.3s;
 }
 
 .modal-content {
-    background-color: white;
-    margin: 10% auto;
+    position: relative;
+    background-color: #fefefe;
+    margin: 5% auto;
     padding: 20px;
-    border-radius: 8px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     width: 60%;
     max-width: 600px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    position: relative;
+    max-height: 85vh;
+    overflow-y: auto;
+    animation: slideIn 0.3s;
 }
 
 .close {
@@ -896,4 +1032,789 @@ tr:hover {
     border-top: 1px solid #ddd;
     font-size: 16px;
     font-weight: bold;
+}
+
+/* 销售汇总样式 */
+#viewSalesSummaryBtn {
+    background-color: #2196F3;
+    color: white;
+    margin-left: 10px;
+}
+
+#viewSalesSummaryBtn:hover {
+    background-color: #0b7dda;
+}
+
+.summary-filter-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+}
+
+#summarySortBy {
+    padding: 5px 10px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    background-color: white;
+}
+
+.summary-actions {
+    display: flex;
+    gap: 10px;
+}
+
+#exportSummaryBtn, #screenshotSummaryBtn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#exportSummaryBtn:hover {
+    background-color: #388E3C;
+}
+
+#screenshotSummaryBtn {
+    background-color: #2196F3;
+}
+
+#screenshotSummaryBtn:hover {
+    background-color: #1976D2;
+}
+
+.summary-totals {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #e3f2fd;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.summary-total-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.summary-total-item span {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.summary-total-item strong {
+    font-size: 1.5rem;
+    color: #2196F3;
+}
+
+.summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.summary-table th {
+    background-color: #4CAF50;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    position: sticky;
+    top: 0;
+}
+
+.summary-table td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.summary-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.summary-table tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Sales Summary Styles */
+.sales-summary {
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.summary-card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 300px;
+}
+
+.summary-icon {
+    background-color: #e3f2fd;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20px;
+}
+
+.summary-icon .material-icons {
+    font-size: 32px;
+    color: #2196F3;
+}
+
+.summary-content {
+    flex: 1;
+}
+
+.summary-content h3 {
+    margin-bottom: 10px;
+    color: #555;
+    font-size: 16px;
+}
+
+.summary-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2196F3;
+    margin-bottom: 5px;
+}
+
+.summary-subtitle {
+    font-size: 14px;
+    color: #777;
+}
+
+/* Discount badge styles */
+.discount-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background-color: #e91e63;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.discount-none {
+    background-color: #9e9e9e;
+    color: #f5f5f5;
+}
+
+.discount-percent {
+    background-color: #ff9800;
+}
+
+.discount-fixed {
+    background-color: #e91e63;
+}
+
+/* 店铺按钮组样式 */
+.store-buttons-container {
+    display: flex;
+    flex-direction: column;
+    margin: 10px 0;
+}
+
+.store-buttons-label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #555;
+}
+
+.store-buttons-label .material-icons {
+    margin-right: 8px;
+    color: #2c3e50;
+}
+
+.store-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.store-button {
+    background-color: #f5f5f5;
+    color: #555;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: auto;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.store-button:hover {
+    background-color: #e0e0e0;
+    transform: translateY(-1px);
+}
+
+.store-button.active {
+    background-color: #3498db;
+    color: white;
+    border-color: #3498db;
+    font-weight: 500;
+}
+
+/* 修正filter-container在有店铺按钮的情况下的样式 */
+.filter-container {
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+/* 店铺子菜单样式 */
+.stores-submenu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+    padding-left: 30px;
+}
+
+.stores-submenu.expanded {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.submenu-item {
+    padding: 8px 10px;
+    border-radius: 4px;
+    margin: 4px 0;
+    font-size: 13px;
+    color: #ddd;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.submenu-item:hover {
+    background-color: #34495e;
+    color: white;
+}
+
+.submenu-item.active {
+    background-color: #2980b9;
+    color: white;
+}
+
+.submenu-item i {
+    font-size: 16px;
+    margin-right: 8px;
+    color: #3498db;
+}
+
+.submenu-item:hover i,
+.submenu-item.active i {
+    color: white;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .store-buttons {
+        overflow-x: auto;
+        padding-bottom: 8px;
+        flex-wrap: nowrap;
+    }
+    
+    .store-button {
+        white-space: nowrap;
+    }
+}
+
+/* Dashboard header 样式 */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    background-color: white;
+    border-radius: 8px;
+    padding: 12px 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.date-selector {
+    display: flex;
+    align-items: center;
+    background-color: #f5f5f5;
+    border-radius: 6px;
+    padding: 0 10px;
+    border: 1px solid #eee;
+}
+
+.date-selector label {
+    display: flex;
+    align-items: center;
+    color: #555;
+    margin-right: 8px;
+}
+
+.date-selector .material-icons {
+    font-size: 20px;
+    color: #2c3e50;
+}
+
+.date-selector input[type="date"] {
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    padding: 8px 4px;
+    color: #333;
+    width: 130px;
+}
+
+.date-selector input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.date-selector input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+
+.dashboard-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon-button {
+    background-color: #f5f5f5;
+    color: #555;
+    border: 1px solid #eee;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.icon-button:hover {
+    background-color: #e0e0e0;
+    transform: translateY(-1px);
+}
+
+.icon-button .material-icons {
+    font-size: 18px;
+}
+
+.action-button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-button:hover {
+    background-color: #2980b9;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.action-button .material-icons {
+    font-size: 18px;
+}
+
+/* 在移动设备上优化 */
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .dashboard-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .date-selector {
+        width: 100%;
+    }
+    
+    .date-selector input[type="date"] {
+        width: 100%;
+    }
+}
+
+/* Inventory Management 样式 */
+.inventory-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    background-color: white;
+    border-radius: 8px;
+    padding: 15px 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.inventory-filters {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+}
+
+.filter-item label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #666;
+}
+
+.filter-item label .material-icons {
+    font-size: 16px;
+    margin-right: 5px;
+    color: #3498db;
+}
+
+.filter-item select {
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #f9f9f9;
+    font-size: 14px;
+    color: #333;
+    width: 100%;
+}
+
+.filter-item select:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+.inventory-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.inventory-table-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    margin-top: 20px;
+    padding: 12px;
+    overflow-x: auto;
+}
+
+.inventory-table-container table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.inventory-table-container th {
+    padding: 10px 12px;
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #eee;
+    text-align: left;
+    font-weight: 600;
+    color: #444;
+    position: sticky;
+    top: 0;
+    font-size: 13px;
+}
+
+.inventory-table-container td {
+    padding: 5px 12px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+/* 优化checkbox样式,使其更加紧凑 */
+.inventory-table-container input[type="checkbox"] {
+    margin: 0;
+    padding: 0;
+    width: 16px;
+    height: 16px;
+}
+
+/* 优化库存状态标签以适应紧凑布局 */
+.stock-status {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: bold;
+    display: inline-block;
+    text-align: center;
+}
+
+.inventory-table-container tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* 下拉菜单 */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-toggle {
+    background-color: #f5f5f5;
+    color: #555;
+    padding: 8px;
+}
+
+.dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background-color: white;
+    min-width: 150px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    border-radius: 6px;
+    padding: 5px;
+    z-index: 10;
+    display: none;
+}
+
+.dropdown:hover .dropdown-menu {
+    display: block;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    background: none;
+    border: none;
+    font-size: 13px;
+    color: #333;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+    background-color: #f5f5f5;
+}
+
+.dropdown-item .material-icons {
+    font-size: 16px;
+    color: #555;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .store-buttons {
+        overflow-x: auto;
+        padding-bottom: 8px;
+        flex-wrap: nowrap;
+    }
+    
+    .store-button {
+        white-space: nowrap;
+    }
+    
+    .dashboard-header,
+    .inventory-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .dashboard-actions,
+    .inventory-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .date-selector {
+        width: 100%;
+    }
+    
+    .date-selector input[type="date"] {
+        width: 100%;
+    }
+    
+    .inventory-filters {
+        width: 100%;
+    }
+    
+    .filter-item {
+        width: 100%;
+    }
+}
+
+/* 通用页面头部样式 */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    background-color: white;
+    border-radius: 8px;
+    padding: 15px 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.header-title {
+    display: flex;
+    flex-direction: column;
+}
+
+.header-title span {
+    color: #666;
+    font-size: 14px;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-section {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* 通用数据表格容器 */
+.data-table-container {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    margin-top: 20px;
+    padding: 15px;
+    overflow-x: auto;
+}
+
+.data-table-container table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table-container th {
+    padding: 12px 15px;
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #eee;
+    text-align: left;
+    font-weight: 600;
+    color: #444;
+    position: sticky;
+    top: 0;
+}
+
+.data-table-container td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+.data-table-container tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* 移动端适配增强 */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .filter-section {
+        width: 100%;
+    }
+}
+
+/* 特别为Inventory表格优化行高和间距 */
+.inventory-table-container td {
+    padding: 5px 12px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+.inventory-table-container tr:last-child td {
+    border-bottom: none;
+}
+
+/* 操作按钮水平排列 */
+.inventory-action-buttons {
+    display: flex;
+    gap: 5px;
+    justify-content: flex-start;
+}
+
+.inventory-action-buttons .icon-button {
+    width: 28px;
+    height: 28px;
+}
+
+.inventory-action-buttons .icon-button .material-icons {
+    font-size: 15px;
+}
+
+/* 波纹效果 */
+.ripple {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    transform: scale(0);
+    animation: ripple 0.6s linear;
+    pointer-events: none;
+}
+
+@keyframes ripple {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
 } 

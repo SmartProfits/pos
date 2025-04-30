@@ -14,7 +14,12 @@
                 <p id="adminName">Admin: </p>
             </div>
             <div class="nav-menu">
+                <div>
                 <div class="nav-item active" data-view="dashboard"><i class="material-icons">dashboard</i> Dashboard</div>
+                    <div class="stores-submenu" id="storesSubmenu">
+                        <!-- 店铺子菜单项将在这里动态生成 -->
+                    </div>
+                </div>
                 <div class="nav-item" data-view="stores"><i class="material-icons">store</i> Stores</div>
                 <div class="nav-item" data-view="products"><i class="material-icons">inventory</i> Products</div>
                 <div class="nav-item" data-view="inventory"><i class="material-icons">inventory_2</i> Inventory</div>
@@ -31,17 +36,29 @@
             
             <!-- Dashboard View -->
             <div id="dashboardView" class="view active">
-                <div class="filter-container">
-                    <label for="dateFilter"><i class="material-icons">event</i> Date:</label>
+                <div class="dashboard-header">
+                    <div class="date-selector">
+                        <label for="dateFilter"><i class="material-icons">event</i></label>
                     <input type="date" id="dateFilter" value="">
+                    </div>
                     
-                    <label for="storeFilter"><i class="material-icons">store</i> Store:</label>
-                    <select id="storeFilter">
-                        <option value="all">All Stores</option>
-                        <!-- Store options will be loaded dynamically -->
-                    </select>
-                    
-                    <button id="refreshStatsBtn"><i class="material-icons">refresh</i> Refresh</button>
+                    <div class="dashboard-actions">
+                        <button id="refreshStatsBtn" class="icon-button" title="刷新数据">
+                            <i class="material-icons">refresh</i>
+                        </button>
+                        <button id="viewSalesSummaryBtn" class="action-button">
+                            <i class="material-icons">assessment</i>
+                            <span>Sales Summary</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="store-buttons-container">
+                    <div class="store-buttons-label"><i class="material-icons">store</i> Store:</div>
+                    <div class="store-buttons" id="storeButtons">
+                        <button class="store-button active" data-store="all">All Stores</button>
+                        <!-- Store buttons will be loaded dynamically -->
+                    </div>
                 </div>
                 
                 <div class="stats-container" id="statsContainer">
@@ -71,9 +88,21 @@
             
             <!-- Stores Management View -->
             <div id="storesView" class="view">
-                <h2>Store List</h2>
-                <button id="addStoreBtn"><i class="material-icons">add</i> Add Store</button>
-                <div class="stores-container">
+                <h2>Store Management</h2>
+                
+                <div class="page-header">
+                    <div class="header-title">
+                        <span>Manage all your retail locations</span>
+                    </div>
+                    <div class="header-actions">
+                        <button id="addStoreBtn" class="action-button">
+                            <i class="material-icons">add_business</i>
+                            <span>Add Store</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="data-table-container">
                     <table id="storesTable">
                         <thead>
                             <tr>
@@ -92,16 +121,30 @@
             
             <!-- Products Management View -->
             <div id="productsView" class="view">
-                <h2>Product List</h2>
-                <button id="addProductBtn"><i class="material-icons">add</i> Add Product</button>
-                <div class="product-filter">
-                    <label for="productStoreFilter"><i class="material-icons">store</i> Store:</label>
+                <h2>Product Management</h2>
+                
+                <div class="page-header">
+                    <div class="filter-section">
+                        <div class="filter-item">
+                            <label for="productStoreFilter">
+                                <i class="material-icons">store</i>
+                                <span>Store</span>
+                            </label>
                     <select id="productStoreFilter">
                         <option value="all">All Stores</option>
                         <!-- Store options will be loaded dynamically -->
                     </select>
                 </div>
-                <div class="products-container">
+                    </div>
+                    <div class="header-actions">
+                        <button id="addProductBtn" class="action-button">
+                            <i class="material-icons">add_shopping_cart</i>
+                            <span>Add Product</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="data-table-container">
                     <table id="productsTable">
                         <thead>
                             <tr>
@@ -123,9 +166,21 @@
             
             <!-- Users Management View -->
             <div id="usersView" class="view">
-                <h2>User List</h2>
-                <button id="addUserBtn"><i class="material-icons">person_add</i> Add User</button>
-                <div class="users-container">
+                <h2>User Management</h2>
+                
+                <div class="page-header">
+                    <div class="header-title">
+                        <span>Manage user accounts and permissions</span>
+                    </div>
+                    <div class="header-actions">
+                        <button id="addUserBtn" class="action-button">
+                            <i class="material-icons">person_add</i>
+                            <span>Add User</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="data-table-container">
                     <table id="usersTable">
                         <thead>
                             <tr>
@@ -146,36 +201,71 @@
             <!-- Inventory Management View -->
             <div id="inventoryView" class="view">
                 <h2>Inventory Management</h2>
-                <div class="filter-container">
-                    <label for="inventoryStoreFilter"><i class="material-icons">store</i> Store:</label>
+                
+                <div class="inventory-header">
+                    <div class="inventory-filters">
+                        <div class="filter-item">
+                            <label for="inventoryStoreFilter">
+                                <i class="material-icons">store</i>
+                                <span>Store</span>
+                            </label>
                     <select id="inventoryStoreFilter">
                         <option value="all">All Stores</option>
                         <!-- Store options will be loaded dynamically -->
                     </select>
-                    
-                    <label for="inventoryCategoryFilter"><i class="material-icons">category</i> Category:</label>
+                        </div>
+                        
+                        <div class="filter-item">
+                            <label for="inventoryCategoryFilter">
+                                <i class="material-icons">category</i>
+                                <span>Category</span>
+                            </label>
                     <select id="inventoryCategoryFilter">
                         <option value="all">All Categories</option>
                         <!-- Category options will be loaded dynamically -->
                     </select>
-                    
-                    <label for="inventoryStockFilter"><i class="material-icons">warning</i> Stock Status:</label>
+                        </div>
+                        
+                        <div class="filter-item">
+                            <label for="inventoryStockFilter">
+                                <i class="material-icons">warning</i>
+                                <span>Stock Status</span>
+                            </label>
                     <select id="inventoryStockFilter">
                         <option value="all">All</option>
                         <option value="low">Low Stock</option>
                         <option value="out">Out of Stock</option>
                     </select>
+                        </div>
+                    </div>
                     
-                    <button id="refreshInventoryBtn"><i class="material-icons">refresh</i> Refresh</button>
+                    <div class="inventory-actions">
+                        <button id="refreshInventoryBtn" class="icon-button" title="刷新库存">
+                            <i class="material-icons">refresh</i>
+                        </button>
+                        <button id="bulkUpdateBtn" class="action-button">
+                            <i class="material-icons">update</i>
+                            <span>Bulk Update</span>
+                        </button>
+                        <div class="dropdown">
+                            <button class="action-button dropdown-toggle">
+                                <i class="material-icons">more_horiz</i>
+                            </button>
+                            <div class="dropdown-menu">
+                                <button id="exportInventoryBtn" class="dropdown-item">
+                                    <i class="material-icons">download</i>
+                                    <span>Export</span>
+                                </button>
+                                <button id="importInventoryBtn" class="dropdown-item">
+                                    <i class="material-icons">upload</i>
+                                    <span>Import</span>
+                                </button>
+                            </div>
+                        </div>
+                </div>
                 </div>
                 
-                <div class="inventory-actions">
-                    <button id="bulkUpdateBtn"><i class="material-icons">update</i> Bulk Update</button>
-                    <button id="exportInventoryBtn"><i class="material-icons">download</i> Export</button>
-                    <button id="importInventoryBtn"><i class="material-icons">upload</i> Import</button>
-                </div>
-                
-                <div class="inventory-container">
+                <div class="inventory-table-container">
                     <table id="inventoryTable">
                         <thead>
                             <tr>
@@ -440,11 +530,34 @@
         </div>
     </div>
     
+    <!-- Sales Summary Modal -->
+    <div id="salesSummaryModal" class="modal">
+        <div class="modal-content" style="width: 80%;">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">assessment</i> Sales Summary by Product</h2>
+            <div class="summary-filter-container">
+                <select id="summarySortBy">
+                    <option value="quantity">Sort by Quantity</option>
+                    <option value="revenue">Sort by Revenue</option>
+                    <option value="name">Sort by Name</option>
+                </select>
+                <div class="summary-actions">
+                    <button id="screenshotSummaryBtn"><i class="material-icons">photo_camera</i> Screenshot</button>
+                    <button id="exportSummaryBtn"><i class="material-icons">download</i> Export CSV</button>
+                </div>
+            </div>
+            <div id="salesSummaryContent">
+                <div class="loading"><i class="material-icons">hourglass_empty</i> Loading summary...</div>
+            </div>
+        </div>
+    </div>
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="../js/firebase-config.js"></script>
     <script src="../js/database.js"></script>
     <script src="../js/admin.js"></script>
 </body>
-</html> Admin Console
+</html>

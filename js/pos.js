@@ -376,7 +376,7 @@ function loadSalesHistory(date) {
     const storeId = localStorage.getItem('store_id');
     
     // 显示加载状态
-    salesTableBody.innerHTML = '<tr><td colspan="7" class="loading"><i class="material-icons">hourglass_empty</i> Loading...</td></tr>';
+    salesTableBody.innerHTML = '<tr><td colspan="8" class="loading"><i class="material-icons">hourglass_empty</i> Loading...</td></tr>';
     
     // 从数据库加载销售记录
     getStoreSaleDetails(storeId, selectedDate)
@@ -386,7 +386,7 @@ function loadSalesHistory(date) {
         })
         .catch(error => {
             console.error('Failed to load sales data:', error);
-            salesTableBody.innerHTML = '<tr><td colspan="7" class="error"><i class="material-icons">error</i> Failed to load sales data</td></tr>';
+            salesTableBody.innerHTML = '<tr><td colspan="8" class="error"><i class="material-icons">error</i> Failed to load sales data</td></tr>';
         });
 }
 
@@ -395,7 +395,12 @@ function renderSalesTable(sales) {
     salesTableBody.innerHTML = '';
     
     if (Object.keys(sales).length === 0) {
-        salesTableBody.innerHTML = '<tr><td colspan="7" class="no-data"><i class="material-icons">info</i> No sales data available for this date</td></tr>';
+        salesTableBody.innerHTML = '<tr><td colspan="8" class="no-data"><i class="material-icons">info</i> No sales data available for this date</td></tr>';
+        // 清空总销售额显示
+        document.getElementById('totalSalesAmount').textContent = 'RM0.00';
+        document.getElementById('totalTransactions').textContent = '0';
+        document.getElementById('discountedSalesCount').textContent = '0';
+        document.getElementById('totalDiscountAmount').textContent = 'RM0.00';
         return;
     }
     
@@ -404,10 +409,36 @@ function renderSalesTable(sales) {
         return sales[b].timestamp.localeCompare(sales[a].timestamp);
     });
     
+    // 计算总销售额和折扣统计
+    let totalAmount = 0;
+    let transactionCount = sortedSales.length;
+    let discountedSalesCount = 0;
+    let totalDiscountAmount = 0;
+    
     sortedSales.forEach(saleId => {
         const sale = sales[saleId];
+        totalAmount += sale.total_amount;
         const itemCount = sale.items ? sale.items.reduce((sum, item) => sum + item.quantity, 0) : 0;
         const cashierName = sale.cashierName || 'N/A';
+        
+        // 检查是否有折扣
+        let discountDisplay = 'None';
+        let discountBadgeClass = 'discount-none';
+        
+        if (sale.discountAmount > 0) {
+            discountedSalesCount++;
+            totalDiscountAmount += sale.discountAmount;
+            
+            const discountType = sale.discountType || 'percent';
+            
+            if (discountType === 'percent') {
+                discountDisplay = `${sale.discountPercent}%`;
+                discountBadgeClass = 'discount-percent';
+            } else {
+                discountDisplay = `RM${sale.discountAmount.toFixed(2)}`;
+                discountBadgeClass = 'discount-fixed';
+            }
+        }
         
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -416,6 +447,7 @@ function renderSalesTable(sales) {
             <td>${sale.timestamp}</td>
             <td>${cashierName}</td>
             <td>${itemCount}</td>
+            <td><span class="discount-badge ${discountBadgeClass}">${discountDisplay}</span></td>
             <td>RM${sale.total_amount.toFixed(2)}</td>
             <td>
                 <button class="view-sale-btn" data-id="${saleId}"><i class="material-icons">visibility</i></button>
@@ -426,6 +458,12 @@ function renderSalesTable(sales) {
         
         salesTableBody.appendChild(row);
     });
+    
+    // 更新总销售额显示
+    document.getElementById('totalSalesAmount').textContent = `RM${totalAmount.toFixed(2)}`;
+    document.getElementById('totalTransactions').textContent = transactionCount;
+    document.getElementById('discountedSalesCount').textContent = discountedSalesCount;
+    document.getElementById('totalDiscountAmount').textContent = `RM${totalDiscountAmount.toFixed(2)}`;
     
     // 添加事件监听器到按钮
     document.querySelectorAll('.view-sale-btn').forEach(btn => {
@@ -1575,8 +1613,10 @@ function renderInventory(productsEntries) {
             <td>${stock}</td>
             <td><span class="stock-status ${statusClass}">${statusText}</span></td>
             <td>
-                <button class="update-stock-btn" data-id="${productId}"><i class="material-icons">edit</i></button>
-                <button class="view-history-btn" data-id="${productId}"><i class="material-icons">history</i></button>
+                <div class="inventory-action-buttons">
+                    <button class="icon-button update-stock-btn" data-id="${productId}"><i class="material-icons">edit</i></button>
+                    <button class="icon-button view-history-btn" data-id="${productId}"><i class="material-icons">history</i></button>
+                </div>
             </td>
         `;
         

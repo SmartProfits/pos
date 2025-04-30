@@ -5,6 +5,51 @@ const loginMessage = document.getElementById('loginMessage');
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 
+// Add ripple effect function
+function createRipple(event) {
+    const button = event.currentTarget;
+    const circle = document.createElement('span');
+    const diameter = Math.max(button.clientWidth, button.clientHeight);
+    
+    circle.style.width = circle.style.height = `${diameter}px`;
+    circle.style.left = `${event.clientX - button.offsetLeft - diameter / 2}px`;
+    circle.style.top = `${event.clientY - button.offsetTop - diameter / 2}px`;
+    circle.classList.add('ripple');
+    
+    const ripple = button.querySelector('.ripple');
+    if (ripple) {
+        ripple.remove();
+    }
+    
+    button.appendChild(circle);
+}
+
+// Add ripple effect to all buttons
+function addRippleEffect() {
+    const buttons = document.getElementsByTagName('button');
+    for (const button of buttons) {
+        button.addEventListener('click', createRipple);
+    }
+}
+
+// Set button loading state
+function setButtonLoading(button, isLoading) {
+    if (isLoading) {
+        button.classList.add('loading');
+        button.disabled = true;
+        // 更改按钮内容为Loading...
+        button.innerHTML = 'Loading...';
+    } else {
+        button.classList.remove('loading');
+        button.disabled = false;
+        // 恢复原始内容
+        button.innerHTML = '<span>Login</span><i class="material-icons" aria-hidden="true">arrow_forward</i>';
+    }
+}
+
+// Add ripple effect after DOM is loaded
+document.addEventListener('DOMContentLoaded', addRippleEffect);
+
 // Login button click event
 loginBtn.addEventListener('click', (e) => {
     e.preventDefault();
@@ -17,9 +62,9 @@ loginBtn.addEventListener('click', (e) => {
         return;
     }
     
-    // Show loading state
-    loginBtn.disabled = true;
-    loginBtn.innerHTML = '<i class="material-icons">hourglass_empty</i> Logging in...';
+    // Set button to loading state
+    setButtonLoading(loginBtn, true);
+    loginMessage.textContent = '';
     
     // Authenticate with Firebase
     auth.signInWithEmailAndPassword(email, password)
@@ -46,8 +91,7 @@ loginBtn.addEventListener('click', (e) => {
             }
             
             showMessage(errorMessage);
-            loginBtn.disabled = false;
-            loginBtn.innerHTML = '<i class="material-icons">login</i> Login';
+            setButtonLoading(loginBtn, false);
         });
 });
 
@@ -55,4 +99,38 @@ loginBtn.addEventListener('click', (e) => {
 function showMessage(message) {
     loginMessage.textContent = message;
     loginMessage.style.display = 'block';
+}
+
+// Check user login status
+firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+        // User is logged in, check page type
+        const currentPage = window.location.pathname;
+        if (currentPage.includes('index.html') || currentPage === '/') {
+            // On login page, get user role and redirect
+            firebase.database().ref('users/' + user.uid).once('value')
+                .then((snapshot) => {
+                    const userData = snapshot.val();
+                    if (userData) {
+                        const userRole = userData.role;
+                        if (userRole === 'admin') {
+                            window.location.href = 'pages/admin.html';
+                        } else {
+                            window.location.href = 'pages/pos.html';
+                        }
+                    }
+                });
+        }
+    }
+});
+
+// Logout function
+function logout() {
+    firebase.auth().signOut()
+        .then(() => {
+            window.location.href = '../index.html';
+        })
+        .catch((error) => {
+            console.error('Logout error:', error);
+        });
 } 
