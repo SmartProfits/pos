@@ -670,10 +670,41 @@ function renderStats(salesData, isAllStores) {
 
 // 加载所有店铺的销售详情
 function loadAllStoresSaleDetails(date) {
-    // 获取所有销售记录
-    database.ref('sales').orderByChild('date').equalTo(date).once('value')
-        .then(snapshot => {
-            const sales = snapshot.val() || {};
+    // 先获取所有店铺列表
+    getAllStores()
+        .then(storeList => {
+            const storeIds = Object.keys(storeList);
+            const promises = [];
+            
+            // 对每个店铺获取销售记录
+            storeIds.forEach(storeId => {
+                promises.push(
+                    database.ref(`sales/${storeId}`).once('value')
+                        .then(snapshot => {
+                            const sales = snapshot.val() || {};
+                            // 筛选特定日期的销售记录
+                            const filteredSales = {};
+                            Object.keys(sales).forEach(saleId => {
+                                if (sales[saleId].date === date) {
+                                    filteredSales[saleId] = sales[saleId];
+                                }
+                            });
+                            return filteredSales;
+                        })
+                );
+            });
+            
+            // 合并所有店铺的销售记录
+            return Promise.all(promises)
+                .then(results => {
+                    let allSales = {};
+                    results.forEach(storeSales => {
+                        allSales = { ...allSales, ...storeSales };
+                    });
+                    return allSales;
+                });
+        })
+        .then(sales => {
             renderSaleDetails(sales);
         })
         .catch(error => {
@@ -1420,19 +1451,17 @@ function getStoreDailySales(storeId, date) {
 
 // 从transactions表计算特定店铺的销售统计
 function loadStoreSalesFromTransactions(storeId, date) {
-    return database.ref('sales')
-        .orderByChild('store_id')
-        .equalTo(storeId)
-        .once('value')
+    return database.ref(`sales/${storeId}`).once('value')
         .then(snapshot => {
             const sales = snapshot.val() || {};
             let totalSales = 0;
             let transactionCount = 0;
             
+            // 筛选特定日期的销售记录并计算总额
             Object.keys(sales).forEach(saleId => {
                 const sale = sales[saleId];
                 if (sale.date === date) {
-                    totalSales += parseFloat(sale.total_amount) || 0;
+                    totalSales += Number(sale.total_amount || 0);
                     transactionCount++;
                 }
             });
@@ -1469,36 +1498,58 @@ function getAllStoresDailySales(date) {
 
 // 从transactions表直接计算销售统计数据
 function loadSalesFromTransactions(date) {
-    return database.ref('sales').orderByChild('date').equalTo(date).once('value')
-        .then(snapshot => {
-            const sales = snapshot.val() || {};
-            const result = {};
+    // 先获取所有店铺列表
+    return getAllStores()
+        .then(storeList => {
+            const storeIds = Object.keys(storeList);
+            const promises = [];
             
-            // 按店铺分组并计算统计数据
-            Object.keys(sales).forEach(saleId => {
-                const sale = sales[saleId];
-                const storeId = sale.store_id;
-                
-                if (!result[storeId]) {
-                    result[storeId] = {
-                        total_sales: 0,
-                        transaction_count: 0
-                    };
-                }
-                
-                result[storeId].total_sales += parseFloat(sale.total_amount) || 0;
-                result[storeId].transaction_count += 1;
+            // 对每个店铺获取销售记录
+            storeIds.forEach(storeId => {
+                promises.push(
+                    database.ref(`sales/${storeId}`).once('value')
+                        .then(snapshot => {
+                            const sales = snapshot.val() || {};
+                            let totalSales = 0;
+                            let transactionCount = 0;
+                            
+                            // 筛选特定日期的销售记录并计算总额
+                            Object.keys(sales).forEach(saleId => {
+                                const sale = sales[saleId];
+                                if (sale.date === date) {
+                                    totalSales += Number(sale.total_amount || 0);
+                                    transactionCount++;
+                                }
+                            });
+                            
+                            return {
+                                storeId,
+                                stats: {
+                                    total_sales: totalSales,
+                                    transaction_count: transactionCount
+                                }
+                            };
+                        })
+                );
             });
             
-            return result;
+            // 合并所有店铺的销售统计
+            return Promise.all(promises)
+                .then(results => {
+                    const allStats = {};
+                    results.forEach(result => {
+                        if (result && result.storeId) {
+                            allStats[result.storeId] = result.stats;
+                        }
+                    });
+                    return allStats;
+                });
         });
 }
 
 // 获取特定店铺的特定日期销售详情
 function getStoreSaleDetails(storeId, date) {
-    return database.ref('sales')
-        .orderByChild('store_id')
-        .equalTo(storeId)
+    return database.ref(`sales/${storeId}`)
         .once('value')
         .then(snapshot => {
             const allSales = snapshot.val() || {};

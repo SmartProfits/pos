@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS System - Product Catalog</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+</head>
+<body>
+    <div class="pos-container">
+        <div class="sidebar">
+            <div class="store-info">
+                <h2>Product Catalog</h2>
+                <p id="storeName">Store: </p>
+                <p id="userName">User: </p>
+            </div>
+            <div class="nav-menu">
+                <div class="nav-item" onclick="location.href='admin.html'"><i class="material-icons">arrow_back</i> Back to Admin</div>
+                <div class="nav-item active" data-view="catalog" id="catalogNavItem"><i class="material-icons">menu_book</i> Product Catalog</div>
+                <div class="nav-item" data-view="import" id="importNavItem"><i class="material-icons">download</i> Import Products</div>
+                <div class="nav-item" onclick="logout()"><i class="material-icons">logout</i> Logout</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="header">
+                <h1 id="viewTitle">Product Catalog</h1>
+                <div id="currentDateTime"></div>
+            </div>
+            
+            <!-- Product Catalog View -->
+            <div id="catalogView" class="view active">
+                <h2>Global Product Catalog</h2>
+                
+                <div class="page-header">
+                    <div class="filter-section">
+                        <div class="filter-item">
+                            <label for="catalogCategoryFilter">
+                                <i class="material-icons">category</i>
+                                <span>Category</span>
+                            </label>
+                            <select id="catalogCategoryFilter">
+                                <option value="all">All Categories</option>
+                                <!-- Categories will be loaded dynamically -->
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label for="catalogSearch">
+                                <i class="material-icons">search</i>
+                                <span>Search</span>
+                            </label>
+                            <input type="text" id="catalogSearch" placeholder="Search products...">
+                        </div>
+                    </div>
+                    <div class="header-actions">
+                        <button id="addCatalogProductBtn" class="action-button">
+                            <i class="material-icons">add_shopping_cart</i>
+                            <span>Add Product</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="data-table-container">
+                    <table id="catalogTable">
+                        <thead>
+                            <tr>
+                                <th width="15%">Product ID</th>
+                                <th width="35%">Product Name</th>
+                                <th width="15%">Price</th>
+                                <th width="25%">Category</th>
+                                <th width="10%">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="catalogTableBody">
+                            <!-- Product list will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Import Products View -->
+            <div id="importView" class="view">
+                <h2>Import Products to Your Store</h2>
+                
+                <div class="page-header">
+                    <div class="filter-section">
+                        <div class="filter-item">
+                            <label for="importCategoryFilter">
+                                <i class="material-icons">category</i>
+                                <span>Category</span>
+                            </label>
+                            <select id="importCategoryFilter">
+                                <option value="all">All Categories</option>
+                                <!-- Categories will be loaded dynamically -->
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label for="importSearch">
+                                <i class="material-icons">search</i>
+                                <span>Search</span>
+                            </label>
+                            <input type="text" id="importSearch" placeholder="Search products...">
+                        </div>
+                    </div>
+                    <div class="header-actions">
+                        <button id="importSelectedBtn" class="action-button" disabled>
+                            <i class="material-icons">download</i>
+                            <span>Import Selected</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="data-table-container">
+                    <table id="importTable">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="selectAllProducts">
+                                </th>
+                                <th>Product ID</th>
+                                <th>Product Name</th>
+                                <th>Price</th>
+                                <th>Category</th>
+                                <th>Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="importTableBody">
+                            <!-- Product list will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Catalog Product Modal -->
+    <div id="addCatalogProductModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">add_shopping_cart</i> Add Product to Catalog</h2>
+            <form id="addCatalogProductForm">
+                <div class="form-group">
+                    <label for="catalogProductId"><i class="material-icons">tag</i> Product ID:</label>
+                    <input type="text" id="catalogProductId" required>
+                </div>
+                <div class="form-group">
+                    <label for="catalogProductName"><i class="material-icons">inventory</i> Product Name:</label>
+                    <input type="text" id="catalogProductName" required>
+                </div>
+                <div class="form-group">
+                    <label for="catalogProductPrice"><i class="material-icons">attach_money</i> Price:</label>
+                    <input type="number" id="catalogProductPrice" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="catalogProductCategory"><i class="material-icons">category</i> Category:</label>
+                    <input type="text" id="catalogProductCategory">
+                </div>
+                <button type="submit"><i class="material-icons">save</i> Add to Catalog</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Import Confirmation Modal -->
+    <div id="importConfirmModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">download</i> Import Products</h2>
+            <p>You are about to import <span id="importCount">0</span> products to your store.</p>
+            <p>Please confirm to proceed.</p>
+            <div class="modal-actions">
+                <button id="confirmImportBtn" class="primary-button">
+                    <i class="material-icons">check</i>
+                    <span>Confirm Import</span>
+                </button>
+                <button id="cancelImportBtn" class="secondary-button">
+                    <i class="material-icons">close</i>
+                    <span>Cancel</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="../js/firebase-config.js"></script>
+    <script>
+        // 检查用户角色并根据角色显示/隐藏导航菜单项
+        document.addEventListener('DOMContentLoaded', function() {
+            // 从localStorage获取用户角色
+            const userRole = localStorage.getItem('role');
+            console.log("当前用户角色:", userRole);
+
+            // 如果用户是staff，隐藏Product Catalog选项并显示Import Products
+            if (userRole === 'staff') {
+                const catalogNavItem = document.getElementById('catalogNavItem');
+                const importNavItem = document.getElementById('importNavItem');
+                const catalogView = document.getElementById('catalogView');
+                const importView = document.getElementById('importView');
+                const viewTitle = document.getElementById('viewTitle');
+
+                // 隐藏Product Catalog选项
+                if (catalogNavItem) {
+                    catalogNavItem.style.display = 'none';
+                }
+
+                // 激活Import Products选项
+                if (importNavItem) {
+                    importNavItem.classList.add('active');
+                }
+
+                // 隐藏Product Catalog视图，显示Import Products视图
+                if (catalogView) {
+                    catalogView.classList.remove('active');
+                }
+                
+                if (importView) {
+                    importView.classList.add('active');
+                    
+                    // 更新页面标题
+                    if (viewTitle) {
+                        viewTitle.textContent = 'Import Products';
+                    }
+                }
+            }
+        });
+    </script>
+    <script src="../js/catalog.js"></script>
+</body>
+</html> 

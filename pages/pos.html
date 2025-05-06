@@ -30,23 +30,29 @@
     </div>
     
     <div class="pos-container">
-        <div class="sidebar">
-            <div class="store-info">
-                <h2 id="storeName">Store Name</h2>
-                <p id="storeId">Store ID: </p>
-                <p id="staffName">Staff: </p>
-                <p id="currentCashier"><i class="material-icons">person</i> Cashier: <span id="cashierNameDisplay">Not set</span> <button id="changeCashierBtn" class="small-btn"><i class="material-icons">edit</i></button></p>
-                <button id="viewCashierHistoryBtn" class="sidebar-btn"><i class="material-icons">history</i> View Shift History</button>
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-toggle" id="sidebarToggle">
+                <i class="material-icons" id="toggleIcon">chevron_left</i>
             </div>
-            <div class="nav-menu">
-                <div class="nav-item active" data-view="sales"><i class="material-icons">point_of_sale</i> Sales</div>
-                <div class="nav-item" data-view="salesHistory"><i class="material-icons">history</i> Sales History</div>
-                <div class="nav-item" data-view="inventory"><i class="material-icons">inventory_2</i> Inventory</div>
-                <div class="nav-item" onclick="logout()"><i class="material-icons">logout</i> Logout</div>
+            <div class="sidebar-content">
+                <div class="store-info">
+                    <h2 id="storeName">Store Name</h2>
+                    <p id="storeId">Store ID: </p>
+                    <p id="staffName">Staff: </p>
+                    <p id="currentCashier"><i class="material-icons">person</i> Cashier: <span id="cashierNameDisplay">Not set</span> <button id="changeCashierBtn" class="small-btn"><i class="material-icons">edit</i></button></p>
+                    <button id="viewCashierHistoryBtn" class="sidebar-btn"><i class="material-icons">history</i> View Shift History</button>
+                </div>
+                <div class="nav-menu">
+                    <div class="nav-item active" data-view="sales"><i class="material-icons">point_of_sale</i> <span class="nav-text">Sales</span></div>
+                    <div class="nav-item" data-view="salesHistory"><i class="material-icons">history</i> <span class="nav-text">Sales History</span></div>
+                    <div class="nav-item" data-view="inventory"><i class="material-icons">inventory_2</i> <span class="nav-text">Inventory</span></div>
+                    <div class="nav-item" onclick="location.href='./product_catalog.html'"><i class="material-icons">menu_book</i> <span class="nav-text">Product Catalog</span></div>
+                    <div class="nav-item" onclick="logout()"><i class="material-icons">logout</i> <span class="nav-text">Logout</span></div>
+                </div>
             </div>
         </div>
         
-        <div class="content">
+        <div class="content" id="mainContent">
             <div class="header">
                 <h1 id="viewTitle">Sales System</h1>
                 <div id="currentDateTime"></div>
@@ -70,18 +76,27 @@
                     
                     <div class="cart-container">
                         <h2><i class="material-icons">shopping_cart</i> Cart</h2>
+                        <div class="cart-header">
+                            <div class="cart-header-item">Product</div>
+                            <div class="cart-header-item">Price</div>
+                            <div class="cart-header-item">Qty</div>
+                            <div class="cart-header-item">Total</div>
+                            <div class="cart-header-item">Action</div>
+                        </div>
                         <div class="cart-items" id="cartItems">
                             <!-- Cart items will be loaded dynamically by JavaScript -->
                         </div>
                         <div class="cart-total">Total: <span id="cartTotal">$0.00</span></div>
-                        <button id="checkoutBtn" class="checkout-btn" aria-label="结算购物车">
-                            <i class="material-icons" aria-hidden="true">payment</i> 
-                            <span>Checkout</span>
-                        </button>
-                        <button id="clearCartBtn" aria-label="清空购物车">
-                            <i class="material-icons" aria-hidden="true">remove_shopping_cart</i> 
-                            <span>Clear Cart</span>
-                        </button>
+                        <div class="cart-actions">
+                            <button id="checkoutBtn" class="checkout-btn" aria-label="结算购物车">
+                                <i class="material-icons" aria-hidden="true">payment</i> 
+                                <span>Checkout</span>
+                            </button>
+                            <button id="clearCartBtn" aria-label="清空购物车">
+                                <i class="material-icons" aria-hidden="true">remove_shopping_cart</i> 
+                                <span>Clear Cart</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

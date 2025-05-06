@@ -75,13 +75,13 @@ function addSaleRecord(saleData) {
             console.log("准备添加的销售记录对象:", saleRecord);
 
             // 生成唯一的销售记录ID
-            const saleId = database.ref().child('sales').push().key;
+            const saleId = database.ref().child(`sales/${storeId}`).push().key;
             
             // 创建一个批量更新对象
             const updates = {};
             
             // 更新销售记录
-            updates[`sales/${saleId}`] = saleRecord;
+            updates[`sales/${storeId}/${saleId}`] = saleRecord;
             
             // 确保使用correct的total_amount值更新统计
             const totalAmount = saleDataCopy.total_amount;
@@ -189,7 +189,7 @@ function getAllStoresDailySales(date) {
 // 获取特定店铺的特定日期销售详情
 function getStoreSaleDetails(storeId, date) {
     return new Promise((resolve, reject) => {
-        database.ref('sales').orderByChild('store_id').equalTo(storeId).once('value')
+        database.ref(`sales/${storeId}`).once('value')
             .then(snapshot => {
                 const sales = snapshot.val() || {};
                 const filteredSales = {};

@@ -64,16 +64,18 @@ auth.onAuthStateChanged(user => {
                 // 根据角色重定向到相应页面
                 let targetPage;
                 if (userData.role === 'admin') {
-                    // 检查当前是否已经在admin页面
-                    if (currentPath.includes('/pages/admin.html')) {
-                        console.log("已在管理员页面，无需重定向");
+                    // 检查当前是否已经在admin页面或产品目录页面
+                    if (currentPath.includes('/pages/admin.html') || 
+                        currentPath.includes('/pages/product_catalog.html')) {
+                        console.log("已在管理员相关页面，无需重定向");
                         return;
                     }
                     targetPage = getFullPath('pages/admin.html');
                 } else if (userData.role === 'staff') {
-                    // 检查当前是否已经在pos页面
-                    if (currentPath.includes('/pages/pos.html')) {
-                        console.log("已在销售页面，无需重定向");
+                    // 检查当前是否已经在pos页面或产品目录页面
+                    if (currentPath.includes('/pages/pos.html') || 
+                        currentPath.includes('/pages/product_catalog.html')) {
+                        console.log("已在销售相关页面，无需重定向");
                         return;
                     }
                     targetPage = getFullPath('pages/pos.html');

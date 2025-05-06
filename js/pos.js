@@ -19,6 +19,7 @@ let cashierHistory = []; // 收银员历史记录，用于记录换班情况
 let discountPercent = 0; // 折扣百分比，0表示无折扣
 let discountAmount = 0; // 直接金额折扣
 let discountType = 'percent'; // 折扣类型，percent表示百分比，amount表示金额
+let sidebarCollapsed = false; // 侧边栏状态
 
 // DOM元素
 const productGrid = document.getElementById('productGrid');
@@ -57,6 +58,10 @@ const cashierNameForm = document.getElementById('cashierNameForm');
 const cashierNameDisplay = document.getElementById('cashierNameDisplay');
 const changeCashierBtn = document.getElementById('changeCashierBtn');
 const viewCashierHistoryBtn = document.getElementById('viewCashierHistoryBtn');
+const sidebar = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebarToggle');
+const mainContent = document.getElementById('mainContent');
+const toggleIcon = document.getElementById('toggleIcon');
 
 // 库存管理DOM元素
 const inventoryCategoryFilter = document.getElementById('inventoryCategoryFilter');
@@ -115,6 +120,12 @@ window.addEventListener('DOMContentLoaded', () => {
     // 更新当前时间
     updateDateTime();
     setInterval(updateDateTime, 1000);
+
+    // 恢复侧边栏状态
+    const savedSidebarState = localStorage.getItem('sidebarCollapsed');
+    if (savedSidebarState === 'true') {
+        toggleSidebar();
+    }
 });
 
 // 加载店铺信息
@@ -243,6 +254,9 @@ function getStockStatusClass(stock) {
 
 // 初始化事件监听器
 function initEventListeners() {
+    // 侧边栏切换
+    sidebarToggle.addEventListener('click', toggleSidebar);
+    
     // 商品类别选择
     categoryFilter.addEventListener('change', filterProductsByCategory);
     
@@ -593,26 +607,92 @@ function renderEditSaleItems() {
         return;
     }
     
+    // 移除可能存在的对话框
+    const existingDialog = document.querySelector('.split-free-dialog');
+    if (existingDialog) {
+        existingDialog.remove();
+    }
+    
+    const existingBackdrop = document.querySelector('.dialog-backdrop');
+    if (existingBackdrop) {
+        existingBackdrop.remove();
+    }
+    
     let total = 0;
+    let totalItems = 0;
+    
+    // 确保每个商品项都有isFree属性
+    editingSale.items.forEach(item => {
+        if (item.isFree === undefined) {
+            item.isFree = false;
+        }
+    });
+    
+    // 计算总商品数量和总金额
+    editingSale.items.forEach(item => {
+        // 只有非免费商品才计入总金额
+        if (!item.isFree) {
+            total += item.price * item.quantity;
+        }
+        totalItems += item.quantity;
+    });
+    
+    // 添加购物车统计
+    const cartStatsElement = document.createElement('div');
+    cartStatsElement.className = 'cart-stats';
+    cartStatsElement.innerHTML = `
+        <div class="cart-stats-item">
+            <div class="cart-stats-label">Products</div>
+            <div class="cart-stats-value">${editingSale.items.length}</div>
+        </div>
+        <div class="cart-stats-item">
+            <div class="cart-stats-label">Items</div>
+            <div class="cart-stats-value items">${totalItems}</div>
+        </div>
+        <div class="cart-stats-item">
+            <div class="cart-stats-label">Total</div>
+            <div class="cart-stats-value total">RM${total.toFixed(2)}</div>
+        </div>
+    `;
+    editCartItems.appendChild(cartStatsElement);
     
     editingSale.items.forEach((item, index) => {
         const itemTotal = item.price * item.quantity;
-        total += itemTotal;
         
         const cartItemElement = document.createElement('div');
         cartItemElement.className = 'cart-item';
+        
+        // 如果是免费商品，添加免费类
+        if (item.isFree) {
+            cartItemElement.classList.add('free');
+        }
+        
         cartItemElement.innerHTML = `
-            <div class="cart-item-info">
+            <div class="cart-item-header">
                 <div class="cart-item-name">${item.name}</div>
-                <div class="cart-item-price">RM${item.price.toFixed(2)}</div>
+                <div class="cart-item-actions">
+                    ${item.quantity > 1 ? 
+                        `<button class="split-quantity-btn edit-split" data-index="${index}">
+                            <i class="material-icons" style="font-size: 14px;">call_split</i> Split Free
+                        </button>` : 
+                        `<button class="free-item-btn ${item.isFree ? 'active' : ''}" data-index="${index}">
+                            <i class="material-icons" style="font-size: 14px;">card_giftcard</i> ${item.isFree ? 'Free' : 'Mark Free'}
+                        </button>`
+                    }
+                    <button class="remove-btn" data-index="${index}">×</button>
+                </div>
             </div>
-            <div class="cart-item-actions">
-                <button class="quantity-btn minus" data-index="${index}">-</button>
-                <span class="quantity">${item.quantity}</span>
-                <button class="quantity-btn plus" data-index="${index}">+</button>
-                <button class="remove-btn" data-index="${index}">×</button>
+            <div class="cart-item-details">
+                <div class="cart-item-price-qty">
+                    <span class="cart-item-price">RM${item.price.toFixed(2)}</span>
+                    <div class="cart-item-quantity">
+                        <button class="quantity-btn minus" data-index="${index}">-</button>
+                        <span class="quantity">${item.quantity}</span>
+                        <button class="quantity-btn plus" data-index="${index}">+</button>
+                    </div>
+                </div>
+                <div class="cart-item-total">RM${itemTotal.toFixed(2)}</div>
             </div>
-            <div class="cart-item-total">RM${itemTotal.toFixed(2)}</div>
         `;
         
         editCartItems.appendChild(cartItemElement);
@@ -640,8 +720,39 @@ function renderEditSaleItems() {
         });
     });
     
+    // 添加免费按钮事件监听
+    editCartItems.querySelectorAll('.free-item-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const index = parseInt(btn.dataset.index);
+            toggleEditItemFree(index);
+        });
+    });
+    
+    // 添加拆分免费按钮事件监听
+    editCartItems.querySelectorAll('.edit-split').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const index = parseInt(btn.dataset.index);
+            showEditSplitFreeDialog(index);
+        });
+    });
+    
     editCartTotal.textContent = `RM${total.toFixed(2)}`;
     editingSale.total_amount = total;
+}
+
+// 切换编辑中的商品免费状态
+function toggleEditItemFree(index) {
+    if (index >= 0 && index < editingSale.items.length) {
+        // 切换免费状态
+        editingSale.items[index].isFree = !editingSale.items[index].isFree;
+        // 更新小计
+        const itemPrice = editingSale.items[index].price;
+        const itemQuantity = editingSale.items[index].quantity;
+        editingSale.items[index].subtotal = editingSale.items[index].isFree ? 0 : itemPrice * itemQuantity;
+        
+        // 重新渲染编辑购物车
+        renderEditSaleItems();
+    }
 }
 
 // 更新编辑中的项目数量
@@ -651,7 +762,10 @@ function updateEditItemQuantity(index, quantity) {
             removeEditItem(index);
         } else {
             editingSale.items[index].quantity = quantity;
-            editingSale.items[index].subtotal = editingSale.items[index].price * quantity;
+            // 如果是免费商品，小计为0，否则正常计算
+            editingSale.items[index].subtotal = editingSale.items[index].isFree ? 
+                0 : 
+                editingSale.items[index].price * quantity;
             renderEditSaleItems();
         }
     }
@@ -677,8 +791,10 @@ function updateSale() {
     const total = editingSale.items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
     editingSale.total_amount = total;
     
+    const storeId = localStorage.getItem('store_id');
+    
     // 更新数据库
-    database.ref(`sales/${currentSaleId}`).update({
+    database.ref(`sales/${storeId}/${currentSaleId}`).update({
         items: editingSale.items,
         total_amount: total
     })
@@ -728,33 +844,55 @@ function deleteSale() {
     // 准备库存更新
     const updates = {};
     
+    // 首先按产品ID合并所有数量，确保同一商品只更新一次
+    const productQuantities = {};
+    
     // 为每个商品恢复库存
     sale.items.forEach(item => {
-        if (item.id && item.quantity) {
-            updates[`store_products/${userStoreId}/${item.id}/stock`] = firebase.database.ServerValue.increment(item.quantity);
-            
-            // 为每个恢复的商品添加库存记录
-            const historyEntry = {
-                timestamp: getCurrentDateTime(),
-                previous_stock: products[item.id] ? (products[item.id].stock || 0) : 0,
-                new_stock: products[item.id] ? (products[item.id].stock || 0) + item.quantity : item.quantity,
-                operation: 'add',
-                quantity: item.quantity,
-                reason: 'Sale Deleted',
-                notes: `Automatic inventory restoration from deleted sale ${currentSaleId}`,
-                cashier: cashierName || 'Unknown',
-                user_id: JSON.parse(localStorage.getItem('user') || '{}').uid || 'unknown'
+        if (!item.id || isNaN(item.quantity)) return;
+        
+        // 累加同一产品的数量（无论免费与否）
+        if (!productQuantities[item.id]) {
+            productQuantities[item.id] = {
+                name: item.name || 'Unknown Product',
+                totalQuantity: 0
             };
-            
-            // 生成唯一ID
-            const historyId = database.ref().child(`stock_history/${userStoreId}/${item.id}`).push().key;
-            updates[`stock_history/${userStoreId}/${item.id}/${historyId}`] = historyEntry;
         }
+        productQuantities[item.id].totalQuantity += item.quantity;
+        
+        console.log(`Counting product for restoration: ${item.name} (ID: ${item.id}), quantity: ${item.quantity}, isFree: ${item.isFree}`);
+    });
+    
+    // 对每个产品进行一次性库存恢复
+    Object.keys(productQuantities).forEach(productId => {
+        const product = productQuantities[productId];
+        const totalQuantity = product.totalQuantity;
+        
+        updates[`store_products/${userStoreId}/${productId}/stock`] = firebase.database.ServerValue.increment(totalQuantity);
+        
+        // 为每个恢复的商品添加库存记录
+        const historyEntry = {
+            timestamp: getCurrentDateTime(),
+            previous_stock: products[productId] ? (products[productId].stock || 0) : 0,
+            new_stock: products[productId] ? (products[productId].stock || 0) + totalQuantity : totalQuantity,
+            operation: 'add',
+            quantity: totalQuantity,
+            reason: 'Sale Deleted',
+            notes: `Automatic inventory restoration from deleted sale ${currentSaleId}`,
+            cashier: cashierName || 'Unknown',
+            user_id: JSON.parse(localStorage.getItem('user') || '{}').uid || 'unknown'
+        };
+        
+        // 生成唯一ID
+        const historyId = database.ref().child(`stock_history/${userStoreId}/${productId}`).push().key;
+        updates[`stock_history/${userStoreId}/${productId}/${historyId}`] = historyEntry;
+        
+        console.log(`Restoring stock for ${product.name} by ${totalQuantity} units`);
     });
     
     // 删除销售记录并更新库存
     Promise.all([
-        database.ref(`sales/${currentSaleId}`).remove(),
+        database.ref(`sales/${userStoreId}/${currentSaleId}`).remove(),
         database.ref().update(updates)
     ])
         .then(() => {
@@ -783,78 +921,6 @@ function hideModal(modal) {
     modal.style.display = 'none';
 }
 
-// 添加商品到购物车
-function addToCart(productId) {
-    const product = products[productId];
-    if (!product) return;
-    
-    // 检查商品库存
-    if (product.stock !== undefined) {
-        // 计算当前购物车中该商品的数量
-        const existingItemIndex = cart.findIndex(item => item.id === productId);
-        const currentCartQuantity = existingItemIndex !== -1 ? cart[existingItemIndex].quantity : 0;
-        
-        // 检查库存是否足够
-        if (product.stock <= 0) {
-            alert('This product is out of stock');
-            return;
-        }
-        
-        // 检查是否超过可用库存
-        if (currentCartQuantity >= product.stock) {
-            alert(`Cannot add more. Only ${product.stock} items available in stock.`);
-            return;
-        }
-    }
-    
-    // 检查购物车是否已存在该商品
-    const existingItemIndex = cart.findIndex(item => item.id === productId);
-    
-    if (existingItemIndex !== -1) {
-        // 如果已存在，增加数量
-        cart[existingItemIndex].quantity += 1;
-    } else {
-        // 否则添加新项目
-        cart.push({
-            id: productId,
-            name: product.name,
-            price: product.price,
-            quantity: 1
-        });
-    }
-    
-    // 更新购物车显示
-    renderCart();
-}
-
-// 从购物车移除商品
-function removeFromCart(index) {
-    if (index >= 0 && index < cart.length) {
-        cart.splice(index, 1);
-        renderCart();
-    }
-}
-
-// 更新购物车中商品数量
-function updateQuantity(index, quantity) {
-    if (index >= 0 && index < cart.length) {
-        if (quantity <= 0) {
-            // 如果数量小于等于0，从购物车中移除
-            removeFromCart(index);
-        } else {
-            // 检查库存是否足够
-            const product = products[cart[index].id];
-            if (product && product.stock !== undefined && quantity > product.stock) {
-                alert(`Cannot add more. Only ${product.stock} items available in stock.`);
-                return;
-            }
-            
-            cart[index].quantity = quantity;
-            renderCart();
-        }
-    }
-}
-
 // 渲染购物车
 function renderCart() {
     cartItems.innerHTML = '';
@@ -866,26 +932,86 @@ function renderCart() {
         return;
     }
     
-    let subtotal = 0;
+    // 移除可能存在的对话框
+    const existingDialog = document.querySelector('.split-free-dialog');
+    if (existingDialog) {
+        existingDialog.remove();
+    }
     
+    const existingBackdrop = document.querySelector('.dialog-backdrop');
+    if (existingBackdrop) {
+        existingBackdrop.remove();
+    }
+    
+    let subtotal = 0;
+    let totalItems = 0;
+    
+    // 计算总商品数量和小计
+    cart.forEach(item => {
+        // 只有非免费商品才计入小计
+        if (!item.isFree) {
+            subtotal += item.price * item.quantity;
+        }
+        totalItems += item.quantity;
+    });
+    
+    // 添加购物车统计
+    const cartStatsElement = document.createElement('div');
+    cartStatsElement.className = 'cart-stats';
+    cartStatsElement.innerHTML = `
+        <div class="cart-stats-item">
+            <div class="cart-stats-label">Products</div>
+            <div class="cart-stats-value">${cart.length}</div>
+        </div>
+        <div class="cart-stats-item">
+            <div class="cart-stats-label">Items</div>
+            <div class="cart-stats-value items">${totalItems}</div>
+        </div>
+        <div class="cart-stats-item">
+            <div class="cart-stats-label">Subtotal</div>
+            <div class="cart-stats-value total">RM${subtotal.toFixed(2)}</div>
+        </div>
+    `;
+    cartItems.appendChild(cartStatsElement);
+    
+    // 添加购物车商品
     cart.forEach((item, index) => {
         const itemTotal = item.price * item.quantity;
-        subtotal += itemTotal;
         
         const cartItemElement = document.createElement('div');
         cartItemElement.className = 'cart-item';
+        
+        // 如果是免费商品，添加免费类
+        if (item.isFree) {
+            cartItemElement.classList.add('free');
+        }
+        
         cartItemElement.innerHTML = `
-            <div class="cart-item-info">
+            <div class="cart-item-header">
                 <div class="cart-item-name">${item.name}</div>
-                <div class="cart-item-price">RM${item.price.toFixed(2)}</div>
+                <div class="cart-item-actions">
+                    ${item.quantity > 1 ? 
+                        `<button class="split-quantity-btn" data-index="${index}">
+                            <i class="material-icons" style="font-size: 14px;">call_split</i> Split Free
+                        </button>` : 
+                        `<button class="free-item-btn ${item.isFree ? 'active' : ''}" data-index="${index}">
+                            <i class="material-icons" style="font-size: 14px;">card_giftcard</i> ${item.isFree ? 'Free' : 'Mark Free'}
+                        </button>`
+                    }
+                    <button class="remove-btn" data-index="${index}">×</button>
+                </div>
             </div>
-            <div class="cart-item-actions">
-                <button class="quantity-btn minus" data-index="${index}">-</button>
-                <span class="quantity">${item.quantity}</span>
-                <button class="quantity-btn plus" data-index="${index}">+</button>
-                <button class="remove-btn" data-index="${index}">×</button>
+            <div class="cart-item-details">
+                <div class="cart-item-price-qty">
+                    <span class="cart-item-price">RM${item.price.toFixed(2)}</span>
+                    <div class="cart-item-quantity">
+                        <button class="quantity-btn minus" data-index="${index}">-</button>
+                        <span class="quantity">${item.quantity}</span>
+                        <button class="quantity-btn plus" data-index="${index}">+</button>
+                    </div>
+                </div>
+                <div class="cart-item-total">RM${itemTotal.toFixed(2)}</div>
             </div>
-            <div class="cart-item-total">RM${itemTotal.toFixed(2)}</div>
         `;
         
         cartItems.appendChild(cartItemElement);
@@ -910,6 +1036,22 @@ function renderCart() {
         btn.addEventListener('click', () => {
             const index = parseInt(btn.dataset.index);
             removeFromCart(index);
+        });
+    });
+    
+    // 添加免费按钮事件监听
+    document.querySelectorAll('.free-item-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const index = parseInt(btn.dataset.index);
+            toggleFreeItem(index);
+        });
+    });
+    
+    // 添加拆分免费按钮事件监听
+    document.querySelectorAll('.split-quantity-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const index = parseInt(btn.dataset.index);
+            showSplitFreeDialog(index);
         });
     });
     
@@ -989,114 +1131,60 @@ function renderCart() {
     checkoutBtn.disabled = false;
 }
 
-// 应用百分比折扣
-function applyPercentDiscount() {
-    const input = document.getElementById('discountPercent');
-    const value = parseInt(input.value);
-    
-    if (isNaN(value) || value < 0 || value > 100) {
-        alert('Please enter a valid discount percentage (0-100)');
-        input.value = discountPercent;
-        return;
+// 切换商品免费状态
+function toggleFreeItem(index) {
+    if (index >= 0 && index < cart.length) {
+        // 切换免费状态
+        cart[index].isFree = !cart[index].isFree;
+        
+        // 重新渲染购物车
+        renderCart();
     }
-    
-    discountPercent = value;
-    discountType = 'percent';
-    renderCart();
 }
 
-// 应用金额折扣
-function applyAmountDiscount() {
-    const input = document.getElementById('discountAmount');
-    const value = parseFloat(input.value);
+// 添加商品到购物车
+function addToCart(productId) {
+    const product = products[productId];
+    if (!product) return;
     
-    if (isNaN(value) || value < 0) {
-        alert('Please enter a valid discount amount');
-        input.value = discountAmount.toFixed(2);
-        return;
+    // 检查商品库存
+    if (product.stock !== undefined) {
+        // 计算当前购物车中该商品的数量
+        const existingItemIndex = cart.findIndex(item => item.id === productId);
+        const currentCartQuantity = existingItemIndex !== -1 ? cart[existingItemIndex].quantity : 0;
+        
+        // 检查库存是否足够
+        if (product.stock <= 0) {
+            alert('This product is out of stock');
+            return;
+        }
+        
+        // 检查是否超过可用库存
+        if (currentCartQuantity >= product.stock) {
+            alert(`Cannot add more. Only ${product.stock} items available in stock.`);
+            return;
+        }
     }
     
-    // 计算小计以确保折扣不超过小计
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    // 检查购物车是否已存在该商品
+    const existingItemIndex = cart.findIndex(item => item.id === productId);
     
-    if (value > subtotal) {
-        alert(`Discount cannot exceed subtotal (RM${subtotal.toFixed(2)})`);
-        input.value = Math.min(discountAmount, subtotal).toFixed(2);
-        return;
-    }
-    
-    discountAmount = value;
-    discountType = 'amount';
-    renderCart();
-}
-
-// 加载最后一个账单号
-function loadLastBillNumber() {
-    const userStoreId = localStorage.getItem('store_id');
-    const today = getCurrentDate(); // 获取当前日期
-    
-    database.ref(`bill_numbers/${userStoreId}/${today}`).once('value')
-        .then(snapshot => {
-            const data = snapshot.val() || { counter: 0 };
-            billNumberCounter = data.counter;
-            console.log(`Loaded last bill number for ${today}:`, billNumberCounter);
-        })
-        .catch(error => {
-            console.error(`Failed to load bill number for ${today}:`, error);
-            // 如果加载失败，使用默认值0
-            billNumberCounter = 0;
+    if (existingItemIndex !== -1) {
+        // 如果已存在，增加数量
+        cart[existingItemIndex].quantity += 1;
+    } else {
+        // 否则添加新项目，默认不是免费商品
+        cart.push({
+            id: productId,
+            name: product.name,
+            price: product.price,
+            quantity: 1,
+            isFree: false
         });
-}
-
-// 生成新的账单号
-function generateBillNumber() {
-    const userStoreId = localStorage.getItem('store_id');
-    const today = new Date();
-    const year = today.getFullYear().toString(); // 使用完整年份
-    const month = (today.getMonth() + 1).toString().padStart(2, '0');
-    const day = today.getDate().toString().padStart(2, '0');
-    const dateString = `${year}-${month}-${day}`; // 格式化日期为 YYYY-MM-DD
-    
-    // 增加计数器
-    billNumberCounter++;
-    
-    // 存储最新的计数器值到当天的记录中
-    database.ref(`bill_numbers/${userStoreId}/${dateString}`).set({
-        counter: billNumberCounter,
-        last_updated: getCurrentDateTime()
-    });
-    
-    // 格式: STORE-DDMMYYYY-COUNTER
-    return `${userStoreId}-${day}${month}${year}-${billNumberCounter.toString().padStart(4, '0')}`;
-}
-
-// 加载收银员历史记录
-function loadCashierHistory() {
-    const storedHistory = localStorage.getItem('cashierHistory');
-    if (storedHistory) {
-        cashierHistory = JSON.parse(storedHistory);
-    }
-}
-
-// 保存收银员历史记录
-function saveCashierHistory() {
-    localStorage.setItem('cashierHistory', JSON.stringify(cashierHistory));
-}
-
-// 记录收银员换班
-function recordCashierShift(newCashierName) {
-    const currentTime = getCurrentDateTime();
-    cashierHistory.push({
-        cashierName: newCashierName,
-        startTime: currentTime
-    });
-    
-    // 只保留最近的20条记录
-    if (cashierHistory.length > 20) {
-        cashierHistory = cashierHistory.slice(-20);
     }
     
-    saveCashierHistory();
+    // 更新购物车显示
+    renderCart();
 }
 
 // 结账
@@ -1119,7 +1207,7 @@ function checkout() {
         let billNumber = generateBillNumber();
         
         // 计算小计、折扣和总计
-        let subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        let subtotal = cart.reduce((sum, item) => sum + (item.isFree ? 0 : item.price * item.quantity), 0);
         
         // 根据折扣类型计算折扣金额
         let discountValue = 0;
@@ -1142,7 +1230,8 @@ function checkout() {
                 name: item.name,
                 price: item.price,
                 quantity: item.quantity,
-                subtotal: item.price * item.quantity
+                subtotal: item.isFree ? 0 : item.price * item.quantity,
+                isFree: item.isFree
             })),
             subtotal: subtotal,
             discountType: discountType,
@@ -1249,12 +1338,17 @@ function showSuccessModal(saleData, saleId) {
     `;
     
     saleData.items.forEach(item => {
+        // 显示免费商品标签
+        const freeLabel = item.isFree ? ' <span style="color:#3498db;font-weight:bold">(FREE)</span>' : '';
+        // 如果是免费商品，小计显示为0
+        const itemSubtotal = item.isFree ? 0 : item.subtotal;
+        
         receiptHTML += `
             <tr>
-                <td>${item.name}</td>
+                <td>${item.name}${freeLabel}</td>
                 <td>RM${item.price.toFixed(2)}</td>
                 <td>${item.quantity}</td>
-                <td>RM${item.subtotal.toFixed(2)}</td>
+                <td>RM${itemSubtotal.toFixed(2)}</td>
             </tr>
         `;
     });
@@ -1447,15 +1541,34 @@ function updateProductInventory(storeId, cartItems) {
     // 创建一个批量更新对象
     const updates = {};
     
+    // 首先按产品ID合并所有数量，确保同一商品只更新一次
+    const productQuantities = {};
+    
     // 处理每个购物车商品
     cartItems.forEach(item => {
-        // 获取当前商品的引用路径
-        const productPath = `store_products/${storeId}/${item.id}`;
+        if (!item.id || isNaN(item.quantity)) return;
         
-        // 更新商品库存，减去购物车中的实际数量
-        updates[`${productPath}/stock`] = firebase.database.ServerValue.increment(-item.quantity);
+        // 累加同一产品的数量（无论免费与否）
+        if (!productQuantities[item.id]) {
+            productQuantities[item.id] = {
+                name: item.name,
+                totalQuantity: 0
+            };
+        }
+        productQuantities[item.id].totalQuantity += item.quantity;
         
-        console.log(`Reducing stock for ${item.name} by ${item.quantity} units`);
+        console.log(`Counting item: ${item.name} (ID: ${item.id}), quantity: ${item.quantity}, isFree: ${item.isFree}`);
+    });
+    
+    // 对每个产品进行一次性扣除
+    Object.keys(productQuantities).forEach(productId => {
+        const product = productQuantities[productId];
+        const productPath = `store_products/${storeId}/${productId}`;
+        
+        // 更新库存数量
+        updates[`${productPath}/stock`] = firebase.database.ServerValue.increment(-product.totalQuantity);
+        
+        console.log(`Reducing stock for ${product.name} by ${product.totalQuantity} units (total from all cart items)`);
     });
     
     // 执行批量更新
@@ -1464,6 +1577,11 @@ function updateProductInventory(storeId, cartItems) {
             console.log('Product inventory updated successfully');
             // 重新加载产品数据以更新显示
             return loadProducts(storeId);
+        })
+        .catch(error => {
+            console.error('Product inventory update failed:', error);
+            // 返回错误以便上层函数处理
+            throw error;
         });
 }
 
@@ -1939,4 +2057,312 @@ function handleAddProduct(e) {
             console.error('Failed to add product:', error);
             alert('Failed to add product. Please try again.');
         });
+}
+
+// 切换侧边栏
+function toggleSidebar() {
+    sidebarCollapsed = !sidebarCollapsed;
+    sidebar.classList.toggle('collapsed', sidebarCollapsed);
+    
+    if (sidebarCollapsed) {
+        toggleIcon.textContent = 'chevron_right';
+    } else {
+        toggleIcon.textContent = 'chevron_left';
+    }
+    
+    // 保存侧边栏状态
+    localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
+    
+    // 通知窗口大小变化，使布局重新计算
+    setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+    }, 300);
+}
+
+// 应用百分比折扣
+function applyPercentDiscount() {
+    const input = document.getElementById('discountPercent');
+    const value = parseInt(input.value);
+    
+    if (isNaN(value) || value < 0 || value > 100) {
+        alert('Please enter a valid discount percentage (0-100)');
+        input.value = discountPercent;
+        return;
+    }
+    
+    discountPercent = value;
+    discountType = 'percent';
+    renderCart();
+}
+
+// 应用金额折扣
+function applyAmountDiscount() {
+    const input = document.getElementById('discountAmount');
+    const value = parseFloat(input.value);
+    
+    if (isNaN(value) || value < 0) {
+        alert('Please enter a valid discount amount');
+        input.value = discountAmount.toFixed(2);
+        return;
+    }
+    
+    // 计算小计以确保折扣不超过小计
+    const subtotal = cart.reduce((sum, item) => sum + (item.isFree ? 0 : item.price * item.quantity), 0);
+    
+    if (value > subtotal) {
+        alert(`Discount cannot exceed subtotal (RM${subtotal.toFixed(2)})`);
+        input.value = Math.min(discountAmount, subtotal).toFixed(2);
+        return;
+    }
+    
+    discountAmount = value;
+    discountType = 'amount';
+    renderCart();
+}
+
+// 加载最后一个账单号
+function loadLastBillNumber() {
+    const userStoreId = localStorage.getItem('store_id');
+    const today = getCurrentDate(); // 获取当前日期
+    
+    database.ref(`bill_numbers/${userStoreId}/${today}`).once('value')
+        .then(snapshot => {
+            const data = snapshot.val() || { counter: 0 };
+            billNumberCounter = data.counter;
+            console.log(`Loaded last bill number for ${today}:`, billNumberCounter);
+        })
+        .catch(error => {
+            console.error(`Failed to load bill number for ${today}:`, error);
+            // 如果加载失败，使用默认值0
+            billNumberCounter = 0;
+        });
+}
+
+// 生成新的账单号
+function generateBillNumber() {
+    const userStoreId = localStorage.getItem('store_id');
+    const today = new Date();
+    const year = today.getFullYear().toString(); // 使用完整年份
+    const month = (today.getMonth() + 1).toString().padStart(2, '0');
+    const day = today.getDate().toString().padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`; // 格式化日期为 YYYY-MM-DD
+    
+    // 增加计数器
+    billNumberCounter++;
+    
+    // 存储最新的计数器值到当天的记录中
+    database.ref(`bill_numbers/${userStoreId}/${dateString}`).set({
+        counter: billNumberCounter,
+        last_updated: getCurrentDateTime()
+    });
+    
+    // 格式: STORE-DDMMYYYY-COUNTER
+    return `${userStoreId}-${day}${month}${year}-${billNumberCounter.toString().padStart(4, '0')}`;
+}
+
+// 加载收银员历史记录
+function loadCashierHistory() {
+    const storedHistory = localStorage.getItem('cashierHistory');
+    if (storedHistory) {
+        cashierHistory = JSON.parse(storedHistory);
+    }
+}
+
+// 保存收银员历史记录
+function saveCashierHistory() {
+    localStorage.setItem('cashierHistory', JSON.stringify(cashierHistory));
+}
+
+// 记录收银员换班
+function recordCashierShift(newCashierName) {
+    const currentTime = getCurrentDateTime();
+    cashierHistory.push({
+        cashierName: newCashierName,
+        startTime: currentTime
+    });
+    
+    // 只保留最近的20条记录
+    if (cashierHistory.length > 20) {
+        cashierHistory = cashierHistory.slice(-20);
+    }
+    
+    saveCashierHistory();
+}
+
+// 从购物车移除商品
+function removeFromCart(index) {
+    if (index >= 0 && index < cart.length) {
+        cart.splice(index, 1);
+        renderCart();
+    }
+}
+
+// 更新购物车中商品数量
+function updateQuantity(index, quantity) {
+    if (index >= 0 && index < cart.length) {
+        if (quantity <= 0) {
+            // 如果数量小于等于0，从购物车中移除
+            removeFromCart(index);
+        } else {
+            // 检查库存是否足够
+            const product = products[cart[index].id];
+            if (product && product.stock !== undefined && quantity > product.stock) {
+                alert(`Cannot add more. Only ${product.stock} items available in stock.`);
+                return;
+            }
+            
+            cart[index].quantity = quantity;
+            renderCart();
+        }
+    }
+}
+
+// 显示拆分免费商品对话框
+function showSplitFreeDialog(index) {
+    if (index < 0 || index >= cart.length) return;
+    
+    const item = cart[index];
+    if (item.quantity <= 1) return;
+    
+    // 创建背景
+    const backdrop = document.createElement('div');
+    backdrop.className = 'dialog-backdrop';
+    document.body.appendChild(backdrop);
+    
+    // 创建对话框
+    const dialog = document.createElement('div');
+    dialog.className = 'split-free-dialog';
+    dialog.innerHTML = `
+        <h4>
+            <span>Split Free Items</span>
+            <button class="close-dialog">&times;</button>
+        </h4>
+        <label for="freeQuantity">How many items to mark as FREE? (Max: ${item.quantity})</label>
+        <input type="number" id="freeQuantity" min="1" max="${item.quantity}" value="1">
+        <button class="apply-free">
+            <i class="material-icons">card_giftcard</i> Apply
+        </button>
+    `;
+    document.body.appendChild(dialog);
+    
+    // 获取输入和按钮元素
+    const freeQuantityInput = document.getElementById('freeQuantity');
+    const applyButton = dialog.querySelector('.apply-free');
+    const closeButton = dialog.querySelector('.close-dialog');
+    
+    // 添加关闭事件
+    const closeDialog = () => {
+        dialog.remove();
+        backdrop.remove();
+    };
+    
+    closeButton.addEventListener('click', closeDialog);
+    backdrop.addEventListener('click', closeDialog);
+    
+    // 添加应用按钮事件
+    applyButton.addEventListener('click', () => {
+        const freeQuantity = parseInt(freeQuantityInput.value);
+        
+        if (isNaN(freeQuantity) || freeQuantity < 1 || freeQuantity > item.quantity) {
+            alert(`Please enter a valid quantity between 1 and ${item.quantity}.`);
+            return;
+        }
+        
+        // 从原商品中减去要分离的部分
+        item.quantity -= freeQuantity;
+        
+        // 创建新的免费商品
+        const freeItem = {
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: freeQuantity,
+            isFree: true
+        };
+        
+        // 添加到购物车
+        cart.push(freeItem);
+        
+        // 关闭对话框
+        closeDialog();
+        
+        // 重新渲染购物车
+        renderCart();
+    });
+}
+
+// 显示编辑销售拆分免费商品对话框
+function showEditSplitFreeDialog(index) {
+    if (index < 0 || index >= editingSale.items.length) return;
+    
+    const item = editingSale.items[index];
+    if (item.quantity <= 1) return;
+    
+    // 创建背景
+    const backdrop = document.createElement('div');
+    backdrop.className = 'dialog-backdrop';
+    document.body.appendChild(backdrop);
+    
+    // 创建对话框
+    const dialog = document.createElement('div');
+    dialog.className = 'split-free-dialog';
+    dialog.innerHTML = `
+        <h4>
+            <span>Split Free Items</span>
+            <button class="close-dialog">&times;</button>
+        </h4>
+        <label for="editFreeQuantity">How many items to mark as FREE? (Max: ${item.quantity})</label>
+        <input type="number" id="editFreeQuantity" min="1" max="${item.quantity}" value="1">
+        <button class="apply-free">
+            <i class="material-icons">card_giftcard</i> Apply
+        </button>
+    `;
+    document.body.appendChild(dialog);
+    
+    // 获取输入和按钮元素
+    const freeQuantityInput = document.getElementById('editFreeQuantity');
+    const applyButton = dialog.querySelector('.apply-free');
+    const closeButton = dialog.querySelector('.close-dialog');
+    
+    // 添加关闭事件
+    const closeDialog = () => {
+        dialog.remove();
+        backdrop.remove();
+    };
+    
+    closeButton.addEventListener('click', closeDialog);
+    backdrop.addEventListener('click', closeDialog);
+    
+    // 添加应用按钮事件
+    applyButton.addEventListener('click', () => {
+        const freeQuantity = parseInt(freeQuantityInput.value);
+        
+        if (isNaN(freeQuantity) || freeQuantity < 1 || freeQuantity > item.quantity) {
+            alert(`Please enter a valid quantity between 1 and ${item.quantity}.`);
+            return;
+        }
+        
+        // 从原商品中减去要分离的部分
+        item.quantity -= freeQuantity;
+        item.subtotal = item.isFree ? 0 : item.price * item.quantity;
+        
+        // 创建新的免费商品
+        const freeItem = {
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: freeQuantity,
+            isFree: true,
+            subtotal: 0
+        };
+        
+        // 添加到购物车
+        editingSale.items.push(freeItem);
+        
+        // 关闭对话框
+        closeDialog();
+        
+        // 重新渲染购物车
+        renderEditSaleItems();
+    });
 } 
