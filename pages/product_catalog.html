@@ -17,7 +17,7 @@
                 <p id="userName">User: </p>
             </div>
             <div class="nav-menu">
-                <div class="nav-item" onclick="location.href='admin.html'"><i class="material-icons">arrow_back</i> Back to Admin</div>
+                <div class="nav-item" id="backButton" onclick="location.href='admin.html'"><i class="material-icons">arrow_back</i> Back to Admin</div>
                 <div class="nav-item active" data-view="catalog" id="catalogNavItem"><i class="material-icons">menu_book</i> Product Catalog</div>
                 <div class="nav-item" data-view="import" id="importNavItem"><i class="material-icons">download</i> Import Products</div>
                 <div class="nav-item" onclick="logout()"><i class="material-icons">logout</i> Logout</div>
@@ -200,6 +200,15 @@
                 const catalogView = document.getElementById('catalogView');
                 const importView = document.getElementById('importView');
                 const viewTitle = document.getElementById('viewTitle');
+                const backButton = document.getElementById('backButton');
+
+                // 修改返回按钮为"Back to POS"并指向pos.html
+                if (backButton) {
+                    backButton.innerHTML = '<i class="material-icons">arrow_back</i> Back to POS';
+                    backButton.onclick = function() {
+                        location.href = 'pos.html';
+                    };
+                }
 
                 // 隐藏Product Catalog选项
                 if (catalogNavItem) {
