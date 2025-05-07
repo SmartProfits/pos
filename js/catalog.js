@@ -920,7 +920,90 @@ function getUserInfo(userId) {
 function updateDateTime() {
     if (currentDateTime) {
         const now = new Date();
-        currentDateTime.textContent = now.toLocaleString();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
+        const hours = now.getHours();
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const hours12 = hours % 12 || 12; // 转换为12小时制
+        
+        // 获取星期几
+        const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const weekday = weekdays[now.getDay()];
+        
+        // 创建HTML结构
+        currentDateTime.innerHTML = `
+            <div class="datetime-container">
+                <div class="date-display">
+                    <span class="calendar-icon">📅</span>
+                    <span class="date">${day}/${month}/${year}</span>
+                    <span class="weekday">${weekday}</span>
+                </div>
+                <div class="time-display">
+                    <span class="clock-icon">🕒</span>
+                    <span class="time">${hours12}:${minutes}<span class="seconds">:${seconds}</span></span>
+                    <span class="ampm">${ampm}</span>
+                </div>
+            </div>
+        `;
+        
+        // 添加样式
+        const style = document.createElement('style');
+        if (!document.querySelector('style#datetime-style')) {
+            style.id = 'datetime-style';
+            style.textContent = `
+                .datetime-container {
+                    display: flex;
+                    flex-direction: column;
+                    background: linear-gradient(135deg, #1a237e, #311b92);
+                    padding: 10px;
+                    border-radius: 10px;
+                    color: white;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+                    min-width: 200px;
+                }
+                .date-display, .time-display {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 5px 0;
+                }
+                .calendar-icon, .clock-icon {
+                    margin-right: 8px;
+                    font-size: 1.1em;
+                }
+                .date, .time {
+                    font-size: 1.1em;
+                    font-weight: 600;
+                    margin-right: 8px;
+                }
+                .weekday, .ampm {
+                    font-size: 0.9em;
+                    opacity: 0.9;
+                    background-color: rgba(255, 255, 255, 0.2);
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                }
+                .seconds {
+                    font-size: 0.8em;
+                    opacity: 0.8;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // 每秒更新秒数
+        if (!window.secondsInterval) {
+            window.secondsInterval = setInterval(() => {
+                const secondsElement = document.querySelector('.seconds');
+                if (secondsElement) {
+                    const now = new Date();
+                    secondsElement.textContent = `:${String(now.getSeconds()).padStart(2, '0')}`;
+                }
+            }, 1000);
+        }
     }
 }
 
