@@ -197,6 +197,210 @@ function populateCategoryFilter() {
 
 // 渲染商品列表
 function renderProducts(searchQuery = '') {
+    // 清空产品网格
+    productGrid.innerHTML = '';
+    
+    // 检查是否有产品
+    if (Object.keys(products).length === 0) {
+// 添加调试日志
+console.log("销售页面脚本开始加载");
+console.log("当前路径:", window.location.pathname);
+console.log("当前URL:", window.location.href);
+
+// 定义全局变量
+let products = {}; // 存储商品数据
+let cart = []; // 购物车
+let storeData = {}; // 存储店铺信息
+let categories = []; // 存储所有分类
+let currentCategory = 'all'; // 当前选中的分类
+let selectedDate = getCurrentDate(); // 默认选择当前日期
+let salesData = {}; // 存储销售记录
+let currentSaleId = null; // 当前选中的销售记录
+let editingSale = null; // 正在编辑的销售记录
+let billNumberCounter = 0; // 账单号计数器
+let cashierName = ''; // 收银员姓名
+let cashierHistory = []; // 收银员历史记录，用于记录换班情况
+let discountPercent = 0; // 折扣百分比，0表示无折扣
+let discountAmount = 0; // 直接金额折扣
+let discountType = 'percent'; // 折扣类型，percent表示百分比，amount表示金额
+let sidebarCollapsed = false; // 侧边栏状态
+
+// DOM元素
+const productGrid = document.getElementById('productGrid');
+const cartItems = document.getElementById('cartItems');
+const cartTotal = document.getElementById('cartTotal');
+const checkoutBtn = document.getElementById('checkoutBtn');
+const clearCartBtn = document.getElementById('clearCartBtn');
+const categoryFilter = document.getElementById('categoryFilter');
+const productSearch = document.getElementById('productSearch'); // 添加产品搜索输入框
+const storeName = document.getElementById('storeName');
+const storeId = document.getElementById('storeId');
+const staffName = document.getElementById('staffName');
+const currentDateTime = document.getElementById('currentDateTime');
+const viewTitle = document.getElementById('viewTitle');
+const navItems = document.querySelectorAll('.nav-item[data-view]');
+const views = document.querySelectorAll('.view');
+const dateFilter = document.getElementById('dateFilter');
+const refreshSalesBtn = document.getElementById('refreshSalesBtn');
+const salesTableBody = document.getElementById('salesTableBody');
+const checkoutSuccessModal = document.getElementById('checkoutSuccessModal');
+const saleDetailModal = document.getElementById('saleDetailModal');
+const editSaleModal = document.getElementById('editSaleModal');
+const receiptDetails = document.getElementById('receiptDetails');
+const saleDetailContent = document.getElementById('saleDetailContent');
+const editSaleContent = document.getElementById('editSaleContent');
+const editCartItems = document.getElementById('editCartItems');
+const editCartTotal = document.getElementById('editCartTotal');
+const printReceiptBtn = document.getElementById('printReceiptBtn');
+const newSaleBtn = document.getElementById('newSaleBtn');
+const editSaleBtn = document.getElementById('editSaleBtn');
+const deleteSaleBtn = document.getElementById('deleteSaleBtn');
+const updateSaleBtn = document.getElementById('updateSaleBtn');
+const cancelEditBtn = document.getElementById('cancelEditBtn');
+const closeModalBtns = document.querySelectorAll('.close');
+const cashierNameModal = document.getElementById('cashierNameModal');
+const cashierNameForm = document.getElementById('cashierNameForm');
+const cashierNameDisplay = document.getElementById('cashierNameDisplay');
+const changeCashierBtn = document.getElementById('changeCashierBtn');
+const viewCashierHistoryBtn = document.getElementById('viewCashierHistoryBtn');
+const sidebar = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebarToggle');
+const mainContent = document.getElementById('mainContent');
+const toggleIcon = document.getElementById('toggleIcon');
+
+// 库存管理DOM元素
+const inventoryCategoryFilter = document.getElementById('inventoryCategoryFilter');
+const inventoryStockFilter = document.getElementById('inventoryStockFilter');
+const refreshInventoryBtn = document.getElementById('refreshInventoryBtn');
+const inventoryTableBody = document.getElementById('inventoryTableBody');
+const updateStockModal = document.getElementById('updateStockModal');
+const updateStockForm = document.getElementById('updateStockForm');
+const stockHistoryModal = document.getElementById('stockHistoryModal');
+const stockHistoryContent = document.getElementById('stockHistoryContent');
+const addProductBtn = document.getElementById('addProductBtn');
+const addProductModal = document.getElementById('addProductModal');
+const addProductForm = document.getElementById('addProductForm');
+
+// 页面加载时初始化
+window.addEventListener('DOMContentLoaded', () => {
+    // 检查用户是否登录
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const userRole = localStorage.getItem('role');
+    const userStoreId = localStorage.getItem('store_id');
+    
+    if (!user.uid || userRole !== 'staff' || !userStoreId) {
+        // 如果用户未登录或不是店员，重定向到登录页面
+        window.location.href = '../index.html';
+        return;
+    }
+    
+    // 显示店员信息
+    staffName.textContent = `Staff: ${user.email}`;
+    storeId.textContent = `Store ID: ${userStoreId}`;
+    
+    // 加载店铺信息
+    loadStoreInfo(userStoreId);
+    
+    // 加载商品数据
+    loadProducts(userStoreId);
+    
+    // 加载最后一个账单号
+    loadLastBillNumber();
+    
+    // 加载收银员历史记录
+    loadCashierHistory();
+    
+    // 检查收银员姓名是否已经设置
+    cashierName = localStorage.getItem('cashierName');
+    if (cashierName) {
+        cashierNameDisplay.textContent = cashierName;
+    } else {
+        // 如果没有设置，显示输入模态框
+        showModal(cashierNameModal);
+    }
+    
+    // 初始化事件监听器
+    initEventListeners();
+    
+    // 更新当前时间
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+
+    // 恢复侧边栏状态
+    const savedSidebarState = localStorage.getItem('sidebarCollapsed');
+    if (savedSidebarState === 'true') {
+        toggleSidebar();
+    }
+});
+
+// 加载店铺信息
+function loadStoreInfo(storeId) {
+    database.ref(`stores/${storeId}`).once('value')
+        .then(snapshot => {
+            const store = snapshot.val() || { name: 'Unknown Store' };
+            storeData = store;
+            storeName.textContent = store.name;
+        })
+        .catch(error => {
+            console.error('Failed to load store information:', error);
+            alert('Failed to load store information. Please refresh the page.');
+        });
+}
+
+// 加载店铺商品
+function loadProducts(storeId) {
+    getStoreProducts(storeId)
+        .then(storeProducts => {
+            products = storeProducts;
+            
+            // 提取所有唯一的类别
+            extractCategories();
+            
+            // 填充类别过滤器
+            populateCategoryFilter();
+            
+            // 渲染产品列表
+            renderProducts();
+        })
+        .catch(error => {
+            console.error('Failed to load products:', error);
+            alert('Failed to load products. Please refresh the page.');
+        });
+}
+
+// 提取所有唯一的类别
+function extractCategories() {
+    categories = ['all']; // 重置类别，始终包括"全部"选项
+    
+    Object.values(products).forEach(product => {
+        if (product.category && !categories.includes(product.category)) {
+            categories.push(product.category);
+        }
+    });
+    
+    console.log('Available categories:', categories);
+}
+
+// 填充类别过滤器下拉菜单
+function populateCategoryFilter() {
+    // 清空除了"All Categories"外的所有选项
+    while (categoryFilter.options.length > 1) {
+        categoryFilter.remove(1);
+    }
+    
+    // 添加类别选项
+    categories.forEach(category => {
+        if (category !== 'all') {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            categoryFilter.appendChild(option);
+        }
+    });
+}
+
+// 渲染商品列表
+function renderProducts() {
     productGrid.innerHTML = '';
     
     if (Object.keys(products).length === 0) {
@@ -204,29 +408,12 @@ function renderProducts(searchQuery = '') {
         return;
     }
     
-    // 先按类别筛选
-    let filteredProducts = currentCategory === 'all' 
+    const filteredProducts = currentCategory === 'all' 
         ? Object.entries(products) 
         : Object.entries(products).filter(([_, product]) => product.category === currentCategory);
     
-    // 如果有搜索查询，再按搜索条件筛选
-    if (searchQuery && searchQuery.trim() !== '') {
-        const query = searchQuery.toLowerCase().trim();
-        filteredProducts = filteredProducts.filter(([_, product]) => 
-            product.name.toLowerCase().includes(query) || 
-            (product.id && product.id.toLowerCase().includes(query))
-        );
-    }
-    
     if (filteredProducts.length === 0) {
-        const noProductsMessage = document.createElement('div');
-        noProductsMessage.className = 'no-products';
-        noProductsMessage.innerHTML = `
-            <i class="material-icons">search_off</i>
-            <p>No products found</p>
-            ${searchQuery ? '<p>Try a different search term or category</p>' : ''}
-        `;
-        productGrid.appendChild(noProductsMessage);
+        productGrid.innerHTML = '<div class="no-products">No products in this category</div>';
         return;
     }
     
@@ -271,9 +458,7 @@ function initEventListeners() {
     
     // 商品类别选择和搜索
     categoryFilter.addEventListener('change', filterProducts);
-    if (productSearch) {
-        productSearch.addEventListener('input', filterProducts);
-    }
+    productSearch.addEventListener('input', filterProducts);
     
     // 导航菜单
     navItems.forEach(item => {
@@ -2468,6 +2653,71 @@ function showEditSplitFreeDialog(index) {
 // 搜索和筛选产品
 function filterProducts() {
     currentCategory = categoryFilter.value;
-    const searchQuery = productSearch ? productSearch.value : '';
+    const searchQuery = productSearch.value.toLowerCase().trim();
     renderProducts(searchQuery);
+}
+
+// 根据类别和搜索查询筛选产品
+function renderProducts(searchQuery = '') {
+    // 清空产品网格
+    productGrid.innerHTML = '';
+    
+    // 获取筛选后的产品
+    let filteredProducts = Object.entries(products);
+    
+    // 按类别筛选
+    if (currentCategory !== 'all') {
+        filteredProducts = filteredProducts.filter(([id, product]) => 
+            product.category === currentCategory
+        );
+    }
+    
+    // 按搜索查询筛选
+    if (searchQuery) {
+        filteredProducts = filteredProducts.filter(([id, product]) => 
+            product.name.toLowerCase().includes(searchQuery) || 
+            (product.id && product.id.toLowerCase().includes(searchQuery))
+        );
+    }
+    
+    // 如果没有产品，显示提示信息
+    if (filteredProducts.length === 0) {
+        const noProductsMessage = document.createElement('div');
+        noProductsMessage.className = 'no-products';
+        noProductsMessage.innerHTML = `
+            <i class="material-icons">search_off</i>
+            <p>No products found</p>
+            ${searchQuery ? '<p>Try a different search term or category</p>' : ''}
+        `;
+        productGrid.appendChild(noProductsMessage);
+        return;
+    }
+    
+    // 渲染产品
+    filteredProducts.forEach(([id, product]) => {
+        const productElement = document.createElement('div');
+        productElement.className = 'product-item';
+        
+        // 检查库存状态
+        const stockClass = getStockStatusClass(product.stock);
+        if (stockClass === 'stock-out') {
+            productElement.classList.add('out-of-stock');
+        }
+        
+        productElement.innerHTML = `
+            <div class="product-name">${product.name}</div>
+            <div class="product-category">${product.category || 'Uncategorized'}</div>
+            <div class="product-price">RM${product.price.toFixed(2)}</div>
+            <div class="product-stock ${stockClass}">${product.stock || 0} in stock</div>
+        `;
+        
+        // 如果不是缺货，添加点击事件
+        if (stockClass !== 'stock-out') {
+            productElement.addEventListener('click', () => {
+                addToCart(id);
+            });
+        }
+        
+        productGrid.appendChild(productElement);
+    });
 } 

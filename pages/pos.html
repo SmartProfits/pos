@@ -63,11 +63,19 @@
                 <div class="pos-grid">
                     <div class="product-container">
                         <div class="filter-container">
-                            <label for="categoryFilter"><i class="material-icons">category</i> Category:</label>
-                            <select id="categoryFilter">
-                                <option value="all">All Categories</option>
-                                <!-- Categories will be loaded dynamically -->
-                            </select>
+                            <div class="search-box">
+                                <i class="material-icons">search</i>
+                                <input type="text" id="productSearch" placeholder="Search products...">
+                            </div>
+                            <div class="category-filter">
+                                <label for="categoryFilter"><i class="material-icons">category</i> Category:</label>
+                                <div class="category-selector">
+                                    <select id="categoryFilter">
+                                        <option value="all">All Categories</option>
+                                        <!-- Categories will be loaded dynamically -->
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                         <div class="product-grid" id="productGrid">
                             <!-- Product list will be loaded dynamically by JavaScript -->

@@ -63,7 +63,7 @@ auth.onAuthStateChanged(user => {
                 
                 // 根据角色重定向到相应页面
                 let targetPage;
-                if (userData.role === 'admin') {
+                if (userData.role === 'admin' || userData.role === 'sadmin') {
                     // 检查当前是否已经在admin页面或产品目录页面
                     if (currentPath.includes('/pages/admin.html') || 
                         currentPath.includes('/pages/product_catalog.html')) {

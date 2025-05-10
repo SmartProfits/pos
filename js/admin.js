@@ -268,6 +268,27 @@ function initEventListeners() {
 function switchView(viewName) {
     console.log("Switching to view:", viewName);
     
+    // 检查是否有权限访问该视图
+    const user = firebase.auth().currentUser;
+    if (user) {
+        getUserRole(user.uid).then(role => {
+            if (role === 'admin' && (viewName === 'stores' || viewName === 'users')) {
+                console.log("当前用户无权限访问该视图");
+                alert("您没有访问此功能的权限");
+                return;
+            }
+            
+            // 执行视图切换
+            performViewSwitch(viewName);
+        });
+    } else {
+        // 默认执行视图切换
+        performViewSwitch(viewName);
+    }
+}
+
+// 执行视图切换
+function performViewSwitch(viewName) {
     // 更新导航菜单激活状态
     navItems.forEach(item => {
         if (item.dataset.view === viewName) {
@@ -1205,7 +1226,14 @@ function renderUsers() {
     Object.keys(users).forEach(userId => {
         const user = users[userId];
         const storeName = user.store_id ? (stores[user.store_id]?.name || user.store_id) : '-';
-        const roleName = user.role === 'admin' ? 'Admin' : 'Staff';
+        let roleName;
+        if (user.role === 'admin') {
+            roleName = 'Admin';
+        } else if (user.role === 'sadmin') {
+            roleName = 'Super Admin';
+        } else {
+            roleName = 'Staff';
+        }
         
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -1247,10 +1275,29 @@ function handleAddUser(e) {
     const storeId = role === 'staff' ? storeIdSelect.value : '';
     
     if (!email || !password || !role || (role === 'staff' && !storeId)) {
-        alert('Please fill in all required fields');
+        alert('请填写所有必填字段');
         return;
     }
     
+    // 检查当前用户角色，只有sadmin可以添加sadmin
+    const user = firebase.auth().currentUser;
+    if (user) {
+        getUserRole(user.uid).then(currentUserRole => {
+            if (role === 'sadmin' && currentUserRole !== 'sadmin') {
+                alert('只有超级管理员可以添加超级管理员账户');
+                return;
+            }
+            
+            // 继续创建用户
+            createNewUser(email, password, role, storeId);
+        });
+    } else {
+        alert('您需要登录才能添加用户');
+    }
+}
+
+// 创建新用户
+function createNewUser(email, password, role, storeId) {
     // 创建用户
     // 注意：在实际应用中，应该使用 Firebase Admin SDK 或后端API创建用户
     // 此处简化为前端直接创建用户，不推荐在生产环境中使用
@@ -1268,11 +1315,11 @@ function handleAddUser(e) {
         .then(() => {
             hideModal(addUserModal);
             loadUsers();
-            alert('User created successfully!');
+            alert('用户创建成功！');
         })
         .catch(error => {
-            console.error('Failed to create user:', error);
-            alert(`Failed to create user: ${error.message}`);
+            console.error('创建用户失败:', error);
+            alert(`创建用户失败: ${error.message}`);
         });
 }
 
@@ -2326,11 +2373,37 @@ function checkAdminStatus(userId) {
     return database.ref(`users/${userId}`).once('value')
         .then(snapshot => {
             const userData = snapshot.val();
-            return userData && userData.role === 'admin';
+            return userData && (userData.role === 'admin' || userData.role === 'sadmin');
         })
         .catch(error => {
             console.error('检查管理员状态时出错:', error);
             return false;
+        });
+}
+
+// 检查用户是否为超级管理员
+function checkSuperAdminStatus(userId) {
+    return database.ref(`users/${userId}`).once('value')
+        .then(snapshot => {
+            const userData = snapshot.val();
+            return userData && userData.role === 'sadmin';
+        })
+        .catch(error => {
+            console.error('检查超级管理员状态时出错:', error);
+            return false;
+        });
+}
+
+// 获取用户角色
+function getUserRole(userId) {
+    return database.ref(`users/${userId}`).once('value')
+        .then(snapshot => {
+            const userData = snapshot.val();
+            return userData ? userData.role : null;
+        })
+        .catch(error => {
+            console.error('获取用户角色时出错:', error);
+            return null;
         });
 }
 
@@ -2343,11 +2416,30 @@ function init() {
     // 添加事件监听器
     initEventListeners();
     
-    // 加载数据
-    loadStores();
-    
-    // 初始显示仪表板视图
-    switchView('dashboard');
+    // 根据用户角色设置权限
+    const user = firebase.auth().currentUser;
+    if (user) {
+        getUserRole(user.uid).then(role => {
+            // 根据角色隐藏菜单项
+            if (role === 'admin') {
+                // 普通管理员看不到店铺管理和用户管理
+                document.querySelector('.nav-item[data-view="stores"]').style.display = 'none';
+                document.querySelector('.nav-item[data-view="users"]').style.display = 'none';
+            }
+            
+            // 加载数据
+            loadStores();
+            
+            // 初始显示仪表板视图
+            switchView('dashboard');
+        });
+    } else {
+        // 如果未登录，加载数据
+        loadStores();
+        
+        // 初始显示仪表板视图
+        switchView('dashboard');
+    }
     
     // 定期更新当前日期时间
     updateDateTime();

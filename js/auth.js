@@ -113,7 +113,7 @@ firebase.auth().onAuthStateChanged((user) => {
                     const userData = snapshot.val();
                     if (userData) {
                         const userRole = userData.role;
-                        if (userRole === 'admin') {
+                        if (userRole === 'sadmin' || userRole === 'admin') {
                             window.location.href = 'pages/admin.html';
                         } else {
                             window.location.href = 'pages/pos.html';
