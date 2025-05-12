@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
             getUserInfo(user.uid)
                 .then(userInfo => {
                     // 检查用户是否是管理员
-                    const isAdmin = userInfo && userInfo.role === 'admin';
+                    const isAdmin = userInfo && (userInfo.role === 'admin' || userInfo.role === 'sadmin');
                     
                     // 如果不是管理员，则需要检查商店ID
                     if (!isAdmin && (!userInfo || !userInfo.store_id)) {

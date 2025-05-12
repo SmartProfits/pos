@@ -17,6 +17,13 @@
                     <label for="cashierName"><i class="material-icons">badge</i> Name:</label>
                     <input type="text" id="cashierName" required>
                 </div>
+                <div class="form-group">
+                    <label for="cashierShift"><i class="material-icons">schedule</i> Shift:</label>
+                    <select id="cashierShift" required>
+                        <option value="1st Shift">1st Shift</option>
+                        <option value="2nd Shift">2nd Shift</option>
+                    </select>
+                </div>
                 <button type="submit"><i class="material-icons">save</i> Confirm</button>
             </form>
             <div class="tip-container">
@@ -40,6 +47,7 @@
                     <p id="storeId">Store ID: </p>
                     <p id="staffName">Staff: </p>
                     <p id="currentCashier"><i class="material-icons">person</i> Cashier: <span id="cashierNameDisplay">Not set</span> <button id="changeCashierBtn" class="small-btn"><i class="material-icons">edit</i></button></p>
+                    <p id="currentShift"><i class="material-icons">schedule</i> Shift: <span id="cashierShiftDisplay">Not set</span></p>
                     <button id="viewCashierHistoryBtn" class="sidebar-btn"><i class="material-icons">history</i> View Shift History</button>
                 </div>
                 <div class="nav-menu">
@@ -115,6 +123,13 @@
                     <label for="dateFilter"><i class="material-icons">event</i> Date:</label>
                     <input type="date" id="dateFilter" value="">
                     
+                    <label for="shiftFilter"><i class="material-icons">schedule</i> Shift:</label>
+                    <select id="shiftFilter">
+                        <option value="all">All Shifts</option>
+                        <option value="1st Shift">1st Shift</option>
+                        <option value="2nd Shift">2nd Shift</option>
+                    </select>
+                    
                     <button id="refreshSalesBtn" aria-label="刷新销售历史">
                         <i class="material-icons" aria-hidden="true">refresh</i> 
                         <span>Refresh</span>
@@ -142,6 +157,24 @@
                             <div class="summary-subtitle">Total discount amount: <span id="totalDiscountAmount">RM0.00</span></div>
                         </div>
                     </div>
+                    
+                    <div class="summary-card">
+                        <div class="summary-icon"><i class="material-icons">schedule</i></div>
+                        <div class="summary-content">
+                            <h3>1st Shift Sales</h3>
+                            <div class="summary-value" id="firstShiftSalesAmount">RM0.00</div>
+                            <div class="summary-subtitle">Transactions: <span id="firstShiftTransactions">0</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-card">
+                        <div class="summary-icon"><i class="material-icons">schedule</i></div>
+                        <div class="summary-content">
+                            <h3>2nd Shift Sales</h3>
+                            <div class="summary-value" id="secondShiftSalesAmount">RM0.00</div>
+                            <div class="summary-subtitle">Transactions: <span id="secondShiftTransactions">0</span></div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="sale-details-container">
@@ -152,6 +185,7 @@
                                 <th>Sale ID</th>
                                 <th>Time</th>
                                 <th>Cashier</th>
+                                <th>Shift</th>
                                 <th>Items</th>
                                 <th>Discount</th>
                                 <th>Total</th>

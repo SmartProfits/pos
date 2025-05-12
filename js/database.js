@@ -66,8 +66,10 @@ function addSaleRecord(saleData) {
                 timestamp: currentDateTime,
                 staff_id: user.uid,
                 cashierName: saleDataCopy.cashierName || 'Unknown',
+                cashierShift: saleDataCopy.cashierShift || '1st Shift',
                 shiftInfo: {
                     cashierName: saleDataCopy.cashierName || 'Unknown',
+                    cashierShift: saleDataCopy.cashierShift || '1st Shift',
                     shiftTime: currentDateTime
                 }
             };
@@ -85,6 +87,7 @@ function addSaleRecord(saleData) {
             
             // 确保使用correct的total_amount值更新统计
             const totalAmount = saleDataCopy.total_amount;
+            const cashierShift = saleDataCopy.cashierShift || '1st Shift';
             
             // 直接更新数据 - 避免使用事务，可能导致错误
             console.log("执行批量更新:", updates);
@@ -102,12 +105,39 @@ function addSaleRecord(saleData) {
                     return database.ref(`daily_sales/${storeId}/${currentDate}`).once('value');
                 })
                 .then(snapshot => {
-                    const dailyData = snapshot.val() || { total_sales: 0, transaction_count: 0 };
+                    const dailyData = snapshot.val() || { 
+                        total_sales: 0, 
+                        transaction_count: 0,
+                        shifts: {
+                            '1st Shift': { total_sales: 0, transaction_count: 0 },
+                            '2nd Shift': { total_sales: 0, transaction_count: 0 }
+                        }
+                    };
+                    
+                    // 确保shifts对象存在
+                    if (!dailyData.shifts) {
+                        dailyData.shifts = {
+                            '1st Shift': { total_sales: 0, transaction_count: 0 },
+                            '2nd Shift': { total_sales: 0, transaction_count: 0 }
+                        };
+                    }
+                    
+                    // 确保当前班次的统计数据存在
+                    if (!dailyData.shifts[cashierShift]) {
+                        dailyData.shifts[cashierShift] = { total_sales: 0, transaction_count: 0 };
+                    }
                     
                     // 更新每日销售统计
                     dailySalesUpdate = {
                         total_sales: Number(dailyData.total_sales || 0) + Number(totalAmount || 0),
-                        transaction_count: Number(dailyData.transaction_count || 0) + 1
+                        transaction_count: Number(dailyData.transaction_count || 0) + 1,
+                        shifts: {
+                            ...dailyData.shifts,
+                            [cashierShift]: {
+                                total_sales: Number(dailyData.shifts[cashierShift].total_sales || 0) + Number(totalAmount || 0),
+                                transaction_count: Number(dailyData.shifts[cashierShift].transaction_count || 0) + 1
+                            }
+                        }
                     };
                     
                     return database.ref(`daily_sales/${storeId}/${currentDate}`).set(dailySalesUpdate);

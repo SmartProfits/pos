@@ -2426,12 +2426,12 @@ function init() {
                 document.querySelector('.nav-item[data-view="stores"]').style.display = 'none';
                 document.querySelector('.nav-item[data-view="users"]').style.display = 'none';
             }
-            
-            // 加载数据
-            loadStores();
-            
-            // 初始显示仪表板视图
-            switchView('dashboard');
+    
+    // 加载数据
+    loadStores();
+    
+    // 初始显示仪表板视图
+    switchView('dashboard');
         });
     } else {
         // 如果未登录，加载数据

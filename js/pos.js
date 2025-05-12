@@ -10,11 +10,13 @@ let storeData = {}; // 存储店铺信息
 let categories = []; // 存储所有分类
 let currentCategory = 'all'; // 当前选中的分类
 let selectedDate = getCurrentDate(); // 默认选择当前日期
+let selectedShift = 'all'; // 当前选择的班次
 let salesData = {}; // 存储销售记录
 let currentSaleId = null; // 当前选中的销售记录
 let editingSale = null; // 正在编辑的销售记录
 let billNumberCounter = 0; // 账单号计数器
 let cashierName = ''; // 收银员姓名
+let cashierShift = ''; // 收银员班次
 let cashierHistory = []; // 收银员历史记录，用于记录换班情况
 let discountPercent = 0; // 折扣百分比，0表示无折扣
 let discountAmount = 0; // 直接金额折扣
@@ -57,6 +59,8 @@ const closeModalBtns = document.querySelectorAll('.close');
 const cashierNameModal = document.getElementById('cashierNameModal');
 const cashierNameForm = document.getElementById('cashierNameForm');
 const cashierNameDisplay = document.getElementById('cashierNameDisplay');
+const cashierShiftDisplay = document.getElementById('cashierShiftDisplay');
+const cashierShiftSelect = document.getElementById('cashierShift');
 const changeCashierBtn = document.getElementById('changeCashierBtn');
 const viewCashierHistoryBtn = document.getElementById('viewCashierHistoryBtn');
 const sidebar = document.getElementById('sidebar');
@@ -76,6 +80,7 @@ const stockHistoryContent = document.getElementById('stockHistoryContent');
 const addProductBtn = document.getElementById('addProductBtn');
 const addProductModal = document.getElementById('addProductModal');
 const addProductForm = document.getElementById('addProductForm');
+const shiftFilter = document.getElementById('shiftFilter');
 
 // 页面加载时初始化
 window.addEventListener('DOMContentLoaded', () => {
@@ -106,11 +111,19 @@ window.addEventListener('DOMContentLoaded', () => {
     // 加载收银员历史记录
     loadCashierHistory();
     
-    // 检查收银员姓名是否已经设置
+    // 检查收银员姓名和班次是否已经设置
     cashierName = localStorage.getItem('cashierName');
+    cashierShift = localStorage.getItem('cashierShift');
+    
     if (cashierName) {
         cashierNameDisplay.textContent = cashierName;
-    } else {
+    }
+    
+    if (cashierShift) {
+        cashierShiftDisplay.textContent = cashierShift;
+    }
+    
+    if (!cashierName || !cashierShift) {
         // 如果没有设置，显示输入模态框
         showModal(cashierNameModal);
     }
@@ -359,6 +372,14 @@ function initEventListeners() {
     if (addProductForm) {
         addProductForm.addEventListener('submit', handleAddProduct);
     }
+    
+    // 班次过滤监听器
+    if (shiftFilter) {
+        shiftFilter.addEventListener('change', () => {
+            selectedShift = shiftFilter.value;
+            loadSalesHistory(selectedDate);
+        });
+    }
 }
 
 // 切换视图
@@ -405,7 +426,7 @@ function loadSalesHistory(date) {
     const storeId = localStorage.getItem('store_id');
     
     // 显示加载状态
-    salesTableBody.innerHTML = '<tr><td colspan="8" class="loading"><i class="material-icons">hourglass_empty</i> Loading...</td></tr>';
+    salesTableBody.innerHTML = '<tr><td colspan="9" class="loading"><i class="material-icons">hourglass_empty</i> Loading...</td></tr>';
     
     // 从数据库加载销售记录
     getStoreSaleDetails(storeId, selectedDate)
@@ -415,7 +436,7 @@ function loadSalesHistory(date) {
         })
         .catch(error => {
             console.error('Failed to load sales data:', error);
-            salesTableBody.innerHTML = '<tr><td colspan="8" class="error"><i class="material-icons">error</i> Failed to load sales data</td></tr>';
+            salesTableBody.innerHTML = '<tr><td colspan="9" class="error"><i class="material-icons">error</i> Failed to load sales data</td></tr>';
         });
 }
 
@@ -424,12 +445,16 @@ function renderSalesTable(sales) {
     salesTableBody.innerHTML = '';
     
     if (Object.keys(sales).length === 0) {
-        salesTableBody.innerHTML = '<tr><td colspan="8" class="no-data"><i class="material-icons">info</i> No sales data available for this date</td></tr>';
+        salesTableBody.innerHTML = '<tr><td colspan="9" class="no-data"><i class="material-icons">info</i> No sales data available for this date</td></tr>';
         // 清空总销售额显示
         document.getElementById('totalSalesAmount').textContent = 'RM0.00';
         document.getElementById('totalTransactions').textContent = '0';
         document.getElementById('discountedSalesCount').textContent = '0';
         document.getElementById('totalDiscountAmount').textContent = 'RM0.00';
+        document.getElementById('firstShiftSalesAmount').textContent = 'RM0.00';
+        document.getElementById('firstShiftTransactions').textContent = '0';
+        document.getElementById('secondShiftSalesAmount').textContent = 'RM0.00';
+        document.getElementById('secondShiftTransactions').textContent = '0';
         return;
     }
     
@@ -438,17 +463,54 @@ function renderSalesTable(sales) {
         return sales[b].timestamp.localeCompare(sales[a].timestamp);
     });
     
+    // 根据班次筛选
+    let filteredSales = sortedSales;
+    if (selectedShift !== 'all') {
+        filteredSales = sortedSales.filter(saleId => {
+            const sale = sales[saleId];
+            return sale.cashierShift === selectedShift;
+        });
+    }
+    
     // 计算总销售额和折扣统计
     let totalAmount = 0;
-    let transactionCount = sortedSales.length;
+    let transactionCount = filteredSales.length;
     let discountedSalesCount = 0;
     let totalDiscountAmount = 0;
     
+    // 班次销售统计
+    let firstShiftAmount = 0;
+    let firstShiftCount = 0;
+    let secondShiftAmount = 0;
+    let secondShiftCount = 0;
+    
+    // 先计算全部销售数据（不受当前筛选影响）
     sortedSales.forEach(saleId => {
+        const sale = sales[saleId];
+        
+        // 按班次统计
+        if (sale.cashierShift === '1st Shift') {
+            firstShiftAmount += sale.total_amount;
+            firstShiftCount++;
+        } else if (sale.cashierShift === '2nd Shift') {
+            secondShiftAmount += sale.total_amount;
+            secondShiftCount++;
+        }
+    });
+    
+    // 更新班次统计显示
+    document.getElementById('firstShiftSalesAmount').textContent = `RM${firstShiftAmount.toFixed(2)}`;
+    document.getElementById('firstShiftTransactions').textContent = firstShiftCount;
+    document.getElementById('secondShiftSalesAmount').textContent = `RM${secondShiftAmount.toFixed(2)}`;
+    document.getElementById('secondShiftTransactions').textContent = secondShiftCount;
+    
+    // 计算筛选后的销售数据
+    filteredSales.forEach(saleId => {
         const sale = sales[saleId];
         totalAmount += sale.total_amount;
         const itemCount = sale.items ? sale.items.reduce((sum, item) => sum + item.quantity, 0) : 0;
         const cashierName = sale.cashierName || 'N/A';
+        const cashierShift = sale.cashierShift || 'N/A';
         
         // 检查是否有折扣
         let discountDisplay = 'None';
@@ -475,6 +537,7 @@ function renderSalesTable(sales) {
             <td>${saleId}</td>
             <td>${sale.timestamp}</td>
             <td>${cashierName}</td>
+            <td>${cashierShift}</td>
             <td>${itemCount}</td>
             <td><span class="discount-badge ${discountBadgeClass}">${discountDisplay}</span></td>
             <td>RM${sale.total_amount.toFixed(2)}</td>
@@ -488,7 +551,7 @@ function renderSalesTable(sales) {
         salesTableBody.appendChild(row);
     });
     
-    // 更新总销售额显示
+    // 更新总销售额显示 - 仅显示筛选后的数据
     document.getElementById('totalSalesAmount').textContent = `RM${totalAmount.toFixed(2)}`;
     document.getElementById('totalTransactions').textContent = transactionCount;
     document.getElementById('discountedSalesCount').textContent = discountedSalesCount;
@@ -527,6 +590,7 @@ function viewSaleDetails(sale) {
                 <p>Sale ID: ${currentSaleId}</p>
                 <p>Time: ${sale.timestamp}</p>
                 <p>Cashier: ${sale.cashierName || 'N/A'}</p>
+                <p>Shift: ${sale.cashierShift || 'N/A'}</p>
                 ${sale.shiftInfo ? `<p>Shift started at: ${sale.shiftInfo.shiftTime || 'N/A'}</p>` : ''}
             </div>
             <div class="receipt-items">
@@ -796,36 +860,72 @@ function removeEditItem(index) {
 
 // 更新销售记录
 function updateSale() {
-    if (!currentSaleId || !editingSale) return;
+    if (!editingSale) return;
     
-    // 禁用按钮防止重复提交
-    updateSaleBtn.disabled = true;
-    updateSaleBtn.innerHTML = '<i class="material-icons">hourglass_empty</i> Updating...';
+    // 获取编辑后的购物车项目
+    const editedItems = [];
+    for (let i = 0; i < editCartItems.children.length; i++) {
+        const item = editCartItems.children[i];
+        const productId = item.dataset.id;
+        const name = item.querySelector('.item-name').textContent;
+        const price = parseFloat(item.dataset.price);
+        const quantity = parseInt(item.querySelector('.item-quantity').textContent);
+        const isFree = item.classList.contains('free-item');
+        
+        editedItems.push({
+            id: productId,
+            name: name,
+            price: price,
+            quantity: quantity,
+            subtotal: isFree ? 0 : price * quantity,
+            isFree: isFree
+        });
+    }
     
-    // 计算总金额
-    const total = editingSale.items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
-    editingSale.total_amount = total;
+    // 计算新的小计和总计
+    const newSubtotal = editedItems.reduce((sum, item) => sum + (item.isFree ? 0 : item.price * item.quantity), 0);
     
+    // 保留原有的折扣设置
+    const discountType = editingSale.discountType || 'percent';
+    let discountAmount = 0;
+    
+    if (discountType === 'percent') {
+        const discountPercent = editingSale.discountPercent || 0;
+        discountAmount = newSubtotal * (discountPercent / 100);
+    } else {
+        discountAmount = Math.min(editingSale.discountAmount || 0, newSubtotal);
+    }
+    
+    const newTotal = newSubtotal - discountAmount;
+    
+    // 更新编辑后的销售记录
+    const updatedSale = {
+        ...editingSale,
+        items: editedItems,
+        subtotal: newSubtotal,
+        discountAmount: discountAmount,
+        total_amount: newTotal,
+        // 保留原有的收银员信息和班次信息
+        cashierName: editingSale.cashierName || cashierName,
+        cashierShift: editingSale.cashierShift || cashierShift
+    };
+    
+    // 更新数据库中的销售记录
     const storeId = localStorage.getItem('store_id');
-    
-    // 更新数据库
-    database.ref(`sales/${storeId}/${currentSaleId}`).update({
-        items: editingSale.items,
-        total_amount: total
-    })
-    .then(() => {
-        alert('Sale updated successfully!');
-        hideModal(editSaleModal);
-        loadSalesHistory(selectedDate); // 重新加载销售记录
-    })
-    .catch(error => {
-        console.error('Failed to update sale:', error);
-        alert('Failed to update sale. Please try again.');
-    })
-    .finally(() => {
-        updateSaleBtn.disabled = false;
-        updateSaleBtn.innerHTML = '<i class="material-icons">save</i> Update Sale';
-    });
+    updateSaleRecord(storeId, selectedDate, currentSaleId, updatedSale)
+        .then(() => {
+            console.log('销售记录更新成功');
+            
+            // 刷新销售历史
+            loadSalesHistory(selectedDate);
+            
+            // 隐藏编辑模态框
+            hideModal(editSaleModal);
+        })
+        .catch(error => {
+            console.error('销售记录更新失败:', error);
+            alert('Failed to update sale record. Please try again.');
+        });
 }
 
 // 删除销售记录
@@ -1254,8 +1354,10 @@ function checkout() {
             discountAmount: discountValue,
             total_amount: total,
             cashierName: cashierName, // 添加收银员姓名
+            cashierShift: cashierShift, // 添加收银员班次
             shiftInfo: {
                 cashierName: cashierName,
+                cashierShift: cashierShift,
                 shiftTime: getCurrentDateTime()
             }
         };
@@ -1338,6 +1440,7 @@ function showSuccessModal(saleData, saleId) {
                 <p>Sale ID: ${saleId}</p>
                 <p>Time: ${currentTime}</p>
                 <p>Cashier: ${cashierName}</p>
+                <p>Shift: ${saleData.cashierShift || cashierShift}</p>
             </div>
             <div class="receipt-items">
                 <table>
@@ -1687,18 +1790,23 @@ function updateProductInventory(storeId, cartItems) {
 function handleCashierNameSubmit(e) {
     e.preventDefault();
     const nameInput = document.getElementById('cashierName');
+    const shiftInput = document.getElementById('cashierShift');
     const newCashierName = nameInput.value.trim();
+    const newCashierShift = shiftInput.value;
     
     if (newCashierName) {
         // 记录收银员换班
-        recordCashierShift(newCashierName);
+        recordCashierShift(newCashierName, newCashierShift);
         
-        // 更新当前收银员
+        // 更新当前收银员信息
         cashierName = newCashierName;
+        cashierShift = newCashierShift;
         cashierNameDisplay.textContent = cashierName;
+        cashierShiftDisplay.textContent = cashierShift;
         
         // 保存到本地存储
         localStorage.setItem('cashierName', cashierName);
+        localStorage.setItem('cashierShift', cashierShift);
         
         // 隐藏模态框
         hideModal(cashierNameModal);
@@ -2272,19 +2380,17 @@ function saveCashierHistory() {
 }
 
 // 记录收银员换班
-function recordCashierShift(newCashierName) {
-    const currentTime = getCurrentDateTime();
-    cashierHistory.push({
+function recordCashierShift(newCashierName, newCashierShift) {
+    const shiftRecord = {
         cashierName: newCashierName,
-        startTime: currentTime
-    });
+        shift: newCashierShift,
+        time: getCurrentDateTime()
+    };
     
-    // 只保留最近的20条记录
-    if (cashierHistory.length > 20) {
-        cashierHistory = cashierHistory.slice(-20);
-    }
-    
+    cashierHistory.push(shiftRecord);
     saveCashierHistory();
+    
+    console.log(`收银员换班记录: ${newCashierName} (${newCashierShift}) 在 ${shiftRecord.time}`);
 }
 
 // 从购物车移除商品
@@ -2470,4 +2576,26 @@ function filterProducts() {
     currentCategory = categoryFilter.value;
     const searchQuery = productSearch ? productSearch.value : '';
     renderProducts(searchQuery);
+}
+
+// 更新销售记录
+function updateSaleRecord(storeId, date, saleId, updatedSale) {
+    // 禁用按钮防止重复提交
+    updateSaleBtn.disabled = true;
+    updateSaleBtn.innerHTML = '<i class="material-icons">hourglass_empty</i> Updating...';
+    
+    return database.ref(`sales/${storeId}/${saleId}`).update(updatedSale)
+        .then(() => {
+            console.log('Successfully updated sale record');
+            return true;
+        })
+        .catch(error => {
+            console.error('Error updating sale record:', error);
+            throw error;
+        })
+        .finally(() => {
+            // 恢复按钮状态
+            updateSaleBtn.disabled = false;
+            updateSaleBtn.innerHTML = '<i class="material-icons">save</i> Update Sale';
+        });
 } 
