@@ -117,10 +117,14 @@ window.addEventListener('DOMContentLoaded', () => {
     
     if (cashierName) {
         cashierNameDisplay.textContent = cashierName;
+    } else {
+        cashierNameDisplay.textContent = 'Not set';
     }
     
     if (cashierShift) {
         cashierShiftDisplay.textContent = cashierShift;
+    } else {
+        cashierShiftDisplay.textContent = 'Not set';
     }
     
     if (!cashierName || !cashierShift) {
@@ -1664,6 +1668,7 @@ function showCashierHistory() {
                 <thead>
                     <tr>
                         <th>Cashier</th>
+                        <th>Shift</th>
                         <th>Shift Start Time</th>
                     </tr>
                 </thead>
@@ -1671,7 +1676,7 @@ function showCashierHistory() {
     `;
     
     if (cashierHistory.length === 0) {
-        historyHtml += '<tr><td colspan="2" class="no-data">No shift records available</td></tr>';
+        historyHtml += '<tr><td colspan="3" class="no-data">No shift records available</td></tr>';
     } else {
         // 倒序显示，最新的在最上面
         for (let i = cashierHistory.length - 1; i >= 0; i--) {
@@ -1679,7 +1684,8 @@ function showCashierHistory() {
             historyHtml += `
                 <tr>
                     <td>${record.cashierName}</td>
-                    <td>${record.startTime}</td>
+                    <td>${record.shift || 'N/A'}</td>
+                    <td>${record.shiftTime || record.startTime || 'N/A'}</td>
                 </tr>
             `;
         }
@@ -2384,13 +2390,13 @@ function recordCashierShift(newCashierName, newCashierShift) {
     const shiftRecord = {
         cashierName: newCashierName,
         shift: newCashierShift,
-        time: getCurrentDateTime()
+        shiftTime: getCurrentDateTime() // 修改这里，从time改为shiftTime
     };
     
     cashierHistory.push(shiftRecord);
     saveCashierHistory();
     
-    console.log(`收银员换班记录: ${newCashierName} (${newCashierShift}) 在 ${shiftRecord.time}`);
+    console.log(`收银员换班记录: ${newCashierName} (${newCashierShift}) 在 ${shiftRecord.shiftTime}`);
 }
 
 // 从购物车移除商品
