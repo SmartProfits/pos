@@ -296,4 +296,166 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => {
             console.error("数据库结构初始化失败:", error);
         });
-}); 
+});
+
+// === 优化的数据获取函数 ===
+
+/**
+ * 优化的店铺商品获取函数 - 实现数据分片
+ * 通过店铺ID进行数据分区，确保只获取当前店铺的数据
+ */
+function getStoreProductsOptimized(storeId) {
+    return new Promise((resolve, reject) => {
+        database.ref(`store_products/${storeId}`).once('value')
+            .then(snapshot => {
+                const products = snapshot.val() || {};
+                resolve(products);
+            })
+            .catch(error => reject(error));
+    });
+}
+
+/**
+ * 获取产品目录中的产品 - 使用浅层查询和分页加载
+ * @param {number} pageSize - 每页显示的商品数量
+ * @param {number} page - 页码，从1开始
+ */
+function getCatalogProductsPaginated(pageSize = 20, page = 1) {
+    return new Promise((resolve, reject) => {
+        const startIndex = (page - 1) * pageSize;
+        
+        // 使用limitToFirst限制结果数量
+        database.ref('product_catalog')
+            .orderByKey()
+            .startAt(String(startIndex))
+            .limitToFirst(pageSize)
+            .once('value')
+            .then(snapshot => {
+                const products = snapshot.val() || {};
+                resolve(products);
+            })
+            .catch(error => reject(error));
+    });
+}
+
+/**
+ * 按类别获取产品 - 使用查询过滤
+ * @param {string} category - 产品类别
+ */
+function getProductsByCategory(storeId, category) {
+    return new Promise((resolve, reject) => {
+        if (category === 'all') {
+            // 如果选择全部类别，使用常规获取函数
+            return getStoreProductsOptimized(storeId).then(resolve).catch(reject);
+        }
+        
+        // 使用orderByChild和equalTo过滤特定类别
+        database.ref(`store_products/${storeId}`)
+            .orderByChild('category')
+            .equalTo(category)
+            .once('value')
+            .then(snapshot => {
+                const products = snapshot.val() || {};
+                resolve(products);
+            })
+            .catch(error => reject(error));
+    });
+}
+
+/**
+ * 按日期获取销售历史 - 按需加载数据
+ * @param {string} storeId - 店铺ID
+ * @param {string} date - 日期字符串 (YYYY-MM-DD)
+ * @param {string} shift - 班次 (可选，如不指定则获取全部)
+ */
+function getSalesByDateOptimized(storeId, date, shift = null) {
+    return new Promise((resolve, reject) => {
+        // 首先通过shallow查询快速检查是否有数据
+        database.ref(`sales/${storeId}`)
+            .orderByChild('date')
+            .equalTo(date)
+            .once('value')
+            .then(snapshot => {
+                const sales = snapshot.val() || {};
+                
+                // 如果指定了班次，进一步过滤结果
+                if (shift && shift !== 'all') {
+                    const filteredSales = {};
+                    Object.keys(sales).forEach(saleId => {
+                        if (sales[saleId].cashierShift === shift) {
+                            filteredSales[saleId] = sales[saleId];
+                        }
+                    });
+                    resolve(filteredSales);
+                } else {
+                    resolve(sales);
+                }
+            })
+            .catch(error => reject(error));
+    });
+}
+
+/**
+ * 获取产品库存状态 - 轻量级查询
+ * 只获取库存数量而非完整产品数据
+ */
+function getProductStockStatus(storeId, productId) {
+    return new Promise((resolve, reject) => {
+        database.ref(`store_products/${storeId}/${productId}/stock`)
+            .once('value')
+            .then(snapshot => {
+                const stock = snapshot.val() || 0;
+                resolve(stock);
+            })
+            .catch(error => reject(error));
+    });
+}
+
+/**
+ * 获取产品摘要信息 - 轻量级查询
+ * 只获取基本产品信息而非详细数据
+ */
+function getProductSummary(storeId, productId) {
+    return new Promise((resolve, reject) => {
+        database.ref(`store_products/${storeId}/${productId}`)
+            .once('value')
+            .then(snapshot => {
+                const product = snapshot.val();
+                if (product) {
+                    // 只返回必要信息
+                    resolve({
+                        id: productId,
+                        name: product.name,
+                        price: product.price,
+                        stock: product.stock,
+                        category: product.category
+                    });
+                } else {
+                    resolve(null);
+                }
+            })
+            .catch(error => reject(error));
+    });
+}
+
+/**
+ * 获取日销售统计 - 只获取汇总数据而非详细销售记录
+ */
+function getDailySalesSummary(storeId, date) {
+    return new Promise((resolve, reject) => {
+        database.ref(`daily_sales/${storeId}/${date}`)
+            .once('value')
+            .then(snapshot => {
+                const summary = snapshot.val() || {
+                    total_sales: 0, 
+                    transaction_count: 0,
+                    shifts: {
+                        '1st Shift': { total_sales: 0, transaction_count: 0 },
+                        '2nd Shift': { total_sales: 0, transaction_count: 0 }
+                    }
+                };
+                resolve(summary);
+            })
+            .catch(error => reject(error));
+    });
+} 

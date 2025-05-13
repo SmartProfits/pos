@@ -162,8 +162,15 @@ function loadStoreInfo(storeId) {
 
 // 加载店铺商品
 function loadProducts(storeId) {
-    getStoreProducts(storeId)
+    console.log("开始加载店铺商品，店铺ID:", storeId);
+    
+    // 显示加载中状态
+    productGrid.innerHTML = '<div class="loading-indicator"><i class="material-icons">hourglass_empty</i> Loading products...</div>';
+    
+    // 使用优化的函数获取店铺产品
+    getStoreProductsOptimized(storeId)
         .then(storeProducts => {
+            console.log(`获取到${Object.keys(storeProducts).length}个商品`);
             products = storeProducts;
             
             // 提取所有唯一的类别
@@ -172,12 +179,26 @@ function loadProducts(storeId) {
             // 填充类别过滤器
             populateCategoryFilter();
             
+            // 如果有选择的类别且不是"全部"，使用按类别查询进一步优化
+            if (currentCategory && currentCategory !== 'all') {
+                return getProductsByCategory(storeId, currentCategory);
+            } else {
+                return products; // 返回所有商品
+            }
+        })
+        .then(filteredProducts => {
+            // 如果使用了按类别过滤，更新产品列表
+            if (currentCategory && currentCategory !== 'all') {
+                console.log(`按类别"${currentCategory}"过滤后剩余${Object.keys(filteredProducts).length}个商品`);
+                products = filteredProducts;
+            }
+            
             // 渲染产品列表
             renderProducts();
         })
         .catch(error => {
-            console.error('Failed to load products:', error);
-            alert('Failed to load products. Please refresh the page.');
+            console.error('加载商品失败:', error);
+            productGrid.innerHTML = '<div class="error-message"><i class="material-icons">error</i> 加载商品失败，请刷新页面重试。</div>';
         });
 }
 
@@ -286,10 +307,17 @@ function initEventListeners() {
     // 侧边栏切换
     sidebarToggle.addEventListener('click', toggleSidebar);
     
-    // 商品类别选择和搜索
-    categoryFilter.addEventListener('change', filterProducts);
+    // 商品搜索和过滤
     if (productSearch) {
         productSearch.addEventListener('input', filterProducts);
+    }
+    
+    // 类别过滤器事件
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', function() {
+            const selectedCategory = this.value;
+            filterProductsByCategory(selectedCategory);
+        });
     }
     
     // 导航菜单
@@ -424,24 +452,97 @@ function switchView(viewName) {
     });
 }
 
-// 加载销售记录历史
+// 加载销售历史数据
 function loadSalesHistory(date) {
-    selectedDate = date || getCurrentDate();
-    const storeId = localStorage.getItem('store_id');
+    console.log("加载销售历史，日期:", date);
+    const userStoreId = localStorage.getItem('store_id');
+    if (!userStoreId) {
+        console.error("加载销售历史失败: 未找到店铺ID");
+        return;
+    }
+
+    // 获取选中的班次过滤条件
+    const selectedShift = shiftFilter ? shiftFilter.value : 'all';
     
-    // 显示加载状态
-    salesTableBody.innerHTML = '<tr><td colspan="9" class="loading"><i class="material-icons">hourglass_empty</i> Loading...</td></tr>';
+    // 显示加载中状态
+    salesTableBody.innerHTML = '<tr><td colspan="9" class="loading-message">Loading sales data...</td></tr>';
     
-    // 从数据库加载销售记录
-    getStoreSaleDetails(storeId, selectedDate)
+    // 使用优化的函数获取按日期和班次过滤的销售记录
+    getSalesByDateOptimized(userStoreId, date, selectedShift)
         .then(sales => {
-            salesData = sales;
+            console.log(`获取到${Object.keys(sales).length}条销售记录`);
             renderSalesTable(sales);
+            
+            // 加载每日销售汇总数据
+            return getDailySalesSummary(userStoreId, date);
+        })
+        .then(summary => {
+            updateSalesSummary(summary);
         })
         .catch(error => {
-            console.error('Failed to load sales data:', error);
-            salesTableBody.innerHTML = '<tr><td colspan="9" class="error"><i class="material-icons">error</i> Failed to load sales data</td></tr>';
+            console.error("加载销售历史失败:", error);
+            salesTableBody.innerHTML = `<tr><td colspan="9" class="error-message">加载销售数据失败：${error.message}</td></tr>`;
         });
+}
+
+// 更新销售汇总信息显示
+function updateSalesSummary(summary) {
+    // 更新销售总额
+    document.getElementById('totalSalesAmount').textContent = `RM${(summary.total_sales || 0).toFixed(2)}`;
+    document.getElementById('totalTransactions').textContent = summary.transaction_count || 0;
+    
+    // 更新班次销售额
+    const firstShiftData = summary.shifts && summary.shifts['1st Shift'] ? summary.shifts['1st Shift'] : { total_sales: 0, transaction_count: 0 };
+    const secondShiftData = summary.shifts && summary.shifts['2nd Shift'] ? summary.shifts['2nd Shift'] : { total_sales: 0, transaction_count: 0 };
+    
+    document.getElementById('firstShiftSalesAmount').textContent = `RM${(firstShiftData.total_sales || 0).toFixed(2)}`;
+    document.getElementById('firstShiftTransactions').textContent = firstShiftData.transaction_count || 0;
+    
+    document.getElementById('secondShiftSalesAmount').textContent = `RM${(secondShiftData.total_sales || 0).toFixed(2)}`;
+    document.getElementById('secondShiftTransactions').textContent = secondShiftData.transaction_count || 0;
+    
+    // 计算折扣销售信息（需查询销售记录以计算）
+    getDailySalesDiscountInfo(localStorage.getItem('store_id'), selectedDate)
+        .then(discountInfo => {
+            document.getElementById('discountedSalesCount').textContent = discountInfo.count;
+            document.getElementById('totalDiscountAmount').textContent = `RM${discountInfo.amount.toFixed(2)}`;
+        })
+        .catch(error => {
+            console.error("加载折扣信息失败:", error);
+        });
+}
+
+// 获取每日折扣销售信息
+function getDailySalesDiscountInfo(storeId, date) {
+    return new Promise((resolve, reject) => {
+        getSalesByDateOptimized(storeId, date)
+            .then(sales => {
+                let discountCount = 0;
+                let discountAmount = 0;
+                
+                Object.values(sales).forEach(sale => {
+                    // 如果有折扣
+                    if ((sale.discountPercent && sale.discountPercent > 0) || 
+                        (sale.discountAmount && sale.discountAmount > 0)) {
+                        discountCount++;
+                        
+                        // 计算折扣金额
+                        if (sale.discountType === 'percent' && sale.discountPercent) {
+                            const discount = (sale.subtotal * sale.discountPercent / 100);
+                            discountAmount += discount;
+                        } else if (sale.discountType === 'amount' && sale.discountAmount) {
+                            discountAmount += sale.discountAmount;
+                        }
+                    }
+                });
+                
+                resolve({
+                    count: discountCount,
+                    amount: discountAmount
+                });
+            })
+            .catch(error => reject(error));
+    });
 }
 
 // 渲染销售记录表格
@@ -2579,9 +2680,30 @@ function showEditSplitFreeDialog(index) {
 
 // 搜索和筛选产品
 function filterProducts() {
-    currentCategory = categoryFilter.value;
-    const searchQuery = productSearch ? productSearch.value : '';
-    renderProducts(searchQuery);
+    const searchTerm = productSearch ? productSearch.value.trim().toLowerCase() : '';
+    
+    // 如果有搜索词，先过滤当前显示的产品
+    if (searchTerm) {
+        const filteredProducts = {};
+        
+        // 从当前显示的产品中过滤
+        Object.entries(products).forEach(([id, product]) => {
+            if (product.name.toLowerCase().includes(searchTerm) || 
+                product.id.toLowerCase().includes(searchTerm) ||
+                (product.description && product.description.toLowerCase().includes(searchTerm))) {
+                filteredProducts[id] = product;
+            }
+        });
+        
+        // 临时替换产品列表并渲染
+        const originalProducts = products;
+        products = filteredProducts;
+        renderProducts();
+        products = originalProducts; // 恢复原始产品列表
+    } else {
+        // 如果搜索框为空，根据当前类别重新加载产品
+        filterProductsByCategory(currentCategory || 'all');
+    }
 }
 
 // 更新销售记录
@@ -2604,4 +2726,43 @@ function updateSaleRecord(storeId, date, saleId, updatedSale) {
             updateSaleBtn.disabled = false;
             updateSaleBtn.innerHTML = '<i class="material-icons">save</i> Update Sale';
         });
-} 
+}
+
+// 按类别过滤产品并重新渲染
+function filterProductsByCategory(category) {
+    currentCategory = category;
+    console.log("按类别过滤产品:", category);
+    
+    const storeId = localStorage.getItem('store_id');
+    if (!storeId) {
+        console.error("过滤商品失败: 未找到店铺ID");
+        return;
+    }
+    
+    // 显示加载中状态
+    productGrid.innerHTML = '<div class="loading-indicator"><i class="material-icons">hourglass_empty</i> Loading products...</div>';
+    
+    // 如果选择"all"类别，使用常规产品加载
+    if (category === 'all') {
+        getStoreProductsOptimized(storeId)
+            .then(storeProducts => {
+                products = storeProducts;
+                renderProducts();
+            })
+            .catch(error => {
+                console.error('加载所有商品失败:', error);
+                productGrid.innerHTML = '<div class="error-message"><i class="material-icons">error</i> 加载商品失败，请刷新页面重试。</div>';
+            });
+    } else {
+        // 否则使用按类别查询
+        getProductsByCategory(storeId, category)
+            .then(categoryProducts => {
+                products = categoryProducts;
+                renderProducts();
+            })
+            .catch(error => {
+                console.error(`加载"${category}"类别商品失败:`, error);
+                productGrid.innerHTML = '<div class="error-message"><i class="material-icons">error</i> 加载商品失败，请刷新页面重试。</div>';
+            });
+    }
+}
