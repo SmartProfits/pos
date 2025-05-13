@@ -77,13 +77,13 @@ function addSaleRecord(saleData) {
             console.log("准备添加的销售记录对象:", saleRecord);
 
             // 生成唯一的销售记录ID
-            const saleId = database.ref().child(`sales/${storeId}`).push().key;
+            const saleId = database.ref().child(`sales/${storeId}/${currentDate}`).push().key;
             
             // 创建一个批量更新对象
             const updates = {};
             
-            // 更新销售记录
-            updates[`sales/${storeId}/${saleId}`] = saleRecord;
+            // 更新销售记录 - 按日期存储
+            updates[`sales/${storeId}/${currentDate}/${saleId}`] = saleRecord;
             
             // 确保使用correct的total_amount值更新统计
             const totalAmount = saleDataCopy.total_amount;
@@ -216,22 +216,14 @@ function getAllStoresDailySales(date) {
     });
 }
 
-// 获取特定店铺的特定日期销售详情
+// 获取特定日期的店铺销售详情
 function getStoreSaleDetails(storeId, date) {
     return new Promise((resolve, reject) => {
-        database.ref(`sales/${storeId}`).once('value')
+        // 直接从特定日期的节点获取销售记录
+        database.ref(`sales/${storeId}/${date}`).once('value')
             .then(snapshot => {
                 const sales = snapshot.val() || {};
-                const filteredSales = {};
-                
-                // 过滤出特定日期的销售记录
-                Object.keys(sales).forEach(saleId => {
-                    if (sales[saleId].date === date) {
-                        filteredSales[saleId] = sales[saleId];
-                    }
-                });
-                
-                resolve(filteredSales);
+                resolve(sales);
             })
             .catch(error => reject(error));
     });
@@ -370,10 +362,8 @@ function getProductsByCategory(storeId, category) {
  */
 function getSalesByDateOptimized(storeId, date, shift = null) {
     return new Promise((resolve, reject) => {
-        // 首先通过shallow查询快速检查是否有数据
-        database.ref(`sales/${storeId}`)
-            .orderByChild('date')
-            .equalTo(date)
+        // 直接从特定日期的节点获取销售记录，减少数据传输
+        database.ref(`sales/${storeId}/${date}`)
             .once('value')
             .then(snapshot => {
                 const sales = snapshot.val() || {};

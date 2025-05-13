@@ -1019,7 +1019,15 @@ function updateSale() {
     
     // 更新数据库中的销售记录
     const storeId = localStorage.getItem('store_id');
-    updateSaleRecord(storeId, selectedDate, currentSaleId, updatedSale)
+    const saleDate = editingSale.date; // 使用销售记录本身的日期
+    
+    if (!storeId || !saleDate) {
+        console.error('销售记录更新失败: 未找到店铺ID或销售日期');
+        alert('Failed to update sale record. Missing store ID or sale date.');
+        return;
+    }
+    
+    updateSaleRecord(storeId, saleDate, currentSaleId, updatedSale)
         .then(() => {
             console.log('销售记录更新成功');
             
@@ -1056,8 +1064,10 @@ function deleteSale() {
     }
     
     const userStoreId = localStorage.getItem('store_id');
-    if (!userStoreId) {
-        alert('Store ID not found. Operation aborted.');
+    const saleDate = sale.date; // 获取销售记录的日期，用于构建新的路径
+    
+    if (!userStoreId || !saleDate) {
+        alert('Store ID or sale date not found. Operation aborted.');
         deleteSaleBtn.disabled = false;
         deleteSaleBtn.innerHTML = '<i class="material-icons">delete</i> Delete';
         return;
@@ -1112,9 +1122,9 @@ function deleteSale() {
         console.log(`Restoring stock for ${product.name} by ${totalQuantity} units`);
     });
     
-    // 删除销售记录并更新库存
+    // 删除销售记录并更新库存 - 使用按日期组织的路径
     Promise.all([
-        database.ref(`sales/${userStoreId}/${currentSaleId}`).remove(),
+        database.ref(`sales/${userStoreId}/${saleDate}/${currentSaleId}`).remove(),
         database.ref().update(updates)
     ])
         .then(() => {
@@ -2714,7 +2724,8 @@ function updateSaleRecord(storeId, date, saleId, updatedSale) {
     updateSaleBtn.disabled = true;
     updateSaleBtn.innerHTML = '<i class="material-icons">hourglass_empty</i> Updating...';
     
-    return database.ref(`sales/${storeId}/${saleId}`).update(updatedSale)
+    // 使用按日期组织的数据路径
+    return database.ref(`sales/${storeId}/${date}/${saleId}`).update(updatedSale)
         .then(() => {
             console.log('Successfully updated sale record');
             return true;
