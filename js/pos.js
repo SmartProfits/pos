@@ -471,6 +471,8 @@ function loadSalesHistory(date) {
     getSalesByDateOptimized(userStoreId, date, selectedShift)
         .then(sales => {
             console.log(`获取到${Object.keys(sales).length}条销售记录`);
+            // 存储销售数据到全局变量，这样删除功能可以正常工作
+            salesData = sales;
             renderSalesTable(sales);
             
             // 加载每日销售汇总数据
@@ -666,7 +668,7 @@ function renderSalesTable(sales) {
     document.querySelectorAll('.view-sale-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             currentSaleId = btn.dataset.id;
-            viewSaleDetails(salesData[currentSaleId]);
+            viewSaleDetails(sales[currentSaleId]);
         });
     });
     
