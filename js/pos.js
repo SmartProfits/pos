@@ -544,7 +544,7 @@ function getDailySalesDiscountInfo(storeId, date) {
                 });
             })
             .catch(error => reject(error));
-    });
+        });
 }
 
 // 渲染销售记录表格
@@ -2739,7 +2739,7 @@ function updateSaleRecord(storeId, date, saleId, updatedSale) {
             updateSaleBtn.disabled = false;
             updateSaleBtn.innerHTML = '<i class="material-icons">save</i> Update Sale';
         });
-}
+} 
 
 // 按类别过滤产品并重新渲染
 function filterProductsByCategory(category) {

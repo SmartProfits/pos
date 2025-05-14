@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => {
             console.error("数据库结构初始化失败:", error);
         });
-});
+}); 
 
 // === 优化的数据获取函数 ===
 

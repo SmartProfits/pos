@@ -697,20 +697,24 @@ function loadAllStoresSaleDetails(date) {
             const storeIds = Object.keys(storeList);
             const promises = [];
             
-            // 对每个店铺获取销售记录
+            // 对每个店铺获取销售记录 - 只获取特定日期的数据
             storeIds.forEach(storeId => {
                 promises.push(
-                    database.ref(`sales/${storeId}`).once('value')
+                    database.ref(`sales/${storeId}/${date}`).once('value')
                         .then(snapshot => {
                             const sales = snapshot.val() || {};
-                            // 筛选特定日期的销售记录
-                            const filteredSales = {};
+                            // 将店铺ID添加到每个销售记录中
+                            const salesWithStoreId = {};
                             Object.keys(sales).forEach(saleId => {
-                                if (sales[saleId].date === date) {
-                                    filteredSales[saleId] = sales[saleId];
+                                // 确保销售记录有 store_id
+                                if (sales[saleId]) {
+                                    salesWithStoreId[saleId] = {
+                                        ...sales[saleId],
+                                        store_id: sales[saleId].store_id || storeId
+                                    };
                                 }
                             });
-                            return filteredSales;
+                            return salesWithStoreId;
                         })
                 );
             });
@@ -1581,17 +1585,18 @@ function getStoreDailySales(storeId, date) {
 
 // 从transactions表计算特定店铺的销售统计
 function loadStoreSalesFromTransactions(storeId, date) {
-    return database.ref(`sales/${storeId}`).once('value')
+    console.log(`Getting sales from transactions for store ${storeId} on date ${date}`);
+    
+    return database.ref(`sales/${storeId}/${date}`).once('value')
         .then(snapshot => {
             const sales = snapshot.val() || {};
             let totalSales = 0;
             let transactionCount = 0;
             
-            // 筛选特定日期的销售记录并计算总额
+            // 计算总销售额和交易数
             Object.keys(sales).forEach(saleId => {
-                const sale = sales[saleId];
-                if (sale.date === date) {
-                    totalSales += Number(sale.total_amount || 0);
+                if (sales[saleId]) {
+                    totalSales += Number(sales[saleId].total_amount || 0);
                     transactionCount++;
                 }
             });
@@ -1634,20 +1639,19 @@ function loadSalesFromTransactions(date) {
             const storeIds = Object.keys(storeList);
             const promises = [];
             
-            // 对每个店铺获取销售记录
+            // 对每个店铺获取销售记录 - 只获取特定日期的数据
             storeIds.forEach(storeId => {
                 promises.push(
-                    database.ref(`sales/${storeId}`).once('value')
+                    database.ref(`sales/${storeId}/${date}`).once('value')
                         .then(snapshot => {
                             const sales = snapshot.val() || {};
                             let totalSales = 0;
                             let transactionCount = 0;
                             
-                            // 筛选特定日期的销售记录并计算总额
+                            // 计算总销售额和交易数
                             Object.keys(sales).forEach(saleId => {
-                                const sale = sales[saleId];
-                                if (sale.date === date) {
-                                    totalSales += Number(sale.total_amount || 0);
+                                if (sales[saleId]) {
+                                    totalSales += Number(sales[saleId].total_amount || 0);
                                     transactionCount++;
                                 }
                             });
@@ -1679,20 +1683,23 @@ function loadSalesFromTransactions(date) {
 
 // 获取特定店铺的特定日期销售详情
 function getStoreSaleDetails(storeId, date) {
-    return database.ref(`sales/${storeId}`)
+    return database.ref(`sales/${storeId}/${date}`)
         .once('value')
         .then(snapshot => {
-            const allSales = snapshot.val() || {};
-            const filteredSales = {};
+            const sales = snapshot.val() || {};
             
-            Object.keys(allSales).forEach(saleId => {
-                const sale = allSales[saleId];
-                if (sale.date === date) {
-                    filteredSales[saleId] = sale;
+            // 确保每个销售记录都有 store_id
+            const salesWithStoreId = {};
+            Object.keys(sales).forEach(saleId => {
+                if (sales[saleId]) {
+                    salesWithStoreId[saleId] = {
+                        ...sales[saleId],
+                        store_id: sales[saleId].store_id || storeId
+                    };
                 }
             });
             
-            return filteredSales;
+            return salesWithStoreId;
         });
 }
 
