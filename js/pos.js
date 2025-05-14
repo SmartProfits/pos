@@ -235,6 +235,7 @@ function populateCategoryFilter() {
 
 // 渲染商品列表
 function renderProducts(searchQuery = '') {
+    console.log("渲染产品列表，搜索查询:", searchQuery); // 添加调试日志
     productGrid.innerHTML = '';
     
     if (Object.keys(products).length === 0) {
@@ -249,11 +250,14 @@ function renderProducts(searchQuery = '') {
     
     // 如果有搜索查询，再按搜索条件筛选
     if (searchQuery && searchQuery.trim() !== '') {
+        console.log("应用搜索过滤，过滤前产品数:", filteredProducts.length); // 添加调试日志
         const query = searchQuery.toLowerCase().trim();
-        filteredProducts = filteredProducts.filter(([_, product]) => 
+        filteredProducts = filteredProducts.filter(([id, product]) => 
             product.name.toLowerCase().includes(query) || 
-            (product.id && product.id.toLowerCase().includes(query))
+            id.toLowerCase().includes(query) ||
+            (product.description && product.description.toLowerCase().includes(query))
         );
+        console.log("过滤后产品数:", filteredProducts.length); // 添加调试日志
     }
     
     if (filteredProducts.length === 0) {
@@ -267,6 +271,8 @@ function renderProducts(searchQuery = '') {
         productGrid.appendChild(noProductsMessage);
         return;
     }
+    
+    console.log(`准备渲染${filteredProducts.length}个产品`); // 添加调试日志
     
     filteredProducts.forEach(([productId, product]) => {
         // 获取库存，如果不存在则显示为"无库存"
@@ -309,7 +315,30 @@ function initEventListeners() {
     
     // 商品搜索和过滤
     if (productSearch) {
+        console.log("找到搜索框元素:", productSearch); // 添加调试日志
+        
+        // 添加输入事件监听器
         productSearch.addEventListener('input', filterProducts);
+        
+        // 添加焦点事件监听器
+        productSearch.addEventListener('focus', () => {
+            productSearch.parentElement.classList.add('active');
+        });
+        
+        // 添加失焦事件监听器
+        productSearch.addEventListener('blur', () => {
+            productSearch.parentElement.classList.remove('active');
+        });
+        
+        // 添加点击搜索图标触发输入框焦点的效果
+        const searchIcon = productSearch.parentElement.querySelector('.material-icons');
+        if (searchIcon) {
+            searchIcon.addEventListener('click', () => {
+                productSearch.focus();
+            });
+        }
+    } else {
+        console.error("未找到搜索框元素!"); // 添加错误日志
     }
     
     // 类别过滤器事件
@@ -2692,7 +2721,9 @@ function showEditSplitFreeDialog(index) {
 
 // 搜索和筛选产品
 function filterProducts() {
+    console.log("执行搜索过滤..."); // 添加调试日志
     const searchTerm = productSearch ? productSearch.value.trim().toLowerCase() : '';
+    console.log("搜索词:", searchTerm); // 添加调试日志
     
     // 如果有搜索词，先过滤当前显示的产品
     if (searchTerm) {
@@ -2701,16 +2732,18 @@ function filterProducts() {
         // 从当前显示的产品中过滤
         Object.entries(products).forEach(([id, product]) => {
             if (product.name.toLowerCase().includes(searchTerm) || 
-                product.id.toLowerCase().includes(searchTerm) ||
+                id.toLowerCase().includes(searchTerm) ||
                 (product.description && product.description.toLowerCase().includes(searchTerm))) {
                 filteredProducts[id] = product;
             }
         });
         
+        console.log(`搜索结果: 找到${Object.keys(filteredProducts).length}个商品`); // 添加调试日志
+        
         // 临时替换产品列表并渲染
-        const originalProducts = products;
+        const originalProducts = {...products}; // 使用解构创建原始产品的副本
         products = filteredProducts;
-        renderProducts();
+        renderProducts(searchTerm); // 传入搜索词，以便正确渲染
         products = originalProducts; // 恢复原始产品列表
     } else {
         // 如果搜索框为空，根据当前类别重新加载产品
