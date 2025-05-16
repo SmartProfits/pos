@@ -1094,6 +1094,8 @@ function deleteSale() {
     
     const userStoreId = localStorage.getItem('store_id');
     const saleDate = sale.date; // 获取销售记录的日期，用于构建新的路径
+    const cashierShift = sale.cashierShift || '1st Shift';
+    const saleAmount = sale.total_amount || 0;
     
     if (!userStoreId || !saleDate) {
         alert('Store ID or sale date not found. Operation aborted.');
@@ -1151,11 +1153,51 @@ function deleteSale() {
         console.log(`Restoring stock for ${product.name} by ${totalQuantity} units`);
     });
     
-    // 删除销售记录并更新库存 - 使用按日期组织的路径
-    Promise.all([
-        database.ref(`sales/${userStoreId}/${saleDate}/${currentSaleId}`).remove(),
-        database.ref().update(updates)
-    ])
+    // 获取当前的每日销售统计并更新
+    database.ref(`daily_sales/${userStoreId}/${saleDate}`).once('value')
+        .then(snapshot => {
+            const dailyData = snapshot.val() || { 
+                total_sales: 0, 
+                transaction_count: 0,
+                shifts: {
+                    '1st Shift': { total_sales: 0, transaction_count: 0 },
+                    '2nd Shift': { total_sales: 0, transaction_count: 0 }
+                }
+            };
+            
+            // 确保shifts对象存在
+            if (!dailyData.shifts) {
+                dailyData.shifts = {
+                    '1st Shift': { total_sales: 0, transaction_count: 0 },
+                    '2nd Shift': { total_sales: 0, transaction_count: 0 }
+                };
+            }
+            
+            // 确保班次统计数据存在
+            if (!dailyData.shifts[cashierShift]) {
+                dailyData.shifts[cashierShift] = { total_sales: 0, transaction_count: 0 };
+            }
+            
+            // 更新每日销售统计 - 减去被删除的销售金额
+            const updatedTotalSales = Math.max(0, Number(dailyData.total_sales || 0) - Number(saleAmount || 0));
+            const updatedTransactionCount = Math.max(0, Number(dailyData.transaction_count || 0) - 1);
+            
+            // 更新班次销售统计
+            const updatedShiftSales = Math.max(0, Number(dailyData.shifts[cashierShift].total_sales || 0) - Number(saleAmount || 0));
+            const updatedShiftTransactions = Math.max(0, Number(dailyData.shifts[cashierShift].transaction_count || 0) - 1);
+            
+            // 创建更新对象
+            updates[`daily_sales/${userStoreId}/${saleDate}/total_sales`] = updatedTotalSales;
+            updates[`daily_sales/${userStoreId}/${saleDate}/transaction_count`] = updatedTransactionCount;
+            updates[`daily_sales/${userStoreId}/${saleDate}/shifts/${cashierShift}/total_sales`] = updatedShiftSales;
+            updates[`daily_sales/${userStoreId}/${saleDate}/shifts/${cashierShift}/transaction_count`] = updatedShiftTransactions;
+            
+            // 删除销售记录并更新库存和每日统计 - 使用按日期组织的路径
+            return Promise.all([
+                database.ref(`sales/${userStoreId}/${saleDate}/${currentSaleId}`).remove(),
+                database.ref().update(updates)
+            ]);
+        })
         .then(() => {
             alert('Sale deleted successfully and inventory restored!');
             hideModal(saleDetailModal);
