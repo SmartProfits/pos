@@ -1194,8 +1194,8 @@ function deleteSale() {
             
             // 删除销售记录并更新库存和每日统计 - 使用按日期组织的路径
             return Promise.all([
-                database.ref(`sales/${userStoreId}/${saleDate}/${currentSaleId}`).remove(),
-                database.ref().update(updates)
+        database.ref(`sales/${userStoreId}/${saleDate}/${currentSaleId}`).remove(),
+        database.ref().update(updates)
             ]);
         })
         .then(() => {

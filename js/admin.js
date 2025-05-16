@@ -1519,14 +1519,17 @@ function getAllProducts() {
             Object.entries(storeProducts).forEach(([storeId, storeProductList]) => {
                 if (storeProductList) {
                     Object.entries(storeProductList).forEach(([productId, product]) => {
+                        // 明确地将store_id添加到每个产品对象
                         allProducts[productId] = {
                             ...product,
                             store_id: storeId
                         };
+                        console.log(`Added product ${productId} from store ${storeId}`);
                     });
                 }
             });
             
+            console.log(`Loaded ${Object.keys(allProducts).length} products from all stores`);
             return allProducts;
         });
 }
@@ -1539,9 +1542,12 @@ function getStoreProducts(storeId) {
             
             // 添加store_id到每个产品
             Object.keys(products).forEach(productId => {
+                // 明确地将store_id添加到每个产品对象
                 products[productId].store_id = storeId;
+                console.log(`Added store_id ${storeId} to product ${productId}`);
             });
             
+            console.log(`Loaded ${Object.keys(products).length} products for store ${storeId}`);
             return products;
         });
 }
@@ -1709,15 +1715,49 @@ function loadInventory() {
     const category = inventoryCategoryFilter.value;
     const stockStatus = inventoryStockFilter.value;
     
+    console.log(`开始加载库存数据，店铺ID: ${storeId}，类别: ${category}，库存状态: ${stockStatus}`);
+    
     // 显示加载状态
     inventoryTableBody.innerHTML = '<tr><td colspan="9" class="loading"><i class="material-icons">hourglass_empty</i> Loading...</td></tr>';
     
     // 加载产品数据
     loadProductsForInventory(storeId)
         .then(productsData => {
+            console.log(`成功加载 ${Object.keys(productsData).length} 个产品`);
+            
+            // 检查每个产品是否包含store_id
+            let missingStoreIdCount = 0;
+            Object.entries(productsData).forEach(([productId, product]) => {
+                if (!product.store_id) {
+                    missingStoreIdCount++;
+                    
+                    // 为缺少store_id的产品添加store_id
+                    // 如果选择了特定商店，则使用该商店ID，否则标记为unknown
+                    if (storeId !== 'all') {
+                        console.log(`为产品 ${productId} 添加缺失的 store_id: ${storeId}`);
+                        productsData[productId].store_id = storeId;
+                    } else {
+                        console.error(`产品 ${productId} 缺少 store_id，但当前选择了"所有商店"`);
+                        // 将产品标记为未知商店，以便可以在界面上显示警告
+                        productsData[productId].store_id = 'unknown';
+                    }
+                }
+            });
+            
+            if (missingStoreIdCount > 0) {
+                console.warn(`发现 ${missingStoreIdCount} 个产品缺少 store_id 属性`);
+            }
+            
             // 过滤产品
             const filteredProducts = filterInventoryProducts(productsData, category, stockStatus);
+            
+            // 更新全局products对象
+            products = productsData;
+            
+            // 渲染库存表格
             renderInventory(filteredProducts);
+            
+            // 更新类别过滤器
             populateInventoryCategories(productsData);
         })
         .catch(error => {
@@ -1772,7 +1812,18 @@ function populateInventoryCategories(products) {
 
 // 过滤库存产品
 function filterInventoryProducts(products, category, stockStatus) {
-    return Object.entries(products).filter(([_, product]) => {
+    // 检查products是否为有效对象
+    if (!products || typeof products !== 'object') {
+        console.error('无效的产品数据:', products);
+        return [];
+    }
+    
+    const result = Object.entries(products).filter(([productId, product]) => {
+        // 检查product是否有store_id
+        if (!product.store_id) {
+            console.warn(`Product ${productId} has no store_id`, product);
+        }
+        
         // 过滤类别
         if (category !== 'all' && product.category !== category) {
             return false;
@@ -1791,6 +1842,9 @@ function filterInventoryProducts(products, category, stockStatus) {
         
         return true;
     });
+    
+    console.log(`过滤后剩余 ${result.length} 个产品`);
+    return result;
 }
 
 // 渲染库存列表
@@ -2147,7 +2201,19 @@ function bulkUpdateProductStock(selectedProducts, operation, quantityValue, reas
 // 显示库存历史记录
 function showStockHistory(productId) {
     const product = products[productId];
-    if (!product) return;
+    if (!product) {
+        console.error('Product not found:', productId);
+        return;
+    }
+    
+    // 确保product.store_id存在
+    if (!product.store_id) {
+        console.error('Product has no store_id:', productId, product);
+        alert('无法加载库存历史：找不到商品所属店铺');
+        return;
+    }
+    
+    console.log('Viewing stock history for product:', productId, 'in store:', product.store_id);
     
     // 创建模态框
     const historyModal = document.createElement('div');
@@ -2159,6 +2225,7 @@ function showStockHistory(productId) {
         <div class="modal-content" style="width: 80%;">
             <span class="close">&times;</span>
             <h2><i class="material-icons">history</i> Stock History: ${product.name}</h2>
+            <div class="store-info">Store: ${stores[product.store_id]?.name || product.store_id}</div>
             <div class="loading"><i class="material-icons">hourglass_empty</i> Loading history...</div>
         </div>
     `;
@@ -2200,6 +2267,7 @@ function showStockHistory(productId) {
                 modalContent.innerHTML = `
                     <span class="close">&times;</span>
                     <h2><i class="material-icons">history</i> Stock History: ${product.name}</h2>
+                    <div class="store-info">Store: ${stores[product.store_id]?.name || product.store_id}</div>
                     <div class="no-data"><i class="material-icons">info</i> No history records available</div>
                 `;
             } else {
@@ -2211,6 +2279,7 @@ function showStockHistory(productId) {
                 let historyHTML = `
                     <span class="close">&times;</span>
                     <h2><i class="material-icons">history</i> Stock History: ${product.name}</h2>
+                    <div class="store-info">Store: ${stores[product.store_id]?.name || product.store_id}</div>
                     <table class="inventory-history-table">
                         <thead>
                             <tr>
@@ -2281,6 +2350,7 @@ function showStockHistory(productId) {
             historyModal.querySelector('.modal-content').innerHTML = `
                 <span class="close">&times;</span>
                 <h2><i class="material-icons">history</i> Stock History: ${product.name}</h2>
+                <div class="store-info">Store: ${stores[product.store_id]?.name || product.store_id}</div>
                 <div class="error"><i class="material-icons">error</i> Failed to load history data</div>
             `;
             
@@ -2297,8 +2367,24 @@ function showStockHistory(productId) {
 
 // 加载库存历史记录
 function loadStockHistory(storeId, productId) {
+    console.log(`Loading stock history for store ${storeId}, product ${productId}`);
+    
+    // 确保storeId参数有值
+    if (!storeId) {
+        console.error('Missing storeId for stock history lookup');
+        return Promise.resolve({});
+    }
+    
     return database.ref(`stock_history/${storeId}/${productId}`).once('value')
-        .then(snapshot => snapshot.val() || {});
+        .then(snapshot => {
+            const historyData = snapshot.val() || {};
+            console.log(`Found ${Object.keys(historyData).length} history records for store ${storeId}, product ${productId}`);
+            return historyData;
+        })
+        .catch(error => {
+            console.error(`Error loading stock history for store ${storeId}, product ${productId}:`, error);
+            return {};
+        });
 }
 
 // 导出库存数据
