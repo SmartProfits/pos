@@ -22,6 +22,7 @@ let discountPercent = 0; // 折扣百分比，0表示无折扣
 let discountAmount = 0; // 直接金额折扣
 let discountType = 'percent'; // 折扣类型，percent表示百分比，amount表示金额
 let sidebarCollapsed = false; // 侧边栏状态
+let cachedSalesData = null; // 缓存的完整销售数据（所有班次）
 
 // DOM元素
 const productGrid = document.getElementById('productGrid');
@@ -39,7 +40,6 @@ const viewTitle = document.getElementById('viewTitle');
 const navItems = document.querySelectorAll('.nav-item[data-view]');
 const views = document.querySelectorAll('.view');
 const dateFilter = document.getElementById('dateFilter');
-const refreshSalesBtn = document.getElementById('refreshSalesBtn');
 const salesTableBody = document.getElementById('salesTableBody');
 const checkoutSuccessModal = document.getElementById('checkoutSuccessModal');
 const saleDetailModal = document.getElementById('saleDetailModal');
@@ -366,13 +366,39 @@ function initEventListeners() {
     changeCashierBtn.addEventListener('click', () => showModal(cashierNameModal));
     viewCashierHistoryBtn.addEventListener('click', showCashierHistory);
     
-    // 销售历史
-    dateFilter.addEventListener('change', () => {
-        loadSalesHistory(dateFilter.value);
-    });
-    refreshSalesBtn.addEventListener('click', () => {
-        loadSalesHistory(dateFilter.value || selectedDate);
-    });
+    // 销售历史 - 移除日期过滤器事件，仅保留班次过滤
+    if (shiftFilter) {
+        shiftFilter.addEventListener('change', () => {
+            selectedShift = shiftFilter.value;
+            
+            // 使用缓存的销售数据进行过滤，避免重新下载
+            if (cachedSalesData) {
+                console.log(`使用缓存的销售数据，按班次 "${selectedShift}" 过滤`);
+                
+                // 如果选择了特定班次，根据班次过滤数据
+                if (selectedShift !== 'all') {
+                    const filteredSales = {};
+                    Object.keys(cachedSalesData).forEach(saleId => {
+                        if (cachedSalesData[saleId].cashierShift === selectedShift) {
+                            filteredSales[saleId] = cachedSalesData[saleId];
+                        }
+                    });
+                    salesData = filteredSales;
+                    renderSalesTable(filteredSales);
+                } else {
+                    // 如果选择"所有班次"，则显示所有数据
+                    salesData = cachedSalesData;
+                    renderSalesTable(cachedSalesData);
+                }
+                
+                // 不需要重新获取日销售汇总，因为它包含所有班次的总计
+                // summary已经包含了班次分项统计
+            } else {
+                // 如果没有缓存数据（例如首次加载），则正常加载
+                loadSalesHistory();
+            }
+        });
+    }
     
     // 模态框
     closeModalBtns.forEach(btn => {
@@ -460,9 +486,11 @@ function switchView(viewName) {
             viewTitle.textContent = 'Sales System';
             break;
         case 'salesHistory':
-            viewTitle.textContent = 'Sales History';
+            viewTitle.textContent = 'Today\'s Sales History';
+            // 切换到销售历史视图时清除已缓存的数据，确保显示最新数据
+            cachedSalesData = null;
             // 加载销售历史
-            loadSalesHistory(dateFilter.value || selectedDate);
+            loadSalesHistory();
             break;
         case 'inventory':
             viewTitle.textContent = 'Inventory Management';
@@ -482,8 +510,11 @@ function switchView(viewName) {
 }
 
 // 加载销售历史数据
-function loadSalesHistory(date) {
-    console.log("加载销售历史，日期:", date);
+function loadSalesHistory() {
+    // 始终使用当前日期
+    const currentDate = getCurrentDate();
+    console.log("加载今日销售历史，日期:", currentDate);
+    
     const userStoreId = localStorage.getItem('store_id');
     if (!userStoreId) {
         console.error("加载销售历史失败: 未找到店铺ID");
@@ -496,19 +527,38 @@ function loadSalesHistory(date) {
     // 显示加载中状态
     salesTableBody.innerHTML = '<tr><td colspan="9" class="loading-message">Loading sales data...</td></tr>';
     
-    // 使用优化的函数获取按日期和班次过滤的销售记录
-    getSalesByDateOptimized(userStoreId, date, selectedShift)
-        .then(sales => {
-            console.log(`获取到${Object.keys(sales).length}条销售记录`);
-            // 存储销售数据到全局变量，这样删除功能可以正常工作
-            salesData = sales;
-            renderSalesTable(sales);
+    // 使用优化的函数获取按日期的所有销售记录（无视班次过滤，获取全部数据）
+    getSalesByDateOptimized(userStoreId, currentDate)
+        .then(allSales => {
+            console.log(`获取到${Object.keys(allSales).length}条销售记录`);
             
-            // 加载每日销售汇总数据
-            return getDailySalesSummary(userStoreId, date);
-        })
-        .then(summary => {
-            updateSalesSummary(summary);
+            // 缓存所有班次的完整销售数据
+            cachedSalesData = allSales;
+            
+            // 根据选定的班次过滤销售数据
+            let filteredSales = allSales;
+            if (selectedShift !== 'all') {
+                filteredSales = {};
+                Object.keys(allSales).forEach(saleId => {
+                    if (allSales[saleId].cashierShift === selectedShift) {
+                        filteredSales[saleId] = allSales[saleId];
+                    }
+                });
+            }
+            
+            // 存储过滤后的销售数据到全局变量
+            salesData = filteredSales;
+            
+            // 渲染表格显示数据
+            renderSalesTable(filteredSales);
+            
+            // 加载每日销售汇总数据，并将完整销售数据传递给它
+            return getDailySalesSummary(userStoreId, currentDate)
+                .then(summary => {
+                    // 将已获取的销售数据传递给updateSalesSummary函数
+                    updateSalesSummary(summary, allSales);
+                    return null; // 避免链式返回
+                });
         })
         .catch(error => {
             console.error("加载销售历史失败:", error);
@@ -517,7 +567,7 @@ function loadSalesHistory(date) {
 }
 
 // 更新销售汇总信息显示
-function updateSalesSummary(summary) {
+function updateSalesSummary(summary, existingSales = null) {
     // 更新销售总额
     document.getElementById('totalSalesAmount').textContent = `RM${(summary.total_sales || 0).toFixed(2)}`;
     document.getElementById('totalTransactions').textContent = summary.transaction_count || 0;
@@ -532,8 +582,9 @@ function updateSalesSummary(summary) {
     document.getElementById('secondShiftSalesAmount').textContent = `RM${(secondShiftData.total_sales || 0).toFixed(2)}`;
     document.getElementById('secondShiftTransactions').textContent = secondShiftData.transaction_count || 0;
     
-    // 计算折扣销售信息（需查询销售记录以计算）
-    getDailySalesDiscountInfo(localStorage.getItem('store_id'), selectedDate)
+    // 计算折扣销售信息（使用现有销售数据避免重复下载）
+    const currentDate = getCurrentDate();
+    getDailySalesDiscountInfo(localStorage.getItem('store_id'), currentDate, existingSales)
         .then(discountInfo => {
             document.getElementById('discountedSalesCount').textContent = discountInfo.count;
             document.getElementById('totalDiscountAmount').textContent = `RM${discountInfo.amount.toFixed(2)}`;
@@ -544,36 +595,64 @@ function updateSalesSummary(summary) {
 }
 
 // 获取每日折扣销售信息
-function getDailySalesDiscountInfo(storeId, date) {
+function getDailySalesDiscountInfo(storeId, date, existingSales = null) {
     return new Promise((resolve, reject) => {
-        getSalesByDateOptimized(storeId, date)
-            .then(sales => {
-                let discountCount = 0;
-                let discountAmount = 0;
-                
-                Object.values(sales).forEach(sale => {
-                    // 如果有折扣
-                    if ((sale.discountPercent && sale.discountPercent > 0) || 
-                        (sale.discountAmount && sale.discountAmount > 0)) {
-                        discountCount++;
-                        
-                        // 计算折扣金额
-                        if (sale.discountType === 'percent' && sale.discountPercent) {
-                            const discount = (sale.subtotal * sale.discountPercent / 100);
-                            discountAmount += discount;
-                        } else if (sale.discountType === 'amount' && sale.discountAmount) {
-                            discountAmount += sale.discountAmount;
-                        }
+        // 如果已有销售数据，直接使用，不再重复下载
+        if (existingSales) {
+            let discountCount = 0;
+            let discountAmount = 0;
+            
+            Object.values(existingSales).forEach(sale => {
+                // 如果有折扣
+                if ((sale.discountPercent && sale.discountPercent > 0) || 
+                    (sale.discountAmount && sale.discountAmount > 0)) {
+                    discountCount++;
+                    
+                    // 计算折扣金额
+                    if (sale.discountType === 'percent' && sale.discountPercent) {
+                        const discount = (sale.subtotal * sale.discountPercent / 100);
+                        discountAmount += discount;
+                    } else if (sale.discountType === 'amount' && sale.discountAmount) {
+                        discountAmount += sale.discountAmount;
                     }
-                });
-                
-                resolve({
-                    count: discountCount,
-                    amount: discountAmount
-                });
-            })
-            .catch(error => reject(error));
-        });
+                }
+            });
+            
+            resolve({
+                count: discountCount,
+                amount: discountAmount
+            });
+        } else {
+            // 如果没有现有数据，则需要重新下载
+            getSalesByDateOptimized(storeId, date)
+                .then(sales => {
+                    let discountCount = 0;
+                    let discountAmount = 0;
+                    
+                    Object.values(sales).forEach(sale => {
+                        // 如果有折扣
+                        if ((sale.discountPercent && sale.discountPercent > 0) || 
+                            (sale.discountAmount && sale.discountAmount > 0)) {
+                            discountCount++;
+                            
+                            // 计算折扣金额
+                            if (sale.discountType === 'percent' && sale.discountPercent) {
+                                const discount = (sale.subtotal * sale.discountPercent / 100);
+                                discountAmount += discount;
+                            } else if (sale.discountType === 'amount' && sale.discountAmount) {
+                                discountAmount += sale.discountAmount;
+                            }
+                        }
+                    });
+                    
+                    resolve({
+                        count: discountCount,
+                        amount: discountAmount
+                    });
+                })
+                .catch(error => reject(error));
+        }
+    });
 }
 
 // 渲染销售记录表格
@@ -1060,8 +1139,11 @@ function updateSale() {
         .then(() => {
             console.log('销售记录更新成功');
             
+            // 清除销售数据缓存，确保下次显示最新数据
+            cachedSalesData = null;
+            
             // 刷新销售历史
-            loadSalesHistory(selectedDate);
+            loadSalesHistory();
             
             // 隐藏编辑模态框
             hideModal(editSaleModal);
@@ -1201,7 +1283,9 @@ function deleteSale() {
         .then(() => {
             alert('Sale deleted successfully and inventory restored!');
             hideModal(saleDetailModal);
-            loadSalesHistory(selectedDate); // 重新加载销售记录
+            // 清除销售数据缓存，确保下次显示最新数据
+            cachedSalesData = null;
+            loadSalesHistory(); // 重新加载销售记录
             loadProducts(userStoreId); // 重新加载产品数据以更新库存显示
         })
         .catch(error => {
@@ -1569,6 +1653,8 @@ function checkout() {
             })
             .then(saleId => {
                 console.log('销售记录添加成功，ID:', saleId);
+                // 清除销售数据缓存，确保销售历史页显示最新数据
+                cachedSalesData = null;
                 // 显示成功模态框
                 showSuccessModal(saleData, saleId);
             })

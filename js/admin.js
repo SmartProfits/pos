@@ -11,6 +11,36 @@ let selectedDate = getCurrentDate(); // 默认选择当前日期
 let selectedStoreId = 'all'; // 默认选择所有店铺
 let selectedStoreInDashboard = null; // 仪表盘中当前选择的店铺
 
+// 添加数据缓存，避免重复请求
+const dataCache = {
+    sales: {}, // 按日期和店铺ID缓存销售数据: {date: {storeId: data}}
+    stats: {}, // 按日期和店铺ID缓存统计数据: {date: {storeId: stats}}
+    clearCache: function() { 
+        this.sales = {};
+        this.stats = {};
+        console.log("数据缓存已清除");
+    },
+    // 保存销售数据到缓存
+    cacheSalesData: function(date, storeId, data) {
+        if (!this.sales[date]) this.sales[date] = {};
+        this.sales[date][storeId] = data;
+        console.log(`已缓存 ${date} 日期 ${storeId} 店铺的销售数据`);
+    },
+    // 获取缓存的销售数据
+    getCachedSalesData: function(date, storeId) {
+        return this.sales[date] && this.sales[date][storeId];
+    },
+    // 保存统计数据到缓存
+    cacheStatsData: function(date, storeId, data) {
+        if (!this.stats[date]) this.stats[date] = {};
+        this.stats[date][storeId] = data;
+    },
+    // 获取缓存的统计数据
+    getCachedStatsData: function(date, storeId) {
+        return this.stats[date] && this.stats[date][storeId];
+    }
+};
+
 // DOM元素
 const adminName = document.getElementById('adminName');
 const currentDateTime = document.getElementById('currentDateTime');
@@ -162,6 +192,8 @@ function initEventListeners() {
     // 日期过滤器变化
     dateFilter.addEventListener('change', (e) => {
         selectedDate = e.target.value;
+        // 更改日期时清除缓存
+        dataCache.clearCache();
         loadStats();
     });
     
@@ -595,28 +627,151 @@ function loadStats() {
     
     if (storeId === 'all') {
         // 加载所有店铺的统计数据
-        getAllStoresDailySales(date)
-            .then(salesData => {
-                renderStats(salesData, true);
-                // 加载销售详情
-                loadAllStoresSaleDetails(date);
+        loadAllStoresData(date);
+    } else {
+        // 加载特定店铺的统计数据
+        loadSingleStoreData(storeId, date);
+    }
+}
+
+// 加载所有店铺数据（统计和详情）
+function loadAllStoresData(date) {
+    // 先检查是否有所有所需店铺的缓存数据
+    const cachedAllStores = checkAllStoresCached(date);
+    if (cachedAllStores.allCached) {
+        // 如果所有店铺都有缓存，直接使用缓存数据
+        console.log("使用缓存的所有店铺数据");
+        renderStats(cachedAllStores.stats, true);
+        renderSaleDetails(cachedAllStores.sales);
+        return;
+    }
+    
+    // 获取所有店铺列表
+    getAllStores()
+        .then(storeList => {
+            const storeIds = Object.keys(storeList);
+            const promises = [];
+            
+            // 对每个店铺获取销售记录 - 只获取特定日期的数据
+            storeIds.forEach(storeId => {
+                // 检查缓存
+                const cachedSalesData = dataCache.getCachedSalesData(date, storeId);
+                if (cachedSalesData) {
+                    console.log(`使用缓存的 ${storeId} 店铺数据`);
+                    promises.push(Promise.resolve({
+                        storeId,
+                        sales: cachedSalesData,
+                        stats: calculateStatsFromSales(cachedSalesData)
+                    }));
+                } else {
+                    // 没有缓存，需要从数据库获取
+                    promises.push(
+                        database.ref(`sales/${storeId}/${date}`).once('value')
+                            .then(snapshot => {
+                                const sales = snapshot.val() || {};
+                                
+                                // 计算统计数据
+                                const stats = calculateStatsFromSales(sales);
+                                
+                                // 缓存数据
+                                dataCache.cacheSalesData(date, storeId, sales);
+                                dataCache.cacheStatsData(date, storeId, stats);
+                                
+                                return {
+                                    storeId,
+                                    sales: sales,
+                                    stats: stats
+                                };
+                            })
+                    );
+                }
+            });
+            
+            // 合并所有店铺的销售记录和统计
+            return Promise.all(promises)
+                .then(results => {
+                    const allSales = {};
+                    const allStats = {};
+                    
+                    results.forEach(result => {
+                        // 处理销售数据 - 加入store_id
+                        const salesWithStoreId = {};
+                        Object.keys(result.sales).forEach(saleId => {
+                            if (result.sales[saleId]) {
+                                salesWithStoreId[saleId] = {
+                                    ...result.sales[saleId],
+                                    store_id: result.sales[saleId].store_id || result.storeId
+                                };
+                            }
+                        });
+                        
+                        // 合并到总销售数据中
+                        Object.assign(allSales, salesWithStoreId);
+                        
+                        // 合并统计数据
+                        if (result.storeId) {
+                            allStats[result.storeId] = result.stats;
+                        }
+                    });
+                    
+                    // 渲染数据
+                    renderStats(allStats, true);
+                    renderSaleDetails(allSales);
+                });
             })
             .catch(error => {
                 console.error('Failed to load statistics data:', error);
                 statsContainer.innerHTML = '<div class="error"><i class="material-icons">error</i> Failed to load statistics data</div>';
                 saleDetailsBody.innerHTML = '<tr><td colspan="7" class="error"><i class="material-icons">error</i> Failed to load sales details</td></tr>';
             });
-    } else {
-        // 加载特定店铺的统计数据
-        getStoreDailySales(storeId, date)
-            .then(salesData => {
-                // 创建与getAllStoresDailySales相同格式的数据结构
-                const formattedData = {};
-                formattedData[storeId] = salesData;
-                console.log("Single store data formatted:", formattedData);
-                renderStats(formattedData, false);
-                // 加载销售详情
-                loadStoreSaleDetails(storeId, date);
+}
+
+// 加载单个店铺数据
+function loadSingleStoreData(storeId, date) {
+    // 检查缓存
+    const cachedSalesData = dataCache.getCachedSalesData(date, storeId);
+    const cachedStatsData = dataCache.getCachedStatsData(date, storeId);
+    
+    if (cachedSalesData && cachedStatsData) {
+        console.log(`使用缓存的 ${storeId} 店铺数据`);
+        // 使用缓存数据
+        const formattedStats = {};
+        formattedStats[storeId] = cachedStatsData;
+        renderStats(formattedStats, false);
+        renderSaleDetails(cachedSalesData);
+        return;
+    }
+    
+    // 没有缓存，需要从数据库获取
+    database.ref(`sales/${storeId}/${date}`).once('value')
+        .then(snapshot => {
+            const sales = snapshot.val() || {};
+            
+            // 计算统计数据
+            const stats = calculateStatsFromSales(sales);
+            
+            // 缓存数据
+            dataCache.cacheSalesData(date, storeId, sales);
+            dataCache.cacheStatsData(date, storeId, stats);
+            
+            // 格式化统计数据
+            const formattedStats = {};
+            formattedStats[storeId] = stats;
+            
+            // 确保销售记录有store_id
+            const salesWithStoreId = {};
+            Object.keys(sales).forEach(saleId => {
+                if (sales[saleId]) {
+                    salesWithStoreId[saleId] = {
+                        ...sales[saleId],
+                        store_id: sales[saleId].store_id || storeId
+                    };
+                }
+            });
+            
+            // 渲染数据
+            renderStats(formattedStats, false);
+            renderSaleDetails(salesWithStoreId);
             })
             .catch(error => {
                 console.error('Failed to load statistics data:', error);
@@ -624,6 +779,61 @@ function loadStats() {
                 saleDetailsBody.innerHTML = '<tr><td colspan="7" class="error"><i class="material-icons">error</i> Failed to load sales details</td></tr>';
             });
     }
+
+// 计算销售统计
+function calculateStatsFromSales(sales) {
+    let totalSales = 0;
+    let transactionCount = 0;
+    
+    // 计算总销售额和交易数
+    Object.keys(sales).forEach(saleId => {
+        if (sales[saleId]) {
+            totalSales += Number(sales[saleId].total_amount || 0);
+            transactionCount++;
+        }
+    });
+    
+    return {
+        total_sales: totalSales,
+        transaction_count: transactionCount
+    };
+}
+
+// 检查所有店铺是否都有缓存数据
+function checkAllStoresCached(date) {
+    let allStats = {};
+    let allSales = {};
+    let allCached = true;
+    
+    // 假设stores全局变量已经加载完成
+    Object.keys(stores).forEach(storeId => {
+        const cachedSales = dataCache.getCachedSalesData(date, storeId);
+        const cachedStats = dataCache.getCachedStatsData(date, storeId);
+        
+        if (cachedSales && cachedStats) {
+            // 如果有缓存，添加到结果
+            allStats[storeId] = cachedStats;
+            
+            // 处理销售数据 - 加入store_id
+            Object.keys(cachedSales).forEach(saleId => {
+                if (cachedSales[saleId]) {
+                    allSales[saleId] = {
+                        ...cachedSales[saleId],
+                        store_id: cachedSales[saleId].store_id || storeId
+                    };
+                }
+            });
+        } else {
+            // 如果任一店铺没有缓存，标记为未完全缓存
+            allCached = false;
+        }
+    });
+    
+    return {
+        allCached,
+        stats: allStats,
+        sales: allSales
+    };
 }
 
 // 渲染统计数据
@@ -1245,11 +1455,11 @@ function renderUsers() {
             <td>${user.email}</td>
             <td>${roleName}</td>
             <td>${storeName}</td>
-            <td>
+                <td>
                 <button class="reset-pwd-btn" data-id="${userId}">Reset Password</button>
                 <button class="delete-btn" data-id="${userId}">Delete</button>
-            </td>
-        `;
+                </td>
+            `;
         
         usersTableBody.appendChild(row);
     });
@@ -2528,14 +2738,14 @@ function init() {
         });
     } else {
         // 如果未登录，加载数据
-        loadStores();
-        
+            loadStores();
+            
         // 初始显示仪表板视图
         switchView('dashboard');
     }
-    
+            
     // 定期更新当前日期时间
-    updateDateTime();
+            updateDateTime();
     setInterval(updateDateTime, 60000);
     
     // 检查并填充店铺下拉菜单
