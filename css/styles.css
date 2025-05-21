@@ -2641,4 +2641,46 @@ select:required:invalid {
     bottom: 0;
     background-color: rgba(0,0,0,0.5);
     z-index: 99;
+}
+
+/* 用户状态样式 */
+.user-status {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.user-status.online {
+    background-color: #e0f7e0;
+    color: #2e7d32;
+    border: 1px solid #81c784;
+}
+
+.user-status.offline {
+    background-color: #f5f5f5;
+    color: #757575;
+    border: 1px solid #e0e0e0;
+}
+
+/* 表格消息样式 */
+.loading-message, .error-message, .empty-message {
+    text-align: center;
+    padding: 15px;
+    color: #757575;
+}
+
+.error-message {
+    color: #d32f2f;
+}
+
+/* 默认隐藏仅超级管理员可见的元素 */
+.sadmin-only {
+    display: none;
+}
+
+/* 当登录用户是超级管理员时显示这些元素 */
+body.is-sadmin .sadmin-only {
+    display: flex; /* 使用flex以匹配其他nav-item的样式 */
 } 

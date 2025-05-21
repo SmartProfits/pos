@@ -27,6 +27,7 @@
                 <div class="nav-item" data-view="inventory"><i class="material-icons">inventory_2</i> Inventory</div>
                 <div class="nav-item" onclick="location.href='./product_catalog.html'"><i class="material-icons">menu_book</i> Product Catalog</div>
                 <div class="nav-item" data-view="users"><i class="material-icons">people</i> Users</div>
+                <div class="nav-item sadmin-only" data-view="online-users"><i class="material-icons">online_prediction</i> Online Users</div>
                 <div class="nav-item" onclick="logout()"><i class="material-icons">logout</i> Logout</div>
             </div>
         </div>
@@ -285,6 +286,38 @@
                         </thead>
                         <tbody id="inventoryTableBody">
                             <!-- Inventory list will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Online Users View -->
+            <div id="online-usersView" class="view">
+                <h2>Online Users</h2>
+                
+                <div class="page-header">
+                    <div class="header-title">
+                        <span>View all users currently online in the system</span>
+                    </div>
+                    <div class="header-actions">
+                        <button id="refreshOnlineUsersBtn" class="icon-button" title="Refresh online users list">
+                            <i class="material-icons">refresh</i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="data-table-container">
+                    <table id="onlineUsersTable">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Last Activity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="onlineUsersTableBody">
+                            <!-- Online user list will be dynamically generated here -->
                         </tbody>
                     </table>
                 </div>

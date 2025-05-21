@@ -7,6 +7,7 @@ console.log("Current URL:", window.location.href);
 let stores = {}; // 存储店铺数据
 let products = {}; // 存储商品数据
 let users = {}; // 存储用户数据
+let onlineUsers = {}; // 存储在线用户数据
 let selectedDate = getCurrentDate(); // 默认选择当前日期
 let selectedStoreId = 'all'; // 默认选择所有店铺
 let selectedStoreInDashboard = null; // 仪表盘中当前选择的店铺
@@ -135,6 +136,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (isAdmin) {
                         console.log("管理员用户已登录:", user.email);
                         document.getElementById('adminName').textContent = `Admin: ${user.email}`;
+                        
+                        // 检查是否是超级管理员，以决定是否显示特定功能
+                        checkSuperAdminStatus(user.uid)
+                            .then(isSuperAdmin => {
+                                if (isSuperAdmin) {
+                                    // 如果是超级管理员，添加特殊类以显示超级管理员专用功能
+                                    document.body.classList.add('is-sadmin');
+                                    console.log('超级管理员登录，启用特殊功能');
+                                }
+                            });
                         
                         // 加载数据
                         init();
@@ -294,6 +305,12 @@ function initEventListeners() {
     // 其他原因字段显示/隐藏
     document.getElementById('updateReason').addEventListener('change', toggleOtherReason);
     document.getElementById('bulkUpdateReason').addEventListener('change', toggleBulkOtherReason);
+    
+    // 在线用户刷新按钮
+    const refreshOnlineUsersBtn = document.getElementById('refreshOnlineUsersBtn');
+    if (refreshOnlineUsersBtn) {
+        refreshOnlineUsersBtn.addEventListener('click', loadOnlineUsers);
+    }
 }
 
 // 切换视图
@@ -2712,49 +2729,39 @@ function getUserRole(userId) {
 
 // 初始化视图和数据
 function init() {
-    // 设置当前日期
-    selectedDate = getCurrentDate();
-    dateFilter.value = selectedDate;
+    console.log("初始化应用...");
     
-    // 添加事件监听器
+    // 更新时间
+    updateDateTime();
+    setInterval(updateDateTime, 60000); // 每分钟更新一次
+    
+    // 初始化事件监听器
     initEventListeners();
     
-    // 根据用户角色设置权限
-    const user = firebase.auth().currentUser;
-    if (user) {
-        getUserRole(user.uid).then(role => {
-            // 根据角色隐藏菜单项
-            if (role === 'admin') {
-                // 普通管理员看不到店铺管理和用户管理
-                document.querySelector('.nav-item[data-view="stores"]').style.display = 'none';
-                document.querySelector('.nav-item[data-view="users"]').style.display = 'none';
-            }
+    // 设置默认日期为今天
+    selectedDate = getCurrentDate();
+    document.getElementById('dateFilter').value = selectedDate;
     
     // 加载数据
-    loadStores();
-    
-    // 初始显示仪表板视图
-    switchView('dashboard');
-        });
-    } else {
-        // 如果未登录，加载数据
-            loadStores();
-            
-        // 初始显示仪表板视图
-        switchView('dashboard');
-    }
-            
-    // 定期更新当前日期时间
-            updateDateTime();
-    setInterval(updateDateTime, 60000);
-    
-    // 检查并填充店铺下拉菜单
-    setTimeout(() => {
-        if (inventoryStoreFilter && inventoryStoreFilter.options.length <= 1) {
-            console.log("检测到库存店铺下拉菜单未填充，重新填充...");
-            populateStoreDropdowns();
+    loadStores().then(() => {
+        // 加载商品数据
+        loadProducts();
+        
+        // 加载销售统计数据
+        loadStats();
+        
+        // 渲染店铺数据
+        renderStores();
+        
+        // 如果是超级管理员，加载在线用户数据
+        if (document.body.classList.contains('is-sadmin')) {
+            // 仅对超级管理员加载在线用户
+            loadOnlineUsers();
         }
-    }, 2000);
+    });
+    
+    // 加载用户数据
+    loadUsers();
 }
 
 // 初始化Firebase
@@ -3072,4 +3079,127 @@ function screenshotSalesSummary() {
             document.body.removeChild(summaryContainer);
         });
     }, 1000);
+}
+
+// 获取在线用户
+function loadOnlineUsers() {
+    // 显示加载中状态
+    const onlineUsersTableBody = document.getElementById('onlineUsersTableBody');
+    onlineUsersTableBody.innerHTML = '<tr><td colspan="4" class="loading-message">Loading online users data...</td></tr>';
+    
+    // 查询用户状态数据
+    database.ref('user_status').once('value')
+        .then(snapshot => {
+            onlineUsers = {};
+            const now = Date.now();
+            const userStatusData = snapshot.val() || {};
+            
+            // 检查每个用户的状态
+            Object.keys(userStatusData).forEach(userId => {
+                const userStatus = userStatusData[userId];
+                // 只保留15分钟内活动的用户
+                const fifteenMinutesAgo = now - 15 * 60 * 1000;
+                if (userStatus.last_changed > fifteenMinutesAgo) {
+                    onlineUsers[userId] = userStatus;
+                }
+            });
+            
+            renderOnlineUsers();
+        })
+        .catch(error => {
+            console.error('Failed to get online users data:', error);
+            onlineUsersTableBody.innerHTML = '<tr><td colspan="4" class="error-message">Failed to get online users data</td></tr>';
+        });
+}
+
+// 渲染在线用户列表
+function renderOnlineUsers() {
+    const onlineUsersTableBody = document.getElementById('onlineUsersTableBody');
+    
+    // 清空现有内容
+    onlineUsersTableBody.innerHTML = '';
+    
+    if (Object.keys(onlineUsers).length === 0) {
+        onlineUsersTableBody.innerHTML = '<tr><td colspan="4" class="empty-message">No online users at the moment</td></tr>';
+        return;
+    }
+    
+    // 排序：先在线的，再按角色排序
+    const sortedUsers = Object.entries(onlineUsers).sort((a, b) => {
+        // 先按状态排序（在线 > 离线）
+        if (a[1].state === 'online' && b[1].state !== 'online') return -1;
+        if (a[1].state !== 'online' && b[1].state === 'online') return 1;
+        
+        // 再按角色排序
+        const roleOrder = { 'sadmin': 1, 'admin': 2, 'staff': 3, 'unknown': 4 };
+        const roleA = roleOrder[a[1].role] || 4;
+        const roleB = roleOrder[b[1].role] || 4;
+        return roleA - roleB;
+    });
+    
+    // 创建每一行用户数据
+    sortedUsers.forEach(([userId, userStatus]) => {
+        const row = document.createElement('tr');
+        
+        // 用户名/邮箱
+        const displayNameCell = document.createElement('td');
+        displayNameCell.textContent = userStatus.display_name || 'Unknown User';
+        row.appendChild(displayNameCell);
+        
+        // 用户角色
+        const roleCell = document.createElement('td');
+        const roleMap = {
+            'sadmin': 'Super Admin',
+            'admin': 'Admin',
+            'staff': 'Cashier',
+            'unknown': 'Unknown Role'
+        };
+        roleCell.textContent = roleMap[userStatus.role] || 'Unknown Role';
+        row.appendChild(roleCell);
+        
+        // 用户状态
+        const stateCell = document.createElement('td');
+        const isOnline = userStatus.state === 'online';
+        stateCell.innerHTML = `<span class="user-status ${isOnline ? 'online' : 'offline'}">${isOnline ? 'Online' : 'Offline'}</span>`;
+        row.appendChild(stateCell);
+        
+        // 最后活动时间
+        const lastChangedCell = document.createElement('td');
+        if (userStatus.last_changed) {
+            const lastChangeDate = new Date(userStatus.last_changed);
+            lastChangedCell.textContent = formatDateTime(lastChangeDate);
+        } else {
+            lastChangedCell.textContent = 'Unknown';
+        }
+        row.appendChild(lastChangedCell);
+        
+        onlineUsersTableBody.appendChild(row);
+    });
+}
+
+// 格式化日期时间
+function formatDateTime(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+// 检查用户是否是超级管理员
+function checkSuperAdminStatus(userId) {
+    return new Promise((resolve, reject) => {
+        firebase.database().ref(`users/${userId}`).once('value')
+            .then(snapshot => {
+                const userData = snapshot.val();
+                resolve(userData && userData.role === 'sadmin');
+            })
+            .catch(error => {
+                console.error('检查超级管理员状态失败:', error);
+                resolve(false);
+            });
+    });
 } 

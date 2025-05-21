@@ -17,6 +17,45 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const database = firebase.database();
 
+// 用户在线状态管理
+function setupOnlineStatusTracking() {
+    // 当前用户已登录
+    const uid = auth.currentUser.uid;
+    
+    // 创建用户在线状态引用
+    const userStatusRef = database.ref('user_status/' + uid);
+    
+    // 创建一个引用到Firebase数据库中的".info/connected"路径
+    const connectionRef = database.ref('.info/connected');
+    
+    // 监听连接状态变化
+    connectionRef.on('value', (snapshot) => {
+        // 如果连接中断，snapshot.val()会变为false
+        // 如果连接正常，snapshot.val()会变为true
+        if (snapshot.val() === false) {
+            return;
+        }
+        
+        // 如果我们连接到Firebase，设置用户状态
+        // 当客户端断开连接时，服务器会自动将状态设置为离线
+        const onDisconnectRef = userStatusRef.onDisconnect();
+        
+        // 断开连接时更新状态为离线
+        onDisconnectRef.update({
+            state: 'offline',
+            last_changed: firebase.database.ServerValue.TIMESTAMP
+        });
+        
+        // 手动告诉Firebase我们现在是在线的
+        userStatusRef.update({
+            state: 'online',
+            last_changed: firebase.database.ServerValue.TIMESTAMP,
+            display_name: auth.currentUser.email,
+            role: localStorage.getItem('role') || 'unknown'
+        });
+    });
+}
+
 // 获取当前页面的完整URL路径
 function getFullPath(relativePath) {
     // 获取当前URL的基础部分（协议+主机+端口+路径）
@@ -56,6 +95,9 @@ auth.onAuthStateChanged(user => {
                 localStorage.setItem('store_id', userData.store_id || '');
                 
                 console.log("用户角色:", userData.role);
+                
+                // 设置用户在线状态跟踪
+                setupOnlineStatusTracking();
                 
                 // 获取当前URL的信息
                 const currentPath = window.location.pathname;
