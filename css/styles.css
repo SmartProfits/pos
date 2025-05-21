@@ -492,7 +492,7 @@ button:hover {
 
 .product-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(101px, 1fr));
     gap: 15px;
 }
 
@@ -515,14 +515,14 @@ button:hover {
 
 .product-name {
     font-weight: bold;
-    margin-bottom: 10px;
-    font-size: 15px;
+    margin-bottom: 0px;
+    font-size: 10px;
 }
 
 .product-category {
-    font-size: 12px;
+    font-size: 9px;
     color: #666;
-    margin-bottom: 8px;
+    margin-bottom: 0px;
     background-color: #f0f0f0;
     padding: 3px 8px;
     border-radius: 12px;
@@ -530,8 +530,8 @@ button:hover {
 }
 
 .product-price {
-    font-size: 16px;
-    color: #2ecc71;
+    font-size: 18px;
+    color: rgba(8, 28, 205, 0.98);
     font-weight: bold;
 }
 
