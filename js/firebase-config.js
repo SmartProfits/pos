@@ -43,13 +43,15 @@ function setupOnlineStatusTracking() {
         // 断开连接时更新状态为离线
         onDisconnectRef.update({
             state: 'offline',
-            last_changed: firebase.database.ServerValue.TIMESTAMP
+            last_changed: firebase.database.ServerValue.TIMESTAMP,
+            last_online: firebase.database.ServerValue.TIMESTAMP // 记录离线前的最后在线时间
         });
         
         // 手动告诉Firebase我们现在是在线的
         userStatusRef.update({
             state: 'online',
             last_changed: firebase.database.ServerValue.TIMESTAMP,
+            last_online: firebase.database.ServerValue.TIMESTAMP, // 更新最后在线时间
             display_name: auth.currentUser.email,
             role: localStorage.getItem('role') || 'unknown'
         });

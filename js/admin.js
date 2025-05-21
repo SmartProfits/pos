@@ -3085,7 +3085,7 @@ function screenshotSalesSummary() {
 function loadOnlineUsers() {
     // 显示加载中状态
     const onlineUsersTableBody = document.getElementById('onlineUsersTableBody');
-    onlineUsersTableBody.innerHTML = '<tr><td colspan="4" class="loading-message">Loading online users data...</td></tr>';
+    onlineUsersTableBody.innerHTML = '<tr><td colspan="5" class="loading-message">Loading online users data...</td></tr>';
     
     // 查询用户状态数据
     database.ref('user_status').once('value')
@@ -3097,9 +3097,9 @@ function loadOnlineUsers() {
             // 检查每个用户的状态
             Object.keys(userStatusData).forEach(userId => {
                 const userStatus = userStatusData[userId];
-                // 只保留15分钟内活动的用户
-                const fifteenMinutesAgo = now - 15 * 60 * 1000;
-                if (userStatus.last_changed > fifteenMinutesAgo) {
+                // 只保留24小时内活动的用户，增加时间范围以显示更多用户的最后在线时间
+                const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
+                if (userStatus.last_changed > twentyFourHoursAgo || userStatus.last_online > twentyFourHoursAgo) {
                     onlineUsers[userId] = userStatus;
                 }
             });
@@ -3108,7 +3108,7 @@ function loadOnlineUsers() {
         })
         .catch(error => {
             console.error('Failed to get online users data:', error);
-            onlineUsersTableBody.innerHTML = '<tr><td colspan="4" class="error-message">Failed to get online users data</td></tr>';
+            onlineUsersTableBody.innerHTML = '<tr><td colspan="5" class="error-message">Failed to get online users data</td></tr>';
         });
 }
 
@@ -3120,7 +3120,7 @@ function renderOnlineUsers() {
     onlineUsersTableBody.innerHTML = '';
     
     if (Object.keys(onlineUsers).length === 0) {
-        onlineUsersTableBody.innerHTML = '<tr><td colspan="4" class="empty-message">No online users at the moment</td></tr>';
+        onlineUsersTableBody.innerHTML = '<tr><td colspan="5" class="empty-message">No online users at the moment</td></tr>';
         return;
     }
     
@@ -3129,6 +3129,11 @@ function renderOnlineUsers() {
         // 先按状态排序（在线 > 离线）
         if (a[1].state === 'online' && b[1].state !== 'online') return -1;
         if (a[1].state !== 'online' && b[1].state === 'online') return 1;
+        
+        // 再按最后在线时间排序（最近的优先）
+        if (a[1].last_online && b[1].last_online) {
+            return b[1].last_online - a[1].last_online;
+        }
         
         // 再按角色排序
         const roleOrder = { 'sadmin': 1, 'admin': 2, 'staff': 3, 'unknown': 4 };
@@ -3163,7 +3168,7 @@ function renderOnlineUsers() {
         stateCell.innerHTML = `<span class="user-status ${isOnline ? 'online' : 'offline'}">${isOnline ? 'Online' : 'Offline'}</span>`;
         row.appendChild(stateCell);
         
-        // 最后活动时间
+        // 当前活动时间 - 显示最近状态变化时间
         const lastChangedCell = document.createElement('td');
         if (userStatus.last_changed) {
             const lastChangeDate = new Date(userStatus.last_changed);
@@ -3172,6 +3177,22 @@ function renderOnlineUsers() {
             lastChangedCell.textContent = 'Unknown';
         }
         row.appendChild(lastChangedCell);
+        
+        // 最后在线时间 - 显示用户最后一次在线的时间
+        const lastOnlineCell = document.createElement('td');
+        if (userStatus.last_online) {
+            const lastOnlineDate = new Date(userStatus.last_online);
+            lastOnlineCell.textContent = formatDateTime(lastOnlineDate);
+            
+            // 计算离现在多久
+            const timeAgo = getTimeAgo(lastOnlineDate);
+            if (timeAgo) {
+                lastOnlineCell.innerHTML += `<br><span class="time-ago">(${timeAgo})</span>`;
+            }
+        } else {
+            lastOnlineCell.textContent = 'Unknown';
+        }
+        row.appendChild(lastOnlineCell);
         
         onlineUsersTableBody.appendChild(row);
     });
@@ -3187,6 +3208,30 @@ function formatDateTime(date) {
     const seconds = String(date.getSeconds()).padStart(2, '0');
     
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+// 获取时间间隔的友好显示
+function getTimeAgo(date) {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+    
+    if (diffDay > 0) {
+        return diffDay === 1 ? '1 day ago' : `${diffDay} days ago`;
+    }
+    if (diffHour > 0) {
+        return diffHour === 1 ? '1 hour ago' : `${diffHour} hours ago`;
+    }
+    if (diffMin > 0) {
+        return diffMin === 1 ? '1 minute ago' : `${diffMin} minutes ago`;
+    }
+    if (diffSec > 0) {
+        return diffSec === 1 ? '1 second ago' : `${diffSec} seconds ago`;
+    }
+    return 'just now';
 }
 
 // 检查用户是否是超级管理员

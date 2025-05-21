@@ -2664,6 +2664,13 @@ select:required:invalid {
     border: 1px solid #e0e0e0;
 }
 
+/* 时间显示样式 */
+.time-ago {
+    font-size: 0.8em;
+    font-style: italic;
+    color: #757575;
+}
+
 /* 表格消息样式 */
 .loading-message, .error-message, .empty-message {
     text-align: center;
