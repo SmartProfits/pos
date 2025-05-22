@@ -119,23 +119,6 @@
             
             <!-- Sales History View -->
             <div id="salesHistoryView" class="view">
-                <div class="filter-container">
-                    <label for="dateFilter"><i class="material-icons">event</i> Date:</label>
-                    <input type="date" id="dateFilter" value="">
-                    
-                    <label for="shiftFilter"><i class="material-icons">schedule</i> Shift:</label>
-                    <select id="shiftFilter">
-                        <option value="all">All Shifts</option>
-                        <option value="1st Shift">1st Shift</option>
-                        <option value="2nd Shift">2nd Shift</option>
-                    </select>
-                    
-                    <button id="refreshSalesBtn" aria-label="刷新销售历史">
-                        <i class="material-icons" aria-hidden="true">refresh</i> 
-                        <span>Refresh</span>
-                    </button>
-                </div>
-                
                 <h2>Sales History</h2>
                 
                 <!-- Total Sales Summary Section -->
@@ -182,7 +165,6 @@
                         <thead>
                             <tr>
                                 <th>Bill Number</th>
-                                <th>Sale ID</th>
                                 <th>Time</th>
                                 <th>Cashier</th>
                                 <th>Shift</th>
@@ -280,10 +262,6 @@
             <h2><i class="material-icons">receipt</i> Sale Details</h2>
             <div id="saleDetailContent"></div>
             <div class="modal-footer">
-                <button id="editSaleBtn" aria-label="编辑销售记录">
-                    <i class="material-icons" aria-hidden="true">edit</i> 
-                    <span>Edit</span>
-                </button>
                 <button id="deleteSaleBtn" aria-label="删除销售记录">
                     <i class="material-icons" aria-hidden="true">delete</i> 
                     <span>Delete</span>
@@ -421,6 +399,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="../js/firebase-config.js"></script>
     <script src="../js/database.js"></script>
+    <script src="../js/network-monitor.js"></script>
     <script src="../js/pos.js"></script>
 </body>
 </html> 

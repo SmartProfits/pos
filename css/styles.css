@@ -516,7 +516,7 @@ button:hover {
 .product-name {
     font-weight: bold;
     margin-bottom: 0px;
-    font-size: 10px;
+    font-size: 11px;
 }
 
 .product-category {
@@ -598,12 +598,34 @@ button:hover {
     flex: 1;
     overflow-y: auto;
     margin-bottom: 15px;
-    max-height: 350px;
+    max-height: 600px;
     transition: all 0.3s ease;
 }
 
 .sidebar.collapsed ~ .content .cart-items {
-    max-height: 450px;
+    max-height: 700px;
+}
+
+/* 平板设备专用优化 */
+@media (max-width: 1024px) and (min-width: 768px) {
+    .cart-items {
+        max-height: 500px;
+    }
+    
+    .sidebar.collapsed ~ .content .cart-items {
+        max-height: 600px;
+    }
+}
+
+/* 确保较小屏幕上折叠样式也生效 */
+@media (max-height: 800px) {
+    .cart-items {
+        max-height: 450px;
+    }
+    
+    .sidebar.collapsed ~ .content .cart-items {
+        max-height: 550px;
+    }
 }
 
 .cart-item {
