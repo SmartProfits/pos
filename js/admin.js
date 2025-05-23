@@ -72,6 +72,7 @@ const addStoreForm = document.getElementById('addStoreForm');
 // 商品管理DOM元素
 const addProductBtn = document.getElementById('addProductBtn');
 const productStoreFilter = document.getElementById('productStoreFilter');
+const productSearch = document.getElementById('productSearch');
 const productsTableBody = document.getElementById('productsTableBody');
 const addProductModal = document.getElementById('addProductModal');
 const addProductForm = document.getElementById('addProductForm');
@@ -234,6 +235,11 @@ function initEventListeners() {
     
     // 商品店铺过滤器变化
     productStoreFilter.addEventListener('change', loadProducts);
+    
+    // 商品搜索框输入变化
+    if (productSearch) {
+        productSearch.addEventListener('input', loadProducts);
+    }
     
     // 添加用户按钮
     addUserBtn.addEventListener('click', () => showModal(addUserModal));
@@ -472,8 +478,10 @@ function renderStores() {
             <td>${store.name}</td>
             <td>${store.address || '-'}</td>
             <td>
-                <button class="edit-btn" data-id="${storeId}">Edit</button>
-                <button class="delete-btn" data-id="${storeId}">Delete</button>
+                <div class="action-buttons">
+                    <button class="edit-btn icon-button" data-id="${storeId}" title="Edit"><i class="material-icons">edit</i></button>
+                    <button class="delete-btn icon-button" data-id="${storeId}" title="Delete"><i class="material-icons">delete</i></button>
+                </div>
             </td>
         `;
         
@@ -1176,6 +1184,7 @@ function deleteStore(storeId) {
 // 加载商品
 function loadProducts() {
     const storeId = productStoreFilter.value;
+    const searchQuery = productSearch ? productSearch.value.trim().toLowerCase() : '';
     
     // 显示加载状态
     productsTableBody.innerHTML = '<tr><td colspan="7" class="loading"><i class="material-icons">hourglass_empty</i> Loading...</td></tr>';
@@ -1185,7 +1194,7 @@ function loadProducts() {
         getAllProducts()
             .then(productData => {
                 products = productData;
-                renderProducts();
+                renderProducts(searchQuery);
             })
             .catch(error => {
                 console.error('Failed to load products:', error);
@@ -1196,7 +1205,7 @@ function loadProducts() {
         getStoreProducts(storeId)
             .then(productData => {
                 products = productData;
-                renderProducts();
+                renderProducts(searchQuery);
             })
             .catch(error => {
                 console.error('Failed to load products:', error);
@@ -1206,7 +1215,7 @@ function loadProducts() {
 }
 
 // 渲染商品列表
-function renderProducts() {
+function renderProducts(searchQuery = '') {
     productsTableBody.innerHTML = '';
     
     if (Object.keys(products).length === 0) {
@@ -1214,7 +1223,26 @@ function renderProducts() {
         return;
     }
     
-    Object.keys(products).forEach(productId => {
+    // 过滤商品
+    const filteredProducts = Object.keys(products).filter(productId => {
+        const product = products[productId];
+        const storeName = stores[product.store_id]?.name || product.store_id;
+        
+        if (!searchQuery) return true;
+        
+        // 搜索匹配（商品ID、名称、类别或店铺名）
+        return productId.toLowerCase().includes(searchQuery) || 
+               product.name.toLowerCase().includes(searchQuery) || 
+               (product.category || '').toLowerCase().includes(searchQuery) ||
+               storeName.toLowerCase().includes(searchQuery);
+    });
+    
+    if (filteredProducts.length === 0) {
+        productsTableBody.innerHTML = '<tr><td colspan="7" class="no-data"><i class="material-icons">search</i> No products match your search</td></tr>';
+        return;
+    }
+    
+    filteredProducts.forEach(productId => {
         const product = products[productId];
         const storeName = stores[product.store_id]?.name || product.store_id;
         // 使用stock值，如果不存在则使用quantity，确保兼容旧数据
@@ -1229,8 +1257,10 @@ function renderProducts() {
             <td>${product.category || '-'}</td>
             <td>${storeName}</td>
             <td>
-                <button class="edit-btn" data-id="${productId}">Edit</button>
-                <button class="delete-btn" data-id="${productId}">Delete</button>
+                <div class="action-buttons">
+                    <button class="edit-btn icon-button" data-id="${productId}" title="Edit"><i class="material-icons">edit</i></button>
+                    <button class="delete-btn icon-button" data-id="${productId}" title="Delete"><i class="material-icons">delete</i></button>
+                </div>
             </td>
         `;
         
@@ -1472,11 +1502,13 @@ function renderUsers() {
             <td>${user.email}</td>
             <td>${roleName}</td>
             <td>${storeName}</td>
-                <td>
-                <button class="reset-pwd-btn" data-id="${userId}">Reset Password</button>
-                <button class="delete-btn" data-id="${userId}">Delete</button>
-                </td>
-            `;
+            <td>
+                <div class="action-buttons">
+                    <button class="reset-pwd-btn icon-button" data-id="${userId}" title="Reset Password"><i class="material-icons">lock_reset</i></button>
+                    <button class="delete-btn icon-button" data-id="${userId}" title="Delete"><i class="material-icons">delete</i></button>
+                </div>
+            </td>
+        `;
         
         usersTableBody.appendChild(row);
     });
