@@ -2291,11 +2291,12 @@ tr:hover {
 
 .inventory-action-buttons .icon-button {
     width: 28px;
-    height: 28px;
+    height: 28px; color: #000000;
 }
 
 .inventory-action-buttons .icon-button .material-icons {
-    font-size: 15px;
+    font-size: 15px; color: #000000;
+
 }
 
 /* 波纹效果 */

@@ -1257,9 +1257,11 @@ function renderProducts(searchQuery = '') {
             <td>${product.category || '-'}</td>
             <td>${storeName}</td>
             <td>
-                <div class="action-buttons">
-                    <button class="edit-btn icon-button" data-id="${productId}" title="Edit"><i class="material-icons">edit</i></button>
-                    <button class="delete-btn icon-button" data-id="${productId}" title="Delete"><i class="material-icons">delete</i></button>
+                <div class="inventory-action-buttons">
+                    <button class="icon-button update-stock-btn" title="Update Stock" data-id="${productId}"><i class="material-icons">edit</i></button>
+                    <button class="icon-button view-history-btn" title="Stock History" data-id="${productId}"><i class="material-icons">history</i></button>
+                    <button class="icon-button add-stock-btn" title="Add Stock" data-id="${productId}"><i class="material-icons">add_box</i></button>
+                    <button class="icon-button tester-btn" title="Test (-1)" data-id="${productId}"><i class="material-icons">restaurant</i></button>
                 </div>
             </td>
         `;
@@ -2145,8 +2147,10 @@ function renderInventory(productsEntries) {
             <td>${storeName}</td>
             <td>
                 <div class="inventory-action-buttons">
-                    <button class="update-stock-btn icon-button" title="Update Stock" data-id="${productId}"><i class="material-icons">edit</i></button>
-                    <button class="view-history-btn icon-button" title="Stock History" data-id="${productId}"><i class="material-icons">history</i></button>
+                    <button class="icon-button update-stock-btn" title="Update Stock" data-id="${productId}"><i class="material-icons">edit</i></button>
+                    <button class="icon-button view-history-btn" title="Stock History" data-id="${productId}"><i class="material-icons">history</i></button>
+                    <button class="icon-button add-stock-btn" title="Add Stock" data-id="${productId}"><i class="material-icons">add_box</i></button>
+                    <button class="icon-button tester-btn" title="Test (-1)" data-id="${productId}"><i class="material-icons">restaurant</i></button>
                 </div>
             </td>
         `;
@@ -2162,6 +2166,16 @@ function renderInventory(productsEntries) {
     // 添加查看历史按钮事件
     document.querySelectorAll('.view-history-btn').forEach(btn => {
         btn.addEventListener('click', () => showStockHistory(btn.dataset.id));
+    });
+    
+    // 添加快速增加库存按钮事件
+    document.querySelectorAll('.add-stock-btn').forEach(btn => {
+        btn.addEventListener('click', () => showAddStockModal(btn.dataset.id));
+    });
+    
+    // 添加测试按钮事件
+    document.querySelectorAll('.tester-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleTesterAction(btn.dataset.id));
     });
 }
 
@@ -3279,4 +3293,65 @@ function checkSuperAdminStatus(userId) {
                 resolve(false);
             });
     });
+}
+
+// 显示快速增加库存模态框
+function showAddStockModal(productId) {
+    const product = products[productId];
+    if (!product) return;
+    
+    const quantity = prompt(`Add stock for "${product.name}"\nCurrent stock: ${product.stock !== undefined ? product.stock : (product.quantity || 0)}\n\nEnter quantity to add:`);
+    
+    if (quantity === null) return; // 用户取消
+    
+    const quantityNumber = parseInt(quantity);
+    if (isNaN(quantityNumber) || quantityNumber <= 0) {
+        alert('Please enter a valid positive number');
+        return;
+    }
+    
+    // 获取当前库存
+    const currentStock = product.stock !== undefined ? product.stock : (product.quantity || 0);
+    const newStock = currentStock + quantityNumber;
+    
+    // 更新库存记录
+    updateProductStock(productId, newStock, 'add', quantityNumber, 'Quick add stock', 'Added via quick add button')
+        .then(() => {
+            loadInventory(); // 重新加载库存
+            alert(`Successfully added ${quantityNumber} items to ${product.name}!\nNew stock: ${newStock}`);
+        })
+        .catch(error => {
+            console.error('Failed to add stock:', error);
+            alert('Failed to add stock. Please try again.');
+        });
+}
+
+// 处理测试功能（减少1个库存）
+function handleTesterAction(productId) {
+    const product = products[productId];
+    if (!product) return;
+    
+    const currentStock = product.stock !== undefined ? product.stock : (product.quantity || 0);
+    
+    if (currentStock <= 0) {
+        alert(`Cannot test "${product.name}" - no stock available`);
+        return;
+    }
+    
+    if (!confirm(`Test product "${product.name}"?\nThis will reduce stock by 1 (from ${currentStock} to ${currentStock - 1})`)) {
+        return;
+    }
+    
+    const newStock = currentStock - 1;
+    
+    // 更新库存记录
+    updateProductStock(productId, newStock, 'subtract', 1, 'Product testing', 'Tested via tester button')
+        .then(() => {
+            loadInventory(); // 重新加载库存
+            alert(`Successfully tested ${product.name}!\nStock reduced by 1. New stock: ${newStock}`);
+        })
+        .catch(error => {
+            console.error('Failed to test product:', error);
+            alert('Failed to test product. Please try again.');
+        });
 } 
