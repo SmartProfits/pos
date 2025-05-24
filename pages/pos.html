@@ -63,6 +63,11 @@
         <div class="content" id="mainContent">
             <div class="header">
                 <h1 id="viewTitle">Sales System</h1>
+                <div class="header-actions">
+                    <button id="simpleModeBtn" class="simple-mode-btn" title="Enter Simple Mode">
+                        <i class="material-icons">fullscreen</i>
+                    </button>
+                </div>
                 <div id="currentDateTime"></div>
             </div>
             
@@ -70,6 +75,24 @@
             <div id="salesView" class="view active">
                 <div class="pos-grid">
                     <div class="product-container">
+                        <!-- 热销商品区域 -->
+                        <div class="hot-items-section" id="hotItemsSection">
+                            <div class="hot-items-header">
+                                <h3><i class="material-icons">whatshot</i> Hot Items</h3>
+                                <div style="display: flex; gap: 5px; align-items: center;">
+                                    <button id="manageHotItemsBtn" class="hot-items-manage-btn" title="Manage Hot Items">
+                                        <i class="material-icons">settings</i>
+                                    </button>
+                                    <button class="hot-items-toggle" id="hotItemsToggle">
+                                        <i class="material-icons">expand_less</i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="hot-items-container" id="hotItemsContainer">
+                                <!-- Hot items will be loaded here dynamically -->
+                            </div>
+                        </div>
+                        
                         <div class="filter-container">
                             <div class="search-box">
                                 <i class="material-icons">search</i>
@@ -389,8 +412,54 @@
                     <label for="productCategory"><i class="material-icons">category</i> Category:</label>
                     <input type="text" id="productCategory">
                 </div>
+                <div class="form-group">
+                    <label for="saleUnit"><i class="material-icons">straighten</i> Sale Unit:</label>
+                    <select id="saleUnit" required>
+                        <option value="piece">By Piece/Quantity</option>
+                        <option value="weight">By Weight (kg)</option>
+                    </select>
+                </div>
                 <button type="submit"><i class="material-icons">save</i> Save</button>
             </form>
+        </div>
+    </div>
+    
+    <!-- Hot Items Management Modal -->
+    <div id="hotItemsManageModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">whatshot</i> Manage Hot Items</h2>
+            
+            <div class="hot-items-management">
+                <div class="current-hot-items">
+                    <h3>Current Hot Items</h3>
+                    <div id="currentHotItemsList" class="hot-items-list">
+                        <!-- Current hot items list -->
+                    </div>
+                </div>
+                
+                <div class="available-products">
+                    <h3>Available Products</h3>
+                    <div class="search-box" style="margin-bottom: 15px;">
+                        <i class="material-icons">search</i>
+                        <input type="text" id="hotItemsSearch" placeholder="Search products...">
+                    </div>
+                    <div id="availableProductsList" class="available-products-list">
+                        <!-- Available products list -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button id="saveHotItemsBtn" aria-label="Save hot items settings">
+                    <i class="material-icons" aria-hidden="true">save</i> 
+                    <span>Save Settings</span>
+                </button>
+                <button id="closeHotItemsManageBtn" aria-label="Close">
+                    <i class="material-icons" aria-hidden="true">close</i> 
+                    <span>Close</span>
+                </button>
+            </div>
         </div>
     </div>
     
