@@ -3205,8 +3205,7 @@ body.simple-mode .cart-items {
 }
 
 /* 简化模式下隐藏不必要的元素 */
-body.simple-mode .nav-item,
-body.simple-mode #currentDateTime {
+body.simple-mode .nav-item {
     display: none;
 }
 
@@ -3240,8 +3239,7 @@ body.simple-mode .simple-mode-btn .material-icons {
 }
 
 /* 简化模式下隐藏不必要的元素 */
-body.simple-mode .nav-item,
-body.simple-mode #currentDateTime {
+body.simple-mode .nav-item {
     display: none;
 }
 
@@ -3257,6 +3255,41 @@ body.simple-mode .view:not(#salesView) {
 
 body.simple-mode #salesView {
     display: block !important;
+}
+
+/* 简化模式下时间显示优化 */
+body.simple-mode #currentDateTime {
+    display: block !important;
+}
+
+body.simple-mode #currentDateTime .datetime-container {
+    padding: 6px 10px;
+    border-radius: 6px;
+    min-width: 160px;
+    font-size: 0.9em;
+}
+
+body.simple-mode #currentDateTime .date-display,
+body.simple-mode #currentDateTime .time-display {
+    padding: 2px 0;
+}
+
+body.simple-mode #currentDateTime .calendar-icon,
+body.simple-mode #currentDateTime .clock-icon {
+    margin-right: 6px;
+    font-size: 1em;
+}
+
+body.simple-mode #currentDateTime .date,
+body.simple-mode #currentDateTime .time {
+    font-size: 1em;
+    margin-right: 6px;
+}
+
+body.simple-mode #currentDateTime .weekday,
+body.simple-mode #currentDateTime .ampm {
+    font-size: 0.8em;
+    padding: 1px 4px;
 }
 
 /* 热销商品区域 */
