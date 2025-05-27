@@ -3335,6 +3335,15 @@ function initSalesSummaryEventListeners() {
     
     if (printBtn) {
         printBtn.addEventListener('click', printSalesSummary);
+        
+        // Test print capabilities when button is first accessed
+        printBtn.addEventListener('mouseenter', function() {
+            if (!this.dataset.tested) {
+                console.log('Testing print capabilities on first hover...');
+                testPrintCapabilities();
+                this.dataset.tested = 'true';
+            }
+        }, { once: true });
     }
     
     // 图表标签切换
@@ -3383,7 +3392,130 @@ function printSalesSummary() {
         return;
     }
     
-    // Create print content
+    console.log('Starting print process...');
+    
+    // Test browser capabilities first
+    const capabilities = testPrintCapabilities();
+    console.log('Browser capabilities:', capabilities);
+    
+    // Method 1: Try popup window first (most reliable for GitHub Pages)
+    if (capabilities.windowOpen) {
+        try {
+            console.log('Attempting popup window method...');
+            const printContent = generateFullPrintHTML();
+            const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+            
+            if (printWindow) {
+                printWindow.document.open();
+                printWindow.document.write(printContent);
+                printWindow.document.close();
+                
+                // Wait for content to load
+                setTimeout(() => {
+                    try {
+                        printWindow.focus();
+                        printWindow.print();
+                        console.log('Print dialog opened successfully');
+                    } catch (printError) {
+                        console.error('Print dialog failed:', printError);
+                        printWindow.close();
+                        fallbackToDownload();
+                    }
+                }, 1000);
+                
+                return; // Exit if popup method succeeds
+            }
+        } catch (popupError) {
+            console.error('Popup method failed:', popupError);
+        }
+    }
+    
+    // Method 2: Try direct browser print
+    if (capabilities.windowPrint) {
+        try {
+            console.log('Attempting direct print method...');
+            // Create a hidden iframe for printing
+            const printFrame = document.createElement('iframe');
+            printFrame.style.position = 'absolute';
+            printFrame.style.top = '-1000px';
+            printFrame.style.left = '-1000px';
+            printFrame.style.width = '0px';
+            printFrame.style.height = '0px';
+            printFrame.style.border = 'none';
+            
+            document.body.appendChild(printFrame);
+            
+            const printContent = generateFullPrintHTML();
+            printFrame.contentDocument.open();
+            printFrame.contentDocument.write(printContent);
+            printFrame.contentDocument.close();
+            
+            // Wait for content to load, then print
+            setTimeout(() => {
+                try {
+                    printFrame.contentWindow.focus();
+                    printFrame.contentWindow.print();
+                    console.log('Print from iframe successful');
+                    
+                    // Remove iframe after printing
+                    setTimeout(() => {
+                        document.body.removeChild(printFrame);
+                    }, 1000);
+                } catch (iframeError) {
+                    console.error('Iframe print failed:', iframeError);
+                    document.body.removeChild(printFrame);
+                    fallbackToDownload();
+                }
+            }, 1000);
+            
+            return; // Exit if iframe method succeeds
+        } catch (iframeError) {
+            console.error('Iframe method failed:', iframeError);
+        }
+    }
+    
+    // Method 3: Fallback to download
+    fallbackToDownload();
+    
+    function fallbackToDownload() {
+        if (capabilities.blobDownload) {
+            console.log('Using download fallback method...');
+            try {
+                const printContent = generateFullPrintHTML();
+                const blob = new Blob([printContent], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                
+                const date = dateFilter.value || selectedDate;
+                const storeId = selectedStoreId;
+                const storeName = storeId === 'all' ? 'All_Stores' : (stores[storeId]?.name || storeId).replace(/\s+/g, '_');
+                
+                link.href = url;
+                link.download = `Sales_Summary_${storeName}_${date}.html`;
+                link.style.display = 'none';
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                setTimeout(() => {
+                    URL.revokeObjectURL(url);
+                }, 1000);
+                
+                alert('打印功能受限，已下载HTML文件。请打开下载的文件，然后使用浏览器的打印功能（Ctrl+P）进行打印。');
+                console.log('Download completed successfully');
+            } catch (downloadError) {
+                console.error('Download method failed:', downloadError);
+                alert('所有打印方法都失败了。请尝试使用其他浏览器或联系系统管理员。');
+            }
+        } else {
+            alert('您的浏览器不支持打印功能。请尝试使用其他浏览器。');
+        }
+    }
+}
+
+// Generate print content (HTML body only)
+function generatePrintContent() {
     const date = dateFilter.value || selectedDate;
     const storeId = selectedStoreId;
     const storeName = storeId === 'all' ? 'All Stores' : (stores[storeId]?.name || storeId);
@@ -3393,43 +3525,27 @@ function printSalesSummary() {
     const totalRevenue = sortedSummary.reduce((sum, product) => sum + product.totalRevenue, 0);
     
     let printContent = `
-        <html>
-        <head>
-            <title>Sales Summary Report</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                .header { text-align: center; margin-bottom: 30px; }
-                .info { margin-bottom: 20px; }
-                .stats { display: flex; justify-content: space-around; margin-bottom: 30px; }
-                .stat-item { text-align: center; }
-                table { width: 100%; border-collapse: collapse; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th { background-color: #f2f2f2; }
-                .total-row { font-weight: bold; background-color: #f9f9f9; }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>Sales Summary Report</h1>
-                <p>Date: ${date} | Store: ${storeName}</p>
-            </div>
-            
-            <div class="stats">
-                <div class="stat-item">
-                    <h3>${sortedSummary.length}</h3>
-                    <p>Product Types</p>
-            </div>
-                <div class="stat-item">
-                    <h3>${totalQuantity}</h3>
-                    <p>Total Quantity Sold</p>
+        <div class="header">
+            <h1>Sales Summary Report</h1>
+            <p>Date: ${date} | Store: ${storeName}</p>
         </div>
-                <div class="stat-item">
-                    <h3>RM${totalRevenue.toFixed(2)}</h3>
-                    <p>Total Revenue</p>
-                </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <h3>${sortedSummary.length}</h3>
+                <p>Product Types</p>
             </div>
-            
-            <table>
+            <div class="stat-item">
+                <h3>${totalQuantity}</h3>
+                <p>Total Quantity Sold</p>
+            </div>
+            <div class="stat-item">
+                <h3>RM${totalRevenue.toFixed(2)}</h3>
+                <p>Total Revenue</p>
+            </div>
+        </div>
+        
+        <table>
             <thead>
                 <tr>
                     <th>Product ID</th>
@@ -3459,21 +3575,95 @@ function printSalesSummary() {
     printContent += `
             </tbody>
         </table>
-            
-            <div style="margin-top: 30px; text-align: center; color: #666;">
-                <p>Report Generated: ${new Date().toLocaleString()}</p>
-            </div>
+        
+        <div style="margin-top: 30px; text-align: center; color: #666;">
+            <p>Report Generated: ${new Date().toLocaleString()}</p>
+        </div>
+    `;
+    
+    return printContent;
+}
+
+// Generate full HTML document for print
+function generateFullPrintHTML() {
+    const printBodyContent = generatePrintContent();
+    
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Sales Summary Report</title>
+            <meta charset="UTF-8">
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    margin: 20px; 
+                    line-height: 1.4;
+                }
+                .header { 
+                    text-align: center; 
+                    margin-bottom: 30px; 
+                    border-bottom: 2px solid #333;
+                    padding-bottom: 20px;
+                }
+                .header h1 {
+                    margin: 0 0 10px 0;
+                    color: #333;
+                }
+                .stats { 
+                    display: flex; 
+                    justify-content: space-around; 
+                    margin-bottom: 30px; 
+                    background: #f5f5f5;
+                    padding: 20px;
+                    border-radius: 8px;
+                }
+                .stat-item { 
+                    text-align: center; 
+                    flex: 1;
+                }
+                .stat-item h3 {
+                    margin: 0 0 5px 0;
+                    color: #2196F3;
+                    font-size: 24px;
+                }
+                .stat-item p {
+                    margin: 0;
+                    color: #666;
+                    font-size: 14px;
+                }
+                table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    margin-top: 20px;
+                }
+                th, td { 
+                    border: 1px solid #ddd; 
+                    padding: 12px 8px; 
+                    text-align: left; 
+                }
+                th { 
+                    background-color: #f2f2f2; 
+                    font-weight: bold;
+                    color: #333;
+                }
+                tr:nth-child(even) {
+                    background-color: #f9f9f9;
+                }
+                @media print {
+                    body { margin: 10px; }
+                    .stats { 
+                        background: none !important; 
+                        border: 1px solid #ddd;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            ${printBodyContent}
         </body>
         </html>
     `;
-    
-    // 打开新窗口并打印
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
 }
 
 // Export sales summary as CSV
@@ -4097,4 +4287,46 @@ function showProductHeatmapDetails(product) {
             document.body.removeChild(modal);
         }
     });
+}
+
+// Test browser print capabilities
+function testPrintCapabilities() {
+    const testResults = {
+        windowOpen: false,
+        windowPrint: false,
+        blobDownload: false
+    };
+    
+    try {
+        // Test window.open
+        const testWindow = window.open('', '_blank', 'width=1,height=1');
+        if (testWindow) {
+            testResults.windowOpen = true;
+            testWindow.close();
+        }
+    } catch (e) {
+        console.log('Window.open test failed:', e);
+    }
+    
+    try {
+        // Test window.print
+        if (typeof window.print === 'function') {
+            testResults.windowPrint = true;
+        }
+    } catch (e) {
+        console.log('Window.print test failed:', e);
+    }
+    
+    try {
+        // Test blob download
+        const testBlob = new Blob(['test'], { type: 'text/plain' });
+        const testURL = URL.createObjectURL(testBlob);
+        testResults.blobDownload = true;
+        URL.revokeObjectURL(testURL);
+    } catch (e) {
+        console.log('Blob download test failed:', e);
+    }
+    
+    console.log('Print capabilities test results:', testResults);
+    return testResults;
 }
