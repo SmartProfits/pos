@@ -849,13 +849,14 @@ tr:hover {
 .modal {
     display: none;
     position: fixed;
-    z-index: 1000;
+    z-index: 2000;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.7);
     animation: fadeIn 0.3s;
+    backdrop-filter: blur(3px);
 }
 
 .modal-content {
@@ -3243,7 +3244,7 @@ select:required:invalid {
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     padding: 15px;
-    z-index: 100;
+    z-index: 3002;
     width: 250px;
     top: 50%;
     left: 50%;
@@ -3334,7 +3335,8 @@ select:required:invalid {
     right: 0;
     bottom: 0;
     background-color: rgba(0,0,0,0.5);
-    z-index: 99;
+    z-index: 3000;
+    backdrop-filter: blur(2px);
 }
 
 /* 用户状态样式 */
@@ -3450,7 +3452,7 @@ body.is-sadmin .sadmin-only {
     border-radius: 12px;
     padding: 24px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    z-index: 10001;
+    z-index: 3001;
     min-width: 320px;
     max-width: 400px;
     width: 90%;
@@ -3612,7 +3614,7 @@ body.is-sadmin .sadmin-only {
     width: 100%;
     height: 100%;
     background-color: rgba(0,0,0,0.5);
-    z-index: 10000;
+    z-index: 3000;
     backdrop-filter: blur(2px);
 }
 
@@ -3758,7 +3760,7 @@ body.is-sadmin .sadmin-only {
     font-size: 20px;
 }
 
-/* 简化模式样式 */
+/* Simple Mode Styles */
 body.simple-mode .sidebar {
     display: none;
 }
@@ -3770,9 +3772,10 @@ body.simple-mode .header {
     top: 0;
     left: 0;
     right: 0;
-    z-index: 1000;
+    z-index: 900;
     height: 50px;
     box-sizing: border-box;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 body.simple-mode .content {
