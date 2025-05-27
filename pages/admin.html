@@ -597,9 +597,9 @@
                                 <i class="material-icons">table_chart</i>
                                 <span>Table</span>
                             </button>
-                            <button class="view-mode-btn" data-mode="cards">
-                                <i class="material-icons">view_module</i>
-                                <span>Cards</span>
+                            <button class="view-mode-btn" data-mode="heatmap">
+                                <i class="material-icons">grid_on</i>
+                                <span>Heatmap</span>
                             </button>
                             <button class="view-mode-btn" data-mode="chart">
                                 <i class="material-icons">bar_chart</i>
@@ -639,10 +639,6 @@
                 <div class="action-section">
                     <label><i class="material-icons">more_horiz</i> Actions</label>
                     <div class="action-mode-selector">
-                        <button id="refreshSummaryBtn" class="action-mode-btn">
-                            <i class="material-icons">refresh</i>
-                            <span>Refresh</span>
-                        </button>
                         <button id="screenshotSummaryBtn" class="action-mode-btn">
                             <i class="material-icons">photo_camera</i>
                             <span>Screenshot</span>
@@ -685,10 +681,33 @@
                     </div>
                 </div>
                 
-                <!-- Cards View -->
-                <div id="summaryCardsView" class="summary-view">
-                    <div class="cards-container" id="summaryCardsContainer">
-                        <!-- Card content will be generated dynamically -->
+                <!-- Heatmap View -->
+                <div id="summaryHeatmapView" class="summary-view">
+                    <div class="heatmap-container" id="summaryHeatmapContainer">
+                        <div class="heatmap-legend">
+                            <div class="legend-title">Sales Heatmap</div>
+                            <div class="legend-scale">
+                                <div class="legend-item">
+                                    <div class="legend-color low"></div>
+                                    <span>Low Sales</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color medium-low"></div>
+                                    <span>Medium-Low Sales</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color medium-high"></div>
+                                    <span>Medium-High Sales</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color high"></div>
+                                    <span>High Sales</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="heatmap-grid" id="heatmapGrid">
+                            <!-- Heatmap content will be generated dynamically -->
+                        </div>
                     </div>
                 </div>
                 
