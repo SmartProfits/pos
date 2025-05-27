@@ -1557,105 +1557,715 @@ tr:hover {
     background-color: #0b7dda;
 }
 
-.summary-filter-container {
+/* 全屏销售汇总模态框样式 */
+.sales-summary-fullscreen {
+    padding: 0;
+    background-color: rgba(0, 0, 0, 0.95);
+}
+
+.sales-summary-modal {
+    width: 100%;
+    max-width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    margin: 0;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 15px;
-    padding: 10px;
-    background-color: #f5f5f5;
-    border-radius: 5px;
+    align-items: center;
+    padding: 15px 25px;
+    border-bottom: 2px solid #e0e0e0;
+    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+    color: white;
+    border-radius: 0;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
-#summarySortBy {
-    padding: 5px 10px;
+.modal-header h2 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.modal-header .close {
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.modal-header .close:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: rotate(90deg);
+}
+
+/* 可滚动内容容器 */
+.sales-summary-scrollable {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #4a90e2 #f1f1f1;
+}
+
+.sales-summary-scrollable::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sales-summary-scrollable::-webkit-scrollbar-track {
+    background: #f1f1f1;
     border-radius: 4px;
-    border: 1px solid #ddd;
-    background-color: white;
 }
 
-.summary-actions {
+.sales-summary-scrollable::-webkit-scrollbar-thumb {
+    background: #4a90e2;
+    border-radius: 4px;
+}
+
+.sales-summary-scrollable::-webkit-scrollbar-thumb:hover {
+    background: #357abd;
+}
+
+/* 控制面板样式 */
+.summary-control-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 15px 25px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    flex-wrap: wrap;
+    gap: 15px;
+    position: sticky;
+    top: 0;
+    z-index: 90;
+}
+
+.control-section {
+    display: flex;
+    gap: 25px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-group label {
+    font-weight: 600;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+}
+
+.control-group label .material-icons {
+    font-size: 18px;
+    color: #6c757d;
+}
+
+/* 视图模式选择器 */
+.view-mode-selector {
+    display: flex;
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.view-mode-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 16px;
+    border: none;
+    background-color: white;
+    color: #6c757d;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    gap: 4px;
+    min-width: 70px;
+}
+
+.view-mode-btn:hover {
+    background-color: #f8f9fa;
+    color: #495057;
+}
+
+.view-mode-btn.active {
+    background-color: #007bff;
+    color: white;
+}
+
+.view-mode-btn .material-icons {
+    font-size: 20px;
+}
+
+.view-mode-btn span {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* 筛选选项 */
+.filter-options {
     display: flex;
     gap: 10px;
 }
 
-#exportSummaryBtn, #screenshotSummaryBtn {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
+.control-group select {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    background-color: white;
+    color: #495057;
+    font-size: 14px;
+    min-width: 140px;
+    transition: border-color 0.3s ease;
+}
+
+.control-group select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* 操作按钮区域 */
+.action-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.action-section label {
+    font-weight: 600;
+    color: #495057;
     display: flex;
     align-items: center;
     gap: 5px;
+    font-size: 14px;
 }
 
-#exportSummaryBtn:hover {
-    background-color: #388E3C;
+.action-section label .material-icons {
+    font-size: 18px;
+    color: #6c757d;
 }
 
-#screenshotSummaryBtn {
-    background-color: #2196F3;
-}
-
-#screenshotSummaryBtn:hover {
-    background-color: #1976D2;
-}
-
-.summary-totals {
+/* 操作模式选择器 */
+.action-mode-selector {
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    padding: 15px;
-    background-color: #e3f2fd;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.summary-total-item {
+.action-mode-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 12px 16px;
+    border: none;
+    background-color: white;
+    color: #6c757d;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    gap: 4px;
+    min-width: 70px;
+    flex: 1;
 }
 
-.summary-total-item span {
-    font-size: 0.9rem;
-    color: #555;
-    margin-bottom: 5px;
+.action-mode-btn:hover {
+    background-color: #f8f9fa;
+    color: #495057;
 }
 
-.summary-total-item strong {
-    font-size: 1.5rem;
-    color: #2196F3;
+.action-mode-btn .material-icons {
+    font-size: 20px;
+}
+
+.action-mode-btn span {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* 统计卡片已移除 */
+
+/* 汇总内容区域 */
+.summary-content-area {
+    flex: 1;
+    padding: 20px 25px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.summary-view {
+    display: none;
+    flex: 1;
+    overflow: hidden;
+}
+
+.summary-view.active {
+    display: flex;
+    flex-direction: column;
+}
+
+/* 表格视图 */
+.table-container {
+    flex: 1;
+    overflow: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    max-height: calc(100vh - 300px);
 }
 
 .summary-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 15px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background-color: white;
 }
 
 .summary-table th {
-    background-color: #4CAF50;
+    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
     color: white;
-    padding: 12px;
+    padding: 15px 12px;
     text-align: left;
+    font-weight: 600;
     position: sticky;
     top: 0;
+    z-index: 10;
+    font-size: 14px;
 }
 
 .summary-table td {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 14px;
 }
 
 .summary-table tr:nth-child(even) {
-    background-color: #f9f9f9;
+    background-color: #f8f9fa;
 }
 
 .summary-table tr:hover {
-    background-color: #f1f1f1;
+    background-color: #e3f2fd;
+}
+
+/* 卡片视图 */
+.cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    overflow-y: auto;
+    padding: 10px 0;
+    max-height: calc(100vh - 300px);
+}
+
+.product-summary-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+    border-left: 4px solid #007bff;
+}
+
+.product-summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+.product-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.product-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 5px;
+}
+
+.product-card-id {
+    font-size: 12px;
+    color: #6c757d;
+    background-color: #f8f9fa;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.product-card-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.product-card-stat {
+    text-align: center;
+}
+
+.product-card-stat-value {
+    font-size: 20px;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.product-card-stat-label {
+    font-size: 12px;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* 图表视图 */
+.chart-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.chart-tabs {
+    display: flex;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.chart-tab {
+    flex: 1;
+    padding: 15px 20px;
+    border: none;
+    background-color: transparent;
+    color: #6c757d;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.chart-tab:hover {
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+.chart-tab.active {
+    background-color: #007bff;
+    color: white;
+}
+
+.chart-content {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#summaryChart {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* 加载状态 */
+.loading-state {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.loading-spinner {
+    margin-bottom: 20px;
+}
+
+.loading-spinner .material-icons {
+    font-size: 48px;
+    color: #007bff;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+    font-size: 16px;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* 错误和无数据状态 */
+.error-state, .no-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: #6c757d;
+    text-align: center;
+}
+
+.error-state i, .no-data i {
+    font-size: 48px;
+    margin-bottom: 20px;
+    color: #dc3545;
+}
+
+.no-data i {
+    color: #6c757d;
+}
+
+.error-state p, .no-data p {
+    font-size: 16px;
+    margin: 0;
+}
+
+/* 表格无数据状态 */
+.summary-table .no-data {
+    padding: 40px 20px;
+    font-style: italic;
+    color: #6c757d;
+    text-align: center;
+}
+
+/* 平板优化 (1200x800) */
+@media (max-width: 1280px) and (min-width: 1024px) {
+    .sales-summary-modal {
+        width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+    }
+    
+    .summary-control-panel {
+        padding: 12px 20px;
+        gap: 12px;
+    }
+    
+    .control-group {
+        gap: 6px;
+    }
+    
+    .control-group label {
+        font-size: 13px;
+    }
+    
+    .control-group select {
+        padding: 6px 10px;
+        font-size: 13px;
+        min-width: 120px;
+    }
+    
+    .view-mode-btn {
+        padding: 10px 12px;
+        min-width: 60px;
+    }
+    
+    .view-mode-btn span {
+        font-size: 11px;
+    }
+    
+    .action-mode-btn {
+        padding: 10px 12px;
+        min-width: 60px;
+    }
+    
+    .action-mode-btn span {
+        font-size: 11px;
+    }
+    
+    .summary-stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        padding: 15px 20px;
+    }
+    
+    .summary-stat-card {
+        padding: 15px;
+        gap: 12px;
+    }
+    
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .stat-icon .material-icons {
+        font-size: 24px;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+    }
+    
+    .stat-label {
+        font-size: 13px;
+    }
+    
+    .summary-content-area {
+        padding: 15px 20px;
+    }
+    
+    .table-container {
+        max-height: calc(100vh - 250px);
+    }
+    
+    .cards-container {
+        max-height: calc(100vh - 250px);
+    }
+    
+    .summary-table th {
+        padding: 12px 10px;
+        font-size: 13px;
+    }
+    
+    .summary-table td {
+        padding: 10px;
+        font-size: 13px;
+    }
+    
+    .cards-container {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 15px;
+    }
+    
+    .product-summary-card {
+        padding: 15px;
+    }
+    
+    .chart-content {
+        padding: 15px;
+    }
+}
+
+/* 小屏幕优化 */
+@media (max-width: 480px) {
+    .summary-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 15px;
+    }
+    
+    .summary-stat-card {
+        padding: 12px;
+        gap: 10px;
+        min-height: 70px;
+    }
+    
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .stat-icon .material-icons {
+        font-size: 20px;
+    }
+    
+    .stat-value {
+        font-size: 18px;
+    }
+    
+    .stat-label {
+        font-size: 11px;
+    }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .sales-summary-modal {
+        width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+    }
+    
+    .summary-control-panel {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .control-section {
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+    }
+    
+    .action-section {
+        width: 100%;
+    }
+    
+    .action-mode-selector {
+        flex-direction: column;
+    }
+    
+    .action-mode-btn {
+        flex-direction: row;
+        justify-content: flex-start;
+        padding: 12px 16px;
+        gap: 8px;
+    }
+    
+    .summary-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        padding: 12px 15px;
+    }
+    
+    .table-container {
+        max-height: calc(100vh - 200px);
+    }
+    
+    .cards-container {
+        max-height: calc(100vh - 200px);
+    }
+    
+    .cards-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .chart-tabs {
+        flex-direction: column;
+    }
+    
+    .view-mode-selector {
+        width: 100%;
+    }
+    
+    .view-mode-btn {
+        flex: 1;
+    }
 }
 
 /* Sales Summary Styles */

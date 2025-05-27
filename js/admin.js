@@ -184,22 +184,8 @@ function initEventListeners() {
     // 查看销售汇总按钮
     viewSalesSummaryBtn.addEventListener('click', showSalesSummary);
     
-    // 销售汇总排序选择变化
-    if (summarySortBy) {
-        summarySortBy.addEventListener('change', () => {
-            sortAndRenderSalesSummary();
-        });
-    }
-    
-    // 导出销售汇总按钮
-    if (exportSummaryBtn) {
-        exportSummaryBtn.addEventListener('click', exportSalesSummary);
-    }
-    
-    // 截图销售汇总按钮
-    if (screenshotSummaryBtn) {
-        screenshotSummaryBtn.addEventListener('click', screenshotSalesSummary);
-    }
+    // 销售汇总相关事件监听器
+    initSalesSummaryEventListeners();
     
     // 日期过滤器变化
     dateFilter.addEventListener('change', (e) => {
@@ -2822,9 +2808,13 @@ function initializeFirebase() {
     database = firebase.database();
 }
 
-// 显示销售汇总
-let currentSalesSummary = []; // Store the current sales summary data
+// 新的销售汇总功能
+let currentSalesSummary = []; // 存储当前销售汇总数据
+let currentSalesData = {}; // 存储原始销售数据
+let summaryChart = null; // Chart.js 实例
+let currentViewMode = 'table'; // 当前视图模式
 
+// 显示销售汇总
 function showSalesSummary() {
     const date = dateFilter.value || selectedDate;
     const storeId = selectedStoreId;
@@ -2833,7 +2823,7 @@ function showSalesSummary() {
     showModal(salesSummaryModal);
     
     // 显示加载状态
-    salesSummaryContent.innerHTML = '<div class="loading"><i class="material-icons">hourglass_empty</i> Loading sales summary...</div>';
+    showSummaryLoadingState(true);
     
     // 获取销售数据
     let salesPromise;
@@ -2852,26 +2842,52 @@ function showSalesSummary() {
                 sales = snapshot || {};
             }
             
+            currentSalesData = sales;
             // 生成销售汇总
             generateSalesSummary(sales);
+            showSummaryLoadingState(false);
         })
         .catch(error => {
             console.error('Failed to load sales data for summary:', error);
-            salesSummaryContent.innerHTML = '<div class="error"><i class="material-icons">error</i> Failed to load sales summary</div>';
+            showSummaryLoadingState(false);
+            showSummaryError('加载销售汇总数据失败');
         });
+}
+
+// 显示/隐藏加载状态
+function showSummaryLoadingState(show) {
+    const loadingState = document.getElementById('summaryLoadingState');
+    if (loadingState) {
+        loadingState.style.display = show ? 'flex' : 'none';
+    }
+}
+
+// 显示错误信息
+function showSummaryError(message) {
+    const contentArea = document.querySelector('.summary-content-area');
+    if (contentArea) {
+        contentArea.innerHTML = `
+            <div class="error-state">
+                <i class="material-icons">error</i>
+                <p>${message}</p>
+            </div>
+        `;
+    }
 }
 
 // 生成销售汇总
 function generateSalesSummary(sales) {
     // 如果没有销售数据
     if (Object.keys(sales).length === 0) {
-        salesSummaryContent.innerHTML = '<div class="no-data"><i class="material-icons">info</i> No sales data available for this date</div>';
         currentSalesSummary = [];
+        updateSummaryStats();
+        renderCurrentView();
         return;
     }
     
     // 按产品汇总销售数据
     const productSummary = {};
+    const categories = new Set();
     
     // 处理每个销售记录
     Object.values(sales).forEach(sale => {
@@ -2884,15 +2900,19 @@ function generateSalesSummary(sales) {
             const quantity = item.quantity || 0;
             const unitPrice = item.price || 0;
             const subtotal = item.subtotal || (quantity * unitPrice);
+            const category = item.category && item.category.trim() !== '' ? item.category : 'Uncategorized';
             
             // 如果产品ID为空，则跳过
             if (!productId) return;
+            
+            categories.add(category);
             
             // 如果产品尚未在汇总中，初始化它
             if (!productSummary[productId]) {
                 productSummary[productId] = {
                     id: productId,
                     name: productName,
+                    category: category,
                     totalQuantity: 0,
                     totalRevenue: 0,
                     unitPrice: unitPrice,
@@ -2905,9 +2925,8 @@ function generateSalesSummary(sales) {
             productSummary[productId].totalRevenue += subtotal;
             productSummary[productId].saleCount += 1;
             
-            // 如果价格与现有价格不同，取平均值
+            // 更新价格为最新价格
             if (productSummary[productId].unitPrice !== unitPrice) {
-                // Update to the latest price
                 productSummary[productId].unitPrice = unitPrice;
             }
         });
@@ -2916,64 +2935,450 @@ function generateSalesSummary(sales) {
     // 转换为数组以便排序
     currentSalesSummary = Object.values(productSummary);
     
-    // 排序并渲染
-    sortAndRenderSalesSummary();
+    // 更新分类选择器
+    updateCategoryFilter(Array.from(categories));
+    
+    // 更新统计数据
+    updateSummaryStats();
+    
+    // 渲染当前视图
+    renderCurrentView();
 }
 
-// 排序并渲染销售汇总
-function sortAndRenderSalesSummary() {
-    const sortBy = summarySortBy.value;
+// Update category filter
+function updateCategoryFilter(categories) {
+    const categorySelect = document.getElementById('summaryCategory');
+    if (categorySelect) {
+        // Save current selection
+        const currentValue = categorySelect.value;
+        
+        // Clear and repopulate options
+        categorySelect.innerHTML = '<option value="all">All Categories</option>';
+        
+        categories.sort().forEach(category => {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            categorySelect.appendChild(option);
+        });
+        
+        // Restore selection
+        if (currentValue && categories.includes(currentValue)) {
+            categorySelect.value = currentValue;
+        }
+    }
+}
+
+// 更新统计卡片 - 已移除统计卡片显示
+function updateSummaryStats() {
+    // 统计卡片已移除，此函数保留以避免错误
+}
+
+// 获取筛选后的汇总数据
+function getFilteredSummary() {
+    const categoryFilter = document.getElementById('summaryCategory')?.value || 'all';
+    const minQuantityFilter = parseInt(document.getElementById('summaryMinQuantity')?.value || '0');
     
-    // 复制数组以避免修改原始数据
-    const sortedSummary = [...currentSalesSummary];
+    return currentSalesSummary.filter(product => {
+        const categoryMatch = categoryFilter === 'all' || product.category === categoryFilter;
+        const quantityMatch = product.totalQuantity >= minQuantityFilter;
+        return categoryMatch && quantityMatch;
+    });
+}
+
+// 获取排序后的汇总数据
+function getSortedSummary() {
+    const sortBy = document.getElementById('summarySortBy')?.value || 'quantity';
+    const filteredSummary = getFilteredSummary();
     
-    // 根据选择的字段排序
+    return [...filteredSummary].sort((a, b) => {
     switch (sortBy) {
         case 'quantity':
-            sortedSummary.sort((a, b) => b.totalQuantity - a.totalQuantity);
-            break;
+                return b.totalQuantity - a.totalQuantity;
         case 'revenue':
-            sortedSummary.sort((a, b) => b.totalRevenue - a.totalRevenue);
-            break;
+                return b.totalRevenue - a.totalRevenue;
         case 'name':
-            sortedSummary.sort((a, b) => a.name.localeCompare(b.name));
-            break;
+                return a.name.localeCompare(b.name);
+            case 'profit':
+                // 简单的利润计算（假设成本为售价的70%）
+                const profitA = a.totalRevenue * 0.3;
+                const profitB = b.totalRevenue * 0.3;
+                return profitB - profitA;
         default:
-            sortedSummary.sort((a, b) => b.totalQuantity - a.totalQuantity);
+                return b.totalQuantity - a.totalQuantity;
+        }
+    });
+}
+
+// 渲染当前视图
+function renderCurrentView() {
+    switch (currentViewMode) {
+        case 'table':
+            renderTableView();
+            break;
+        case 'cards':
+            renderCardsView();
+            break;
+        case 'chart':
+            renderChartView();
+            break;
+    }
+}
+
+// 渲染表格视图
+function renderTableView() {
+    const sortedSummary = getSortedSummary();
+    const tableBody = document.getElementById('summaryTableBody');
+    
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = '';
+    
+    if (sortedSummary.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="7" class="no-data">No data matching the criteria</td></tr>';
+        return;
     }
     
-    // 计算总计
+    const totalRevenue = sortedSummary.reduce((sum, product) => sum + product.totalRevenue, 0);
+    
+    sortedSummary.forEach(product => {
+        const percentage = totalRevenue > 0 ? (product.totalRevenue / totalRevenue * 100).toFixed(1) : '0.0';
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${product.id}</td>
+            <td>${product.name}</td>
+            <td>RM${product.unitPrice.toFixed(2)}</td>
+            <td>${product.totalQuantity}</td>
+            <td>RM${product.totalRevenue.toFixed(2)}</td>
+            <td>${product.saleCount}</td>
+            <td>${percentage}%</td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+// 渲染卡片视图
+function renderCardsView() {
+    const sortedSummary = getSortedSummary();
+    const cardsContainer = document.getElementById('summaryCardsContainer');
+    
+    if (!cardsContainer) return;
+    
+    cardsContainer.innerHTML = '';
+    
+    if (sortedSummary.length === 0) {
+        cardsContainer.innerHTML = '<div class="no-data">No data matching the criteria</div>';
+        return;
+    }
+    
+    sortedSummary.forEach(product => {
+        const card = document.createElement('div');
+        card.className = 'product-summary-card';
+        card.innerHTML = `
+            <div class="product-card-header">
+                <div>
+                    <div class="product-card-title">${product.name}</div>
+                    <div class="product-card-id">${product.id}</div>
+                </div>
+            </div>
+            <div class="product-card-stats">
+                <div class="product-card-stat">
+                    <div class="product-card-stat-value">${product.totalQuantity}</div>
+                    <div class="product-card-stat-label">Quantity Sold</div>
+                </div>
+                <div class="product-card-stat">
+                    <div class="product-card-stat-value">RM${product.totalRevenue.toFixed(2)}</div>
+                    <div class="product-card-stat-label">Revenue</div>
+                </div>
+                <div class="product-card-stat">
+                    <div class="product-card-stat-value">RM${product.unitPrice.toFixed(2)}</div>
+                    <div class="product-card-stat-label">Unit Price</div>
+                </div>
+                <div class="product-card-stat">
+                    <div class="product-card-stat-value">${product.saleCount}</div>
+                    <div class="product-card-stat-label">Sales Count</div>
+                </div>
+            </div>
+        `;
+        cardsContainer.appendChild(card);
+    });
+}
+
+// 渲染图表视图
+function renderChartView() {
+    const canvas = document.getElementById('summaryChart');
+    if (!canvas) return;
+    
+    // 销毁现有图表
+    if (summaryChart) {
+        summaryChart.destroy();
+    }
+    
+    const sortedSummary = getSortedSummary().slice(0, 10); // 只显示前10个
+    const activeTab = document.querySelector('.chart-tab.active')?.dataset.chart || 'bar';
+    
+    renderChart(canvas, sortedSummary, activeTab);
+}
+
+// 渲染具体图表
+function renderChart(canvas, data, chartType) {
+    const ctx = canvas.getContext('2d');
+    
+    const labels = data.map(product => product.name);
+    const quantities = data.map(product => product.totalQuantity);
+    const revenues = data.map(product => product.totalRevenue);
+    
+    let chartConfig = {};
+    
+    switch (chartType) {
+        case 'bar':
+            chartConfig = {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '销售数量',
+                        data: quantities,
+                        backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            };
+            break;
+            
+        case 'pie':
+            chartConfig = {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: revenues,
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+                            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
+                            '#4BC0C0', '#FF6384'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            };
+            break;
+            
+        case 'line':
+            chartConfig = {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '销售收入',
+                        data: revenues,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            };
+            break;
+    }
+    
+    summaryChart = new Chart(ctx, chartConfig);
+}
+
+// 初始化销售汇总事件监听器
+function initSalesSummaryEventListeners() {
+    // 视图模式切换按钮
+    document.querySelectorAll('.view-mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // 更新按钮状态
+            document.querySelectorAll('.view-mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // 切换视图模式
+            currentViewMode = btn.dataset.mode;
+            switchSummaryView(currentViewMode);
+        });
+    });
+    
+    // 排序选择变化
+    const sortSelect = document.getElementById('summarySortBy');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', () => {
+            updateSummaryStats();
+            renderCurrentView();
+        });
+    }
+    
+    // 筛选条件变化
+    const categorySelect = document.getElementById('summaryCategory');
+    const minQuantitySelect = document.getElementById('summaryMinQuantity');
+    
+    if (categorySelect) {
+        categorySelect.addEventListener('change', () => {
+            updateSummaryStats();
+            renderCurrentView();
+        });
+    }
+    
+    if (minQuantitySelect) {
+        minQuantitySelect.addEventListener('change', () => {
+            updateSummaryStats();
+            renderCurrentView();
+        });
+    }
+    
+    // 操作按钮事件
+    const refreshBtn = document.getElementById('refreshSummaryBtn');
+    const screenshotBtn = document.getElementById('screenshotSummaryBtn');
+    const exportBtn = document.getElementById('exportSummaryBtn');
+    const printBtn = document.getElementById('printSummaryBtn');
+    
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            showSalesSummary(); // 重新加载数据
+        });
+    }
+    
+    if (screenshotBtn) {
+        screenshotBtn.addEventListener('click', screenshotSalesSummary);
+    }
+    
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportSalesSummary);
+    }
+    
+    if (printBtn) {
+        printBtn.addEventListener('click', printSalesSummary);
+    }
+    
+    // 图表标签切换
+    document.querySelectorAll('.chart-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            // 更新标签状态
+            document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            // 重新渲染图表
+            if (currentViewMode === 'chart') {
+                renderChartView();
+            }
+        });
+    });
+}
+
+// 切换汇总视图
+function switchSummaryView(viewMode) {
+    // 隐藏所有视图
+    document.querySelectorAll('.summary-view').forEach(view => {
+        view.classList.remove('active');
+    });
+    
+    // 显示选中的视图
+    const targetView = document.getElementById(`summary${viewMode.charAt(0).toUpperCase() + viewMode.slice(1)}View`);
+    if (targetView) {
+        targetView.classList.add('active');
+    }
+    
+    // 渲染当前视图
+    renderCurrentView();
+}
+
+// Print sales summary
+function printSalesSummary() {
+    if (currentSalesSummary.length === 0) {
+        alert('No data to print');
+        return;
+    }
+    
+    // Create print content
+    const date = dateFilter.value || selectedDate;
+    const storeId = selectedStoreId;
+    const storeName = storeId === 'all' ? 'All Stores' : (stores[storeId]?.name || storeId);
+    
+    const sortedSummary = getSortedSummary();
     const totalQuantity = sortedSummary.reduce((sum, product) => sum + product.totalQuantity, 0);
     const totalRevenue = sortedSummary.reduce((sum, product) => sum + product.totalRevenue, 0);
     
-    // 渲染表格
-    let tableHTML = `
-        <div class="summary-totals">
-            <div class="summary-total-item">
-                <span>Total Products Sold:</span>
-                <strong>${totalQuantity}</strong>
+    let printContent = `
+        <html>
+        <head>
+            <title>Sales Summary Report</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .header { text-align: center; margin-bottom: 30px; }
+                .info { margin-bottom: 20px; }
+                .stats { display: flex; justify-content: space-around; margin-bottom: 30px; }
+                .stat-item { text-align: center; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+                .total-row { font-weight: bold; background-color: #f9f9f9; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Sales Summary Report</h1>
+                <p>Date: ${date} | Store: ${storeName}</p>
             </div>
-            <div class="summary-total-item">
-                <span>Total Revenue:</span>
-                <strong>RM${totalRevenue.toFixed(2)}</strong>
+            
+            <div class="stats">
+                <div class="stat-item">
+                    <h3>${sortedSummary.length}</h3>
+                    <p>Product Types</p>
             </div>
+                <div class="stat-item">
+                    <h3>${totalQuantity}</h3>
+                    <p>Total Quantity Sold</p>
         </div>
-        <table class="summary-table">
+                <div class="stat-item">
+                    <h3>RM${totalRevenue.toFixed(2)}</h3>
+                    <p>Total Revenue</p>
+                </div>
+            </div>
+            
+            <table>
             <thead>
                 <tr>
                     <th>Product ID</th>
                     <th>Product Name</th>
                     <th>Unit Price</th>
                     <th>Quantity Sold</th>
-                    <th>Total Revenue</th>
-                    <th>Sale Count</th>
+                    <th>Revenue</th>
+                    <th>Sales Count</th>
                 </tr>
             </thead>
             <tbody>
     `;
     
     sortedSummary.forEach(product => {
-        tableHTML += `
+        printContent += `
             <tr>
                 <td>${product.id}</td>
                 <td>${product.name}</td>
@@ -2985,32 +3390,50 @@ function sortAndRenderSalesSummary() {
         `;
     });
     
-    tableHTML += `
+    printContent += `
             </tbody>
         </table>
+            
+            <div style="margin-top: 30px; text-align: center; color: #666;">
+                <p>Report Generated: ${new Date().toLocaleString()}</p>
+            </div>
+        </body>
+        </html>
     `;
     
-    salesSummaryContent.innerHTML = tableHTML;
+    // 打开新窗口并打印
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
 }
 
-// 导出销售汇总为CSV
+// Export sales summary as CSV
 function exportSalesSummary() {
     if (currentSalesSummary.length === 0) {
-        alert('No data to export.');
+        alert('No data to export');
         return;
     }
     
-    // 构建CSV内容
-    let csvContent = 'Product ID,Product Name,Unit Price,Quantity Sold,Total Revenue,Sale Count\n';
+    const sortedSummary = getSortedSummary();
     
-    currentSalesSummary.forEach(product => {
+    // 构建CSV内容
+    let csvContent = 'Product ID,Product Name,Unit Price,Quantity Sold,Total Revenue,Sale Count,Percentage\n';
+    
+    const totalRevenue = sortedSummary.reduce((sum, product) => sum + product.totalRevenue, 0);
+    
+    sortedSummary.forEach(product => {
+        const percentage = totalRevenue > 0 ? (product.totalRevenue / totalRevenue * 100).toFixed(1) : '0.0';
         const row = [
             `"${product.id}"`,
             `"${product.name.replace(/"/g, '""')}"`,
             product.unitPrice.toFixed(2),
             product.totalQuantity,
             product.totalRevenue.toFixed(2),
-            product.saleCount
+            product.saleCount,
+            percentage
         ].join(',');
         
         csvContent += row + '\n';
@@ -3038,73 +3461,121 @@ function exportSalesSummary() {
     }
 }
 
-// 销售汇总屏幕截图功能
+// Sales summary screenshot function
 function screenshotSalesSummary() {
     if (currentSalesSummary.length === 0) {
-        alert('No data to screenshot.');
+        alert('No data to screenshot');
         return;
     }
     
-    // 创建一个全屏视图用于截图
-    const summaryContainer = document.createElement('div');
-    summaryContainer.style.position = 'fixed';
-    summaryContainer.style.top = '0';
-    summaryContainer.style.left = '0';
-    summaryContainer.style.width = '100%';
-    summaryContainer.style.height = '100%';
-    summaryContainer.style.backgroundColor = 'white';
-    summaryContainer.style.zIndex = '9999';
-    summaryContainer.style.padding = '20px';
-    summaryContainer.style.boxSizing = 'border-box';
-    summaryContainer.style.overflow = 'auto';
+    // Get current modal content
+    const modalContent = document.querySelector('.sales-summary-modal');
+    if (!modalContent) {
+        alert('Cannot find summary content');
+        return;
+    }
     
-    // 创建顶部标题栏
-    const headerBar = document.createElement('div');
-    headerBar.style.display = 'flex';
-    headerBar.style.justifyContent = 'space-between';
-    headerBar.style.alignItems = 'center';
-    headerBar.style.marginBottom = '20px';
-    headerBar.style.padding = '10px';
-    headerBar.style.backgroundColor = '#f5f5f5';
-    headerBar.style.borderRadius = '5px';
+    // 创建截图容器
+    const screenshotContainer = document.createElement('div');
+    screenshotContainer.style.position = 'fixed';
+    screenshotContainer.style.top = '0';
+    screenshotContainer.style.left = '0';
+    screenshotContainer.style.width = '100vw';
+    screenshotContainer.style.height = '100vh';
+    screenshotContainer.style.backgroundColor = 'white';
+    screenshotContainer.style.zIndex = '10000';
+    screenshotContainer.style.padding = '20px';
+    screenshotContainer.style.boxSizing = 'border-box';
+    screenshotContainer.style.overflow = 'auto';
     
     const date = dateFilter.value || selectedDate;
     const storeId = selectedStoreId;
     const storeName = storeId === 'all' ? 'All Stores' : (stores[storeId]?.name || storeId);
     
-    headerBar.innerHTML = `
-        <div>
-            <h1 style="margin: 0; color: #333; font-size: 24px;">Sales Summary Report</h1>
-            <p style="margin: 5px 0 0 0; color: #666;">Date: ${date} | Store: ${storeName}</p>
+    // 创建截图内容
+    const sortedSummary = getSortedSummary();
+    const totalQuantity = sortedSummary.reduce((sum, product) => sum + product.totalQuantity, 0);
+    const totalRevenue = sortedSummary.reduce((sum, product) => sum + product.totalRevenue, 0);
+    
+    screenshotContainer.innerHTML = `
+        <div style="text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white; border-radius: 10px;">
+            <h1 style="margin: 0 0 10px 0; font-size: 28px;">Sales Summary Report</h1>
+            <p style="margin: 0; font-size: 16px;">Date: ${date} | Store: ${storeName}</p>
         </div>
-        <button id="closeSummaryScreenshot" style="background: #e74c3c; color: white; border: none; border-radius: 5px; padding: 8px 15px; cursor: pointer;">Close</button>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+            <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white; border-radius: 10px;">
+                <div style="font-size: 24px; font-weight: bold;">${sortedSummary.length}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Product Types</div>
+            </div>
+            <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white; border-radius: 10px;">
+                <div style="font-size: 24px; font-weight: bold;">${totalQuantity}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Total Quantity Sold</div>
+            </div>
+            <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white; border-radius: 10px;">
+                <div style="font-size: 24px; font-weight: bold;">RM${totalRevenue.toFixed(2)}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Total Revenue</div>
+            </div>
+            <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white; border-radius: 10px;">
+                <div style="font-size: 24px; font-weight: bold;">RM${totalQuantity > 0 ? (totalRevenue / totalQuantity).toFixed(2) : '0.00'}</div>
+                <div style="font-size: 14px; opacity: 0.9;">Average Price</div>
+            </div>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">
+            <thead>
+                <tr style="background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white;">
+                    <th style="padding: 15px; text-align: left;">Product ID</th>
+                    <th style="padding: 15px; text-align: left;">Product Name</th>
+                    <th style="padding: 15px; text-align: left;">Unit Price</th>
+                    <th style="padding: 15px; text-align: left;">Quantity Sold</th>
+                    <th style="padding: 15px; text-align: left;">Revenue</th>
+                    <th style="padding: 15px; text-align: left;">Sales Count</th>
+                    <th style="padding: 15px; text-align: left;">Percentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${sortedSummary.map((product, index) => {
+                    const percentage = totalRevenue > 0 ? (product.totalRevenue / totalRevenue * 100).toFixed(1) : '0.0';
+                    const bgColor = index % 2 === 0 ? '#f8f9fa' : 'white';
+                    return `
+                        <tr style="background-color: ${bgColor};">
+                            <td style="padding: 12px; border-bottom: 1px solid #e0e0e0;">${product.id}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e0e0e0;">${product.name}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e0e0e0;">RM${product.unitPrice.toFixed(2)}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e0e0e0;">${product.totalQuantity}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e0e0e0;">RM${product.totalRevenue.toFixed(2)}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e0e0e0;">${product.saleCount}</td>
+                            <td style="padding: 12px; border-bottom: 1px solid #e0e0e0;">${percentage}%</td>
+                        </tr>
+                    `;
+                }).join('')}
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 30px; text-align: center; color: #666; font-size: 14px;">
+            <p>Report Generated: ${new Date().toLocaleString()}</p>
+        </div>
+        
+        <button id="closeSummaryScreenshot" style="position: fixed; top: 20px; right: 20px; background: #e74c3c; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 18px; z-index: 10001;">×</button>
     `;
     
-    // 复制销售汇总内容
-    const summaryContent = document.createElement('div');
-    summaryContent.id = 'summaryScreenshotContent';
-    summaryContent.innerHTML = salesSummaryContent.innerHTML;
-    
-    // 添加到容器
-    summaryContainer.appendChild(headerBar);
-    summaryContainer.appendChild(summaryContent);
-    
     // 添加到文档
-    document.body.appendChild(summaryContainer);
+    document.body.appendChild(screenshotContainer);
     
     // 添加关闭按钮事件
     document.getElementById('closeSummaryScreenshot').addEventListener('click', () => {
-        document.body.removeChild(summaryContainer);
+        document.body.removeChild(screenshotContainer);
     });
     
-    // 一秒后截图，确保内容已经完全渲染
+    // 延迟截图以确保渲染完成
     setTimeout(() => {
-        // 使用 html2canvas 进行截图
-        html2canvas(summaryContainer, {
-            scale: 2, // 提高分辨率
+        html2canvas(screenshotContainer, {
+            scale: 2,
             logging: false,
             allowTaint: true,
-            useCORS: true
+            useCORS: true,
+            backgroundColor: 'white'
         }).then(canvas => {
             // 转换为图片并下载
             const imageData = canvas.toDataURL('image/png');
@@ -3115,14 +3586,18 @@ function screenshotSalesSummary() {
             downloadLink.download = filename;
             downloadLink.click();
             
-            // 下载完成后询问用户是否关闭全屏视图
-            if (confirm('Screenshot downloaded. Close fullscreen view?')) {
-                document.body.removeChild(summaryContainer);
-            }
+            // 自动关闭截图视图
+            setTimeout(() => {
+                if (document.body.contains(screenshotContainer)) {
+                    document.body.removeChild(screenshotContainer);
+                }
+            }, 1000);
         }).catch(error => {
             console.error('Screenshot failed:', error);
-            alert('Failed to create screenshot. Please try again.');
-            document.body.removeChild(summaryContainer);
+            alert('Screenshot failed, please try again');
+            if (document.body.contains(screenshotContainer)) {
+                document.body.removeChild(screenshotContainer);
+            }
         });
     }, 1000);
 }

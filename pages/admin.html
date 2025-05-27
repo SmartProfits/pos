@@ -577,24 +577,145 @@
     </div>
     
     <!-- Sales Summary Modal -->
-    <div id="salesSummaryModal" class="modal">
-        <div class="modal-content" style="width: 80%;">
+    <div id="salesSummaryModal" class="modal sales-summary-fullscreen">
+        <div class="modal-content sales-summary-modal">
+            <div class="modal-header">
+                <h2><i class="material-icons">assessment</i> Sales Summary Report</h2>
             <span class="close">&times;</span>
-            <h2><i class="material-icons">assessment</i> Sales Summary by Product</h2>
-            <div class="summary-filter-container">
+            </div>
+            
+            <!-- 可滚动内容容器 -->
+            <div class="sales-summary-scrollable">
+            
+            <!-- 汇总控制面板 -->
+            <div class="summary-control-panel">
+                <div class="control-section">
+                    <div class="control-group">
+                        <label><i class="material-icons">view_module</i> View Mode</label>
+                        <div class="view-mode-selector">
+                            <button class="view-mode-btn active" data-mode="table">
+                                <i class="material-icons">table_chart</i>
+                                <span>Table</span>
+                            </button>
+                            <button class="view-mode-btn" data-mode="cards">
+                                <i class="material-icons">view_module</i>
+                                <span>Cards</span>
+                            </button>
+                            <button class="view-mode-btn" data-mode="chart">
+                                <i class="material-icons">bar_chart</i>
+                                <span>Chart</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label><i class="material-icons">sort</i> Sort By</label>
                 <select id="summarySortBy">
                     <option value="quantity">Sort by Quantity</option>
                     <option value="revenue">Sort by Revenue</option>
                     <option value="name">Sort by Name</option>
+                            <option value="profit">Sort by Profit</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label><i class="material-icons">filter_list</i> Filter Options</label>
+                        <div class="filter-options">
+                            <select id="summaryCategory">
+                                <option value="all">All Categories</option>
+                                <!-- Category options will be loaded dynamically -->
+                            </select>
+                            <select id="summaryMinQuantity">
+                                <option value="0">Min Quantity</option>
+                                <option value="1">≥ 1</option>
+                                <option value="5">≥ 5</option>
+                                <option value="10">≥ 10</option>
+                                <option value="20">≥ 20</option>
                 </select>
-                <div class="summary-actions">
-                    <button id="screenshotSummaryBtn"><i class="material-icons">photo_camera</i> Screenshot</button>
-                    <button id="exportSummaryBtn"><i class="material-icons">download</i> Export CSV</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-section">
+                    <label><i class="material-icons">more_horiz</i> Actions</label>
+                    <div class="action-mode-selector">
+                        <button id="refreshSummaryBtn" class="action-mode-btn">
+                            <i class="material-icons">refresh</i>
+                            <span>Refresh</span>
+                        </button>
+                        <button id="screenshotSummaryBtn" class="action-mode-btn">
+                            <i class="material-icons">photo_camera</i>
+                            <span>Screenshot</span>
+                        </button>
+                        <button id="exportSummaryBtn" class="action-mode-btn">
+                            <i class="material-icons">download</i>
+                            <span>Export</span>
+                        </button>
+                        <button id="printSummaryBtn" class="action-mode-btn">
+                            <i class="material-icons">print</i>
+                            <span>Print</span>
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div id="salesSummaryContent">
-                <div class="loading"><i class="material-icons">hourglass_empty</i> Loading summary...</div>
+            
+
+            
+            <!-- 汇总内容区域 -->
+            <div class="summary-content-area">
+                <!-- 表格视图 -->
+                <div id="summaryTableView" class="summary-view active">
+                    <div class="table-container">
+                        <table class="summary-table">
+                            <thead>
+                                <tr>
+                                    <th>Product ID</th>
+                                    <th>Product Name</th>
+                                    <th>Unit Price</th>
+                                    <th>Quantity Sold</th>
+                                    <th>Revenue</th>
+                                    <th>Sales Count</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summaryTableBody">
+                                <!-- Table content will be generated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Cards View -->
+                <div id="summaryCardsView" class="summary-view">
+                    <div class="cards-container" id="summaryCardsContainer">
+                        <!-- Card content will be generated dynamically -->
+                    </div>
+                </div>
+                
+                <!-- Chart View -->
+                <div id="summaryChartView" class="summary-view">
+                    <div class="chart-container">
+                        <div class="chart-tabs">
+                            <button class="chart-tab active" data-chart="bar">Bar Chart</button>
+                            <button class="chart-tab" data-chart="pie">Pie Chart</button>
+                            <button class="chart-tab" data-chart="line">Line Chart</button>
+                        </div>
+                        <div class="chart-content">
+                            <canvas id="summaryChart" width="800" height="400"></canvas>
+                        </div>
+                    </div>
+                </div>
             </div>
+            
+            <!-- Loading State -->
+            <div id="summaryLoadingState" class="loading-state">
+                <div class="loading-spinner">
+                    <i class="material-icons">hourglass_empty</i>
+                </div>
+                <div class="loading-text">Loading sales summary data...</div>
+            </div>
+            
+            </div> <!-- 结束可滚动内容容器 -->
         </div>
     </div>
     
@@ -602,6 +723,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="../js/firebase-config.js"></script>
     <script src="../js/database.js"></script>
     <script src="../js/network-monitor.js"></script>
