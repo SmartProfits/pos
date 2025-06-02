@@ -1258,10 +1258,8 @@ function renderProducts(searchQuery = '') {
             <td>${storeName}</td>
             <td>
                 <div class="inventory-action-buttons">
-                    <button class="icon-button update-stock-btn" title="Update Stock" data-id="${productId}"><i class="material-icons">edit</i></button>
-                    <button class="icon-button view-history-btn" title="Stock History" data-id="${productId}"><i class="material-icons">history</i></button>
-                    <button class="icon-button add-stock-btn" title="Add Stock" data-id="${productId}"><i class="material-icons">add_box</i></button>
-                    <button class="icon-button tester-btn" title="Test (-1)" data-id="${productId}"><i class="material-icons">restaurant</i></button>
+                    <button class="icon-button edit-btn" title="Edit Product" data-id="${productId}"><i class="material-icons">edit</i></button>
+                    <button class="icon-button delete-btn" title="Delete Product" data-id="${productId}"><i class="material-icons">delete</i></button>
                 </div>
             </td>
         `;
