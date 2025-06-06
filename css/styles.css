@@ -802,6 +802,9 @@ button:hover {
     border-radius: 8px;
     padding: 20px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+    padding-top: 24px;
 }
 
 .stat-card h3 {
@@ -4735,4 +4738,65 @@ body.simple-mode .hot-item-price {
     .product-detail-header h3 {
         font-size: 20px;
     }
-} 
+}
+
+/* 班次卡片样式 */
+.shift-color-bar {
+    height: 8px;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 5px 5px 0 0;
+}
+
+.view-details-btn {
+    color: #3498db;
+    background-color: transparent;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+    border: none;
+    cursor: pointer;
+}
+
+.view-details-btn:hover {
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+.view-details-btn .material-icons {
+    font-size: 20px;
+}
+
+/* 班次标识样式 */
+.shift-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #fff;
+    width: fit-content;
+}
+
+.shift-badge-1 {
+    background: linear-gradient(to right, #FFC107, #FF9800);
+}
+
+.shift-badge-2 {
+    background: linear-gradient(to right, #000000, #673AB7);
+    color: white;
+}
+
+.shift-badge-unknown {
+    background-color: #ccc;
+    color: #333;
+}

@@ -719,13 +719,14 @@ function loadAllStoresData(date) {
                     const allStats = {};
                     
                     results.forEach(result => {
-                        // 处理销售数据 - 加入store_id
+                        // 处理销售数据 - 加入store_id和cashierShift
                         const salesWithStoreId = {};
                         Object.keys(result.sales).forEach(saleId => {
                             if (result.sales[saleId]) {
                                 salesWithStoreId[saleId] = {
                                     ...result.sales[saleId],
-                                    store_id: result.sales[saleId].store_id || result.storeId
+                                    store_id: result.sales[saleId].store_id || result.storeId,
+                                    cashierShift: result.sales[saleId].cashierShift || "未知班次"
                                 };
                             }
                         });
@@ -783,13 +784,14 @@ function loadSingleStoreData(storeId, date) {
             const formattedStats = {};
             formattedStats[storeId] = stats;
             
-            // 确保销售记录有store_id
+            // 确保销售记录有store_id和cashierShift
             const salesWithStoreId = {};
             Object.keys(sales).forEach(saleId => {
                 if (sales[saleId]) {
                     salesWithStoreId[saleId] = {
                         ...sales[saleId],
-                        store_id: sales[saleId].store_id || storeId
+                        store_id: sales[saleId].store_id || storeId,
+                        cashierShift: sales[saleId].cashierShift || "未知班次"
                     };
                 }
             });
@@ -799,9 +801,9 @@ function loadSingleStoreData(storeId, date) {
             renderSaleDetails(salesWithStoreId);
             })
             .catch(error => {
-                console.error('Failed to load statistics data:', error);
-                statsContainer.innerHTML = '<div class="error"><i class="material-icons">error</i> Failed to load statistics data</div>';
-                saleDetailsBody.innerHTML = '<tr><td colspan="7" class="error"><i class="material-icons">error</i> Failed to load sales details</td></tr>';
+                            console.error('Failed to load statistics data:', error);
+            statsContainer.innerHTML = '<div class="error"><i class="material-icons">error</i> Failed to load statistics data</div>';
+            saleDetailsBody.innerHTML = '<tr><td colspan="8" class="error"><i class="material-icons">error</i> Failed to load sales details</td></tr>';
             });
     }
 
@@ -809,18 +811,37 @@ function loadSingleStoreData(storeId, date) {
 function calculateStatsFromSales(sales) {
     let totalSales = 0;
     let transactionCount = 0;
+    let firstShiftSales = 0;
+    let firstShiftTransactions = 0;
+    let secondShiftSales = 0;
+    let secondShiftTransactions = 0;
     
-    // 计算总销售额和交易数
+    // 计算总销售额和交易数，以及各班次销售数据
     Object.keys(sales).forEach(saleId => {
         if (sales[saleId]) {
-            totalSales += Number(sales[saleId].total_amount || 0);
+            const saleAmount = Number(sales[saleId].total_amount || 0);
+            totalSales += saleAmount;
             transactionCount++;
+            
+            // 根据班次统计数据
+            const shift = sales[saleId].cashierShift || "";
+            if (shift.includes("1st Shift")) {
+                firstShiftSales += saleAmount;
+                firstShiftTransactions++;
+            } else if (shift.includes("2nd Shift")) {
+                secondShiftSales += saleAmount;
+                secondShiftTransactions++;
+            }
         }
     });
     
     return {
         total_sales: totalSales,
-        transaction_count: transactionCount
+        transaction_count: transactionCount,
+        first_shift_sales: firstShiftSales,
+        first_shift_transactions: firstShiftTransactions,
+        second_shift_sales: secondShiftSales,
+        second_shift_transactions: secondShiftTransactions
     };
 }
 
@@ -874,6 +895,10 @@ function renderStats(salesData, isAllStores) {
     // 计算总销售额和总交易数
     let totalSales = 0;
     let totalTransactions = 0;
+    let firstShiftSales = 0;
+    let firstShiftTransactions = 0;
+    let secondShiftSales = 0;
+    let secondShiftTransactions = 0;
     
     Object.keys(salesData).forEach(storeId => {
         const storeData = salesData[storeId];
@@ -881,28 +906,53 @@ function renderStats(salesData, isAllStores) {
             // 确保数值正确转换
             totalSales += parseFloat(storeData.total_sales) || 0;
             totalTransactions += parseInt(storeData.transaction_count) || 0;
+            
+            // 如果有班次数据，累加班次销售额
+            if (!isAllStores) {
+                firstShiftSales += parseFloat(storeData.first_shift_sales) || 0;
+                firstShiftTransactions += parseInt(storeData.first_shift_transactions) || 0;
+                secondShiftSales += parseFloat(storeData.second_shift_sales) || 0;
+                secondShiftTransactions += parseInt(storeData.second_shift_transactions) || 0;
+            }
         }
     });
     
     console.log("Total sales calculated:", totalSales, "from data:", salesData);
     
-    // 创建总销售额统计卡片
-    const totalSalesCard = document.createElement('div');
-    totalSalesCard.className = 'stat-card';
-    totalSalesCard.innerHTML = `
+    // 创建合并的总销售额和交易数统计卡片
+    const totalStatsCard = document.createElement('div');
+    totalStatsCard.className = 'stat-card';
+    totalStatsCard.innerHTML = `
         <h3>Total Sales</h3>
         <div class="stat-value">RM${totalSales.toFixed(2)}</div>
+        <div class="stat-subtitle">Total Transactions: ${totalTransactions}</div>
     `;
-    statsContainer.appendChild(totalSalesCard);
+    statsContainer.appendChild(totalStatsCard);
     
-    // 创建总交易数统计卡片
-    const totalTransactionsCard = document.createElement('div');
-    totalTransactionsCard.className = 'stat-card';
-    totalTransactionsCard.innerHTML = `
-        <h3>Total Transactions</h3>
-        <div class="stat-value">${totalTransactions}</div>
-    `;
-    statsContainer.appendChild(totalTransactionsCard);
+    // 为特定店铺显示班次销售统计（仅当不是"all stores"视图时）
+    if (!isAllStores) {
+        // 创建1st Shift统计卡片
+        const firstShiftCard = document.createElement('div');
+        firstShiftCard.className = 'stat-card';
+        firstShiftCard.innerHTML = `
+            <div class="shift-color-bar" style="background: linear-gradient(to right, #FFC107, #FF9800);"></div>
+            <h3>1st Shift Sales</h3>
+            <div class="stat-value">RM${firstShiftSales.toFixed(2)}</div>
+            <div class="stat-subtitle">Transactions: ${firstShiftTransactions}</div>
+        `;
+        statsContainer.appendChild(firstShiftCard);
+        
+        // 创建2nd Shift统计卡片
+        const secondShiftCard = document.createElement('div');
+        secondShiftCard.className = 'stat-card';
+        secondShiftCard.innerHTML = `
+            <div class="shift-color-bar" style="background: linear-gradient(to right, #000000, #673AB7);"></div>
+            <h3>2nd Shift Sales</h3>
+            <div class="stat-value">RM${secondShiftSales.toFixed(2)}</div>
+            <div class="stat-subtitle">Transactions: ${secondShiftTransactions}</div>
+        `;
+        statsContainer.appendChild(secondShiftCard);
+    }
     
     // 如果是查看所有店铺，还显示各店铺的销售额
     if (isAllStores) {
@@ -969,7 +1019,7 @@ function loadAllStoresSaleDetails(date) {
         })
         .catch(error => {
             console.error('Failed to load sales details:', error);
-            saleDetailsBody.innerHTML = '<tr><td colspan="7" class="error"><i class="material-icons">error</i> Failed to load sales details</td></tr>';
+            saleDetailsBody.innerHTML = '<tr><td colspan="8" class="error"><i class="material-icons">error</i> Failed to load sales details</td></tr>';
         });
 }
 
@@ -981,7 +1031,7 @@ function loadStoreSaleDetails(storeId, date) {
         })
         .catch(error => {
             console.error('Failed to load sales details:', error);
-            saleDetailsBody.innerHTML = '<tr><td colspan="7" class="error"><i class="material-icons">error</i> Failed to load sales details</td></tr>';
+            saleDetailsBody.innerHTML = '<tr><td colspan="8" class="error"><i class="material-icons">error</i> Failed to load sales details</td></tr>';
         });
 }
 
@@ -990,8 +1040,8 @@ function renderSaleDetails(sales) {
     saleDetailsBody.innerHTML = '';
     
     if (Object.keys(sales).length === 0) {
-        saleDetailsBody.innerHTML = '<tr><td colspan="7" class="no-data"><i class="material-icons">info</i> No sales data available</td></tr>';
-        return;
+                    saleDetailsBody.innerHTML = '<tr><td colspan="8" class="no-data"><i class="material-icons">info</i> No sales data available</td></tr>';
+            return;
     }
     
     // 按时间排序，最新的在前面
@@ -1004,6 +1054,7 @@ function renderSaleDetails(sales) {
         const storeName = stores[sale.store_id]?.name || sale.store_id;
         const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0);
         const cashierName = sale.cashierName || 'N/A';
+        const shiftName = sale.cashierShift || 'N/A';
         
         // 计算折扣信息的显示
         let discountInfo = '';
@@ -1015,15 +1066,24 @@ function renderSaleDetails(sales) {
             </span>`;
         }
         
+        // 确定班次样式类
+        let shiftClass = 'shift-badge-unknown';
+        if (shiftName.includes('1st Shift')) {
+            shiftClass = 'shift-badge-1';
+        } else if (shiftName.includes('2nd Shift')) {
+            shiftClass = 'shift-badge-2';
+        }
+        
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${sale.billNumber || 'N/A'}</td>
             <td>${storeName}</td>
             <td>${sale.timestamp}</td>
             <td>${cashierName}</td>
+            <td><div class="shift-badge ${shiftClass}">${shiftName}</div></td>
             <td>${itemCount}</td>
             <td>RM${sale.total_amount.toFixed(2)}${discountInfo}</td>
-            <td><button class="view-details-btn" data-id="${saleId}">View</button></td>
+            <td><button class="view-details-btn icon-button" data-id="${saleId}" title="查看详情"><i class="material-icons">visibility</i></button></td>
         `;
         
         saleDetailsBody.appendChild(row);
@@ -1048,6 +1108,24 @@ function showSaleDetails(sale) {
     document.getElementById('sale-detail-store').textContent = storeName;
     document.getElementById('sale-detail-date').textContent = sale.timestamp;
     document.getElementById('sale-detail-cashier').textContent = sale.cashierName || 'N/A';
+    // 添加班次信息
+    const shiftName = sale.cashierShift || 'N/A';
+    const shiftElement = document.getElementById('sale-detail-shift');
+    
+    // 确定班次样式类
+    let shiftClass = 'shift-badge-unknown';
+    if (shiftName.includes('1st Shift')) {
+        shiftClass = 'shift-badge-1';
+    } else if (shiftName.includes('2nd Shift')) {
+        shiftClass = 'shift-badge-2';
+    }
+    
+    // 应用样式并设置内容
+    shiftElement.innerHTML = '';
+    const shiftBadge = document.createElement('div');
+    shiftBadge.className = `shift-badge ${shiftClass}`;
+    shiftBadge.textContent = shiftName;
+    shiftElement.appendChild(shiftBadge);
     
     // 渲染商品列表
     const detailsBody = document.getElementById('sale-details-items');
