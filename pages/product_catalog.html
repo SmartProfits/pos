@@ -7,14 +7,78 @@
     <link rel="stylesheet" href="../css/styles.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        .pos-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sidebar {
+            min-width: 250px;
+            height: 100vh;
+        }
+        .content {
+            flex: 1;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .store-info {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .store-logo {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .store-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .store-title {
+            text-align: center;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        .store-title h2 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            color: white;
+        }
+        .store-details {
+            width: 100%;
+        }
+    </style>
 </head>
 <body>
     <div class="pos-container">
         <div class="sidebar">
             <div class="store-info">
-                <h2>Product Catalog</h2>
+                <div class="store-logo">
+                    <img src="../icons/pos.png" alt="SmartProfits Logo">
+                </div>
+                <div class="store-title">
+                    <h2>SmartProfits</h2>
+                </div>
+                <div class="store-details">
                 <p id="storeName">Store: </p>
                 <p id="userName">User: </p>
+                </div>
             </div>
             <div class="nav-menu">
                 <div class="nav-item" id="backButton" onclick="location.href='admin.html'"><i class="material-icons">arrow_back</i> Back to Admin</div>

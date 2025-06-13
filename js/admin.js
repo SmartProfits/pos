@@ -136,16 +136,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(isAdmin => {
                     if (isAdmin) {
                         console.log("管理员用户已登录:", user.email);
-                        document.getElementById('adminName').textContent = `Admin: ${user.email}`;
+                        // 更新管理员信息显示
+                        document.getElementById('adminEmail').textContent = user.email;
                         
-                        // 检查是否是超级管理员，以决定是否显示特定功能
-                        checkSuperAdminStatus(user.uid)
-                            .then(isSuperAdmin => {
-                                if (isSuperAdmin) {
+                        // 获取并显示用户名
+                        getUserInfo(user.uid).then(userInfo => {
+                            if (userInfo && userInfo.name) {
+                                document.getElementById('adminName').textContent = userInfo.name;
+                            } else {
+                                // 如果没有设置名字，使用邮箱名作为默认
+                                document.getElementById('adminName').textContent = user.email.split('@')[0];
+                            }
+                        });
+                        
+                        // 获取角色并显示
+                        getUserRole(user.uid).then(role => {
+                            let roleDisplay = 'Admin';
+                            if (role === 'sadmin') {
+                                roleDisplay = 'Super Admin';
                                     // 如果是超级管理员，添加特殊类以显示超级管理员专用功能
                                     document.body.classList.add('is-sadmin');
                                     console.log('超级管理员登录，启用特殊功能');
                                 }
+                            document.getElementById('adminRole').textContent = roleDisplay;
+                            
+                            // 根据用户角色设置菜单项可见性
+                            if (role === 'admin') {
+                                // 对于普通管理员，隐藏 stores 和 users 菜单
+                                const storesNavItem = document.querySelector('.nav-item[data-view="stores"]');
+                                const usersNavItem = document.querySelector('.nav-item[data-view="users"]');
+                                
+                                if (storesNavItem) storesNavItem.style.display = 'none';
+                                if (usersNavItem) usersNavItem.style.display = 'none';
+                                
+                                console.log('已为 admin 角色隐藏 stores 和 users 菜单项');
+                            }
+                        });
+                        
+                        // 获取当日总销售额并计算星级评分
+                        const today = getCurrentDate();
+                        getAllStoresDailySales(today)
+                            .then(salesData => {
+                                updateSalesRateStars(salesData);
+                            })
+                            .catch(error => {
+                                console.error("获取销售数据失败:", error);
+                                document.getElementById('adminSalesRate').textContent = "N/A";
                             });
                         
                         // 加载数据
@@ -162,8 +198,60 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// 获取用户信息
+function getUserInfo(userId) {
+    return database.ref(`users/${userId}`).once('value')
+        .then(snapshot => {
+            return snapshot.val();
+        })
+        .catch(error => {
+            console.error('获取用户信息出错:', error);
+            return null;
+        });
+}
+
+// 更新销售额星级评分
+function updateSalesRateStars(salesData) {
+    // 计算总销售额
+    let totalSales = 0;
+    
+    // 遍历所有店铺的销售额
+    Object.keys(salesData).forEach(storeId => {
+        const storeStats = salesData[storeId] || {};
+        totalSales += parseFloat(storeStats.total_sales) || 0;
+    });
+    
+    // 计算星星数量（每10000销售额一颗星，最多5颗星）
+    let starCount = Math.floor(totalSales / 10000);
+    starCount = Math.min(Math.max(starCount, 0), 5); // 限制在0-5之间
+    
+    // 生成星星HTML，第一个星星前面添加一个空格
+    let starsHtml = '&nbsp;'; // 添加空格
+    
+    for (let i = 0; i < starCount; i++) {
+        starsHtml += '<i class="material-icons">star</i>';
+    }
+    
+    // 如果没有星星，显示一个空星星
+    if (starCount === 0) {
+        starsHtml = '&nbsp;<i class="material-icons">star_border</i>';
+    }
+    
+    // 更新显示
+    document.getElementById('adminSalesRate').innerHTML = starsHtml;
+}
+
 // 初始化事件监听器
 function initEventListeners() {
+    // 添加导航项点击事件处理
+    document.querySelectorAll('.nav-item').forEach(item => {
+        if (item.dataset.view) {
+            item.addEventListener('click', () => {
+                changeView(item.dataset.view);
+            });
+        }
+    });
+    
     // 导航菜单切换视图
     navItems.forEach(item => {
         item.addEventListener('click', () => {
@@ -302,6 +390,18 @@ function initEventListeners() {
     const refreshOnlineUsersBtn = document.getElementById('refreshOnlineUsersBtn');
     if (refreshOnlineUsersBtn) {
         refreshOnlineUsersBtn.addEventListener('click', loadOnlineUsers);
+    }
+    
+    // 添加编辑用户表单的提交事件处理
+    const editUserForm = document.getElementById('editUserForm');
+    if (editUserForm) {
+        editUserForm.addEventListener('submit', handleEditUser);
+    }
+    
+    // 添加编辑用户角色变更时的店铺选择项切换
+    const editUserRole = document.getElementById('editUserRole');
+    if (editUserRole) {
+        editUserRole.addEventListener('change', toggleEditStoreSelection);
     }
 }
 
@@ -890,6 +990,11 @@ function renderStats(salesData, isAllStores) {
     if (!salesData || Object.keys(salesData).length === 0) {
         statsContainer.innerHTML = '<div class="no-data"><i class="material-icons">info</i> No sales data available</div>';
         return;
+    }
+    
+    // 如果是所有店铺视图，更新销售评级
+    if (isAllStores) {
+        updateSalesRateStars(salesData);
     }
     
     // 计算总销售额和总交易数
@@ -1549,7 +1654,7 @@ function loadUsers() {
         })
         .catch(error => {
             console.error('Failed to load users:', error);
-            usersTableBody.innerHTML = '<tr><td colspan="5" class="error"><i class="material-icons">error</i> Failed to load users</td></tr>';
+            usersTableBody.innerHTML = '<tr><td colspan="6" class="no-data"><i class="material-icons">info</i> No user data available</td></tr>';
         });
 }
 
@@ -1558,12 +1663,13 @@ function renderUsers() {
     usersTableBody.innerHTML = '';
     
     if (Object.keys(users).length === 0) {
-        usersTableBody.innerHTML = '<tr><td colspan="5" class="no-data"><i class="material-icons">info</i> No user data available</td></tr>';
+        usersTableBody.innerHTML = '<tr><td colspan="6" class="no-data"><i class="material-icons">info</i> No user data available</td></tr>';
         return;
     }
     
     Object.keys(users).forEach(userId => {
         const user = users[userId];
+        const userName = user.name || user.email.split('@')[0]; // 如果没有名字，使用邮箱名作为默认显示
         const storeName = user.store_id ? (stores[user.store_id]?.name || user.store_id) : '-';
         let roleName;
         if (user.role === 'admin') {
@@ -1577,11 +1683,13 @@ function renderUsers() {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${userId}</td>
+            <td>${userName}</td>
             <td>${user.email}</td>
             <td>${roleName}</td>
             <td>${storeName}</td>
             <td>
                 <div class="action-buttons">
+                    <button class="edit-user-btn icon-button" data-id="${userId}" title="Edit User"><i class="material-icons">edit</i></button>
                     <button class="reset-pwd-btn icon-button" data-id="${userId}" title="Reset Password"><i class="material-icons">lock_reset</i></button>
                     <button class="delete-btn icon-button" data-id="${userId}" title="Delete"><i class="material-icons">delete</i></button>
                 </div>
@@ -1592,6 +1700,10 @@ function renderUsers() {
     });
     
     // 添加事件监听器到按钮
+    document.querySelectorAll('#usersTableBody .edit-user-btn').forEach(btn => {
+        btn.addEventListener('click', () => editUser(btn.dataset.id));
+    });
+    
     document.querySelectorAll('#usersTableBody .reset-pwd-btn').forEach(btn => {
         btn.addEventListener('click', () => resetUserPassword(btn.dataset.id));
     });
@@ -1606,17 +1718,19 @@ function handleAddUser(e) {
     e.preventDefault();
     
     const emailInput = document.getElementById('userEmail');
+    const nameInput = document.getElementById('userName');
     const passwordInput = document.getElementById('userPassword');
     const roleSelect = document.getElementById('userRole');
     const storeIdSelect = document.getElementById('userStoreId');
     
     const email = emailInput.value.trim();
+    const name = nameInput.value.trim();
     const password = passwordInput.value;
     const role = roleSelect.value;
     const storeId = role === 'staff' ? storeIdSelect.value : '';
     
     if (!email || !password || !role || (role === 'staff' && !storeId)) {
-        alert('请填写所有必填字段');
+        alert('Please fill in all required fields');
         return;
     }
     
@@ -1625,20 +1739,20 @@ function handleAddUser(e) {
     if (user) {
         getUserRole(user.uid).then(currentUserRole => {
             if (role === 'sadmin' && currentUserRole !== 'sadmin') {
-                alert('只有超级管理员可以添加超级管理员账户');
+                alert('Only Super Admin can add Super Admin accounts');
                 return;
             }
             
             // 继续创建用户
-            createNewUser(email, password, role, storeId);
+            createNewUser(email, name, password, role, storeId);
         });
     } else {
-        alert('您需要登录才能添加用户');
+        alert('You need to be logged in to add users');
     }
 }
 
 // 创建新用户
-function createNewUser(email, password, role, storeId) {
+function createNewUser(email, name, password, role, storeId) {
     // 创建用户
     // 注意：在实际应用中，应该使用 Firebase Admin SDK 或后端API创建用户
     // 此处简化为前端直接创建用户，不推荐在生产环境中使用
@@ -1646,9 +1760,10 @@ function createNewUser(email, password, role, storeId) {
         .then(userCredential => {
             const userId = userCredential.user.uid;
             
-            // 保存用户角色和店铺信息
+            // 保存用户角色、姓名和店铺信息
             return database.ref(`users/${userId}`).set({
                 email,
+                name: name || email.split('@')[0], // 如果没有提供名字，使用邮箱名作为默认名字
                 role,
                 store_id: storeId
             });
@@ -1656,11 +1771,11 @@ function createNewUser(email, password, role, storeId) {
         .then(() => {
             hideModal(addUserModal);
             loadUsers();
-            alert('用户创建成功！');
+            alert('User created successfully!');
         })
         .catch(error => {
-            console.error('创建用户失败:', error);
-            alert(`创建用户失败: ${error.message}`);
+            console.error('Failed to create user:', error);
+            alert(`Failed to create user: ${error.message}`);
         });
 }
 
@@ -2849,6 +2964,25 @@ function getUserRole(userId) {
         });
 }
 
+// 获取用户最后登录时间
+function getLastLoginTime(userId) {
+    return database.ref(`users/${userId}/last_login`).once('value')
+        .then(snapshot => {
+            return snapshot.val();
+        })
+        .catch(error => {
+            console.error('获取最后登录时间出错:', error);
+            return null;
+        });
+}
+
+// 格式化时间为 HH:MM 格式
+function formatTime(date) {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
 // 初始化视图和数据
 function init() {
     console.log("初始化应用...");
@@ -2856,24 +2990,6 @@ function init() {
     // 更新时间
     updateDateTime();
     setInterval(updateDateTime, 60000); // 每分钟更新一次
-    
-    // 获取当前用户并设置权限
-    const user = firebase.auth().currentUser;
-    if (user) {
-        getUserRole(user.uid).then(role => {
-            // 根据用户角色设置菜单项可见性
-            if (role === 'admin') {
-                // 对于普通管理员，隐藏 stores 和 users 菜单
-                const storesNavItem = document.querySelector('.nav-item[data-view="stores"]');
-                const usersNavItem = document.querySelector('.nav-item[data-view="users"]');
-                
-                if (storesNavItem) storesNavItem.style.display = 'none';
-                if (usersNavItem) usersNavItem.style.display = 'none';
-                
-                console.log('已为 admin 角色隐藏 stores 和 users 菜单项');
-            }
-        });
-    }
     
     // 初始化事件监听器
     initEventListeners();
@@ -4208,5 +4324,127 @@ function showProductHeatmapDetails(product) {
         if (e.target === modal) {
             document.body.removeChild(modal);
         }
+    });
+}
+
+// 编辑用户
+function editUser(userId) {
+    const user = users[userId];
+    if (!user) return;
+    
+    // 检查当前用户是否有权限编辑
+    const currentUser = firebase.auth().currentUser;
+    if (!currentUser) return;
+    
+    getUserRole(currentUser.uid).then(currentUserRole => {
+        // 只有超级管理员可以编辑任何用户，或者用户可以编辑自己的资料
+        if (currentUserRole !== 'sadmin' && currentUser.uid !== userId) {
+            alert('Only Super Admin can edit other users');
+            return;
+        }
+        
+        // 填充表单
+        document.getElementById('editUserId').value = userId;
+        document.getElementById('editUserEmail').value = user.email || '';
+        document.getElementById('editUserName').value = user.name || '';
+        document.getElementById('editUserRole').value = user.role || 'staff';
+        
+        // 加载店铺选项
+        const editUserStoreId = document.getElementById('editUserStoreId');
+        editUserStoreId.innerHTML = '<option value="">Select Store</option>';
+        
+        Object.keys(stores).forEach(storeId => {
+            const option = document.createElement('option');
+            option.value = storeId;
+            option.textContent = stores[storeId].name || storeId;
+            if (user.store_id === storeId) {
+                option.selected = true;
+            }
+            editUserStoreId.appendChild(option);
+        });
+        
+        // 根据角色显示或隐藏商店选择
+        toggleEditStoreSelection();
+        
+        // 显示编辑模态框
+        showModal(document.getElementById('editUserModal'));
+    });
+}
+
+// 切换编辑用户角色时显示或隐藏店铺选择
+function toggleEditStoreSelection() {
+    const editUserRole = document.getElementById('editUserRole');
+    const editUserStoreContainer = document.getElementById('editUserStoreContainer');
+    const editUserStoreId = document.getElementById('editUserStoreId');
+    
+    if (editUserRole.value === 'admin') {
+        editUserStoreContainer.style.display = 'none';
+        editUserStoreId.required = false;
+    } else {
+        editUserStoreContainer.style.display = 'block';
+        editUserStoreId.required = true;
+    }
+}
+
+// 处理编辑用户表单提交
+function handleEditUser(e) {
+    e.preventDefault();
+    
+    const userId = document.getElementById('editUserId').value;
+    const name = document.getElementById('editUserName').value.trim();
+    const role = document.getElementById('editUserRole').value;
+    const storeId = role === 'staff' ? document.getElementById('editUserStoreId').value : '';
+    
+    if ((role === 'staff' && !storeId)) {
+        alert('Please select a store for staff user');
+        return;
+    }
+    
+    // 获取当前用户角色
+    const currentUser = firebase.auth().currentUser;
+    if (!currentUser) {
+        alert('You need to be logged in to edit users');
+        return;
+    }
+    
+    getUserRole(currentUser.uid).then(currentUserRole => {
+        // 只有超级管理员可以更改用户角色为超级管理员
+        if (role === 'sadmin' && currentUserRole !== 'sadmin') {
+            alert('Only Super Admin can assign Super Admin role');
+            return;
+        }
+        
+        // 检查是否在尝试降级唯一的超级管理员
+        if (users[userId].role === 'sadmin' && role !== 'sadmin') {
+            // 计算系统中的超级管理员数量
+            const sadminCount = Object.values(users).filter(u => u.role === 'sadmin').length;
+            
+            if (sadminCount <= 1) {
+                alert('Cannot change role. System requires at least one Super Admin');
+                return;
+            }
+        }
+        
+        // 更新用户信息
+        const updates = {
+            name: name,
+            role: role
+        };
+        
+        if (role === 'staff') {
+            updates.store_id = storeId;
+        }
+        
+        // 保存更新
+        database.ref(`users/${userId}`).update(updates)
+            .then(() => {
+                hideModal(document.getElementById('editUserModal'));
+                loadUsers();  // 重新加载用户列表
+                alert('User updated successfully');
+            })
+            .catch(error => {
+                console.error('Failed to update user:', error);
+                alert(`Failed to update user: ${error.message}`);
+            });
     });
 }

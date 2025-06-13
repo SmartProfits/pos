@@ -5,6 +5,149 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>POS System - Sales</title>
     <link rel="stylesheet" href="../css/styles.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        .pos-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sidebar {
+            min-width: 250px;
+            height: 100vh;
+        }
+        .content {
+            flex: 1;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .sidebar-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .store-info {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .store-logo {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .store-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .store-title {
+            text-align: center;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        .store-title h2 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            color: white;
+        }
+        .store-details {
+            width: 100%;
+            font-size: 14px;
+        }
+        .store-details p {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+        }
+        .store-details .material-icons {
+            font-size: 16px;
+            margin-right: 5px;
+        }
+        .shift-history-container {
+            margin-top: 12px;
+            width: 100%;
+        }
+        
+        .modern-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 13px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s ease;
+            gap: 6px;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .modern-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .modern-btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        
+        .modern-btn i {
+            font-size: 16px;
+        }
+        
+        /* 1st Shift Cashier Name Style */
+        .first-shift-name {
+            background: linear-gradient(to right, #ffcc00, #ff9900);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 600;
+            animation: first-shift-blink 2s infinite;
+        }
+        
+        @keyframes first-shift-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        /* 2nd Shift Cashier Name Style */
+        .second-shift-name {
+            background: linear-gradient(to right, #9966cc, #888888);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 600;
+            animation: second-shift-wave 3s infinite;
+        }
+        
+        @keyframes second-shift-wave {
+            0% { transform: translateY(0); }
+            25% { transform: translateY(-3px); }
+            50% { transform: translateY(0); }
+            75% { transform: translateY(3px); }
+            100% { transform: translateY(0); }
+        }
+    </style>
 </head>
 <body>
     <!-- 收银员姓名输入模态框 -->
@@ -43,12 +186,23 @@
             </div>
             <div class="sidebar-content">
                 <div class="store-info">
-                    <h2 id="storeName">Store Name</h2>
-                    <p id="storeId">Store ID: </p>
-                    <p id="staffName">Staff: </p>
-                    <p id="currentCashier"><i class="material-icons">person</i> Cashier: <span id="cashierNameDisplay">Not set</span> <button id="changeCashierBtn" class="small-btn"><i class="material-icons">edit</i></button></p>
-                    <p id="currentShift"><i class="material-icons">schedule</i> Shift: <span id="cashierShiftDisplay">Not set</span></p>
-                    <button id="viewCashierHistoryBtn" class="sidebar-btn"><i class="material-icons">history</i> View Shift History</button>
+                    <div class="store-logo">
+                        <img src="../icons/pos.png" alt="SmartProfits Logo">
+                    </div>
+                    <div class="store-title">
+                        <h2>SmartProfits</h2>
+                    </div>
+                    <div class="store-details">
+                        <p><i class="material-icons">store</i><span id="userName">User</span></p>
+                        <p id="currentCashier"><i class="material-icons">person</i> Cashier: <span id="cashierNameDisplay" style="margin-left: 4px;">Not set</span> <button id="changeCashierBtn" class="small-btn"><i class="material-icons">edit</i></button></p>
+                        <p id="currentShift"><i class="material-icons">schedule</i> On Duty: <span id="cashierShiftDisplay" style="margin-left: 4px;">Not set</span></p>
+                        <div class="shift-history-container">
+                            <button id="viewCashierHistoryBtn" class="modern-btn">
+                                <i class="material-icons">history</i>
+                                <span>Shift History</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="nav-menu">
                     <div class="nav-item active" data-view="sales"><i class="material-icons">point_of_sale</i> <span class="nav-text">Sales</span></div>
@@ -406,7 +560,7 @@
                 </div>
                 <div class="form-group">
                     <label for="productQuantity"><i class="material-icons">inventory_2</i> Stock:</label>
-                    <input type="number" id="productQuantity" min="0" value="0">
+                    <input type="number" id="productQuantity" min="0" value="0" step="1">
                 </div>
                 <div class="form-group">
                     <label for="productCategory"><i class="material-icons">category</i> Category:</label>
@@ -414,7 +568,7 @@
                 </div>
                 <div class="form-group">
                     <label for="saleUnit"><i class="material-icons">straighten</i> Sale Unit:</label>
-                    <select id="saleUnit" required>
+                    <select id="saleUnit" required onchange="updateStockInputStep()">
                         <option value="piece">By Piece/Quantity</option>
                         <option value="weight">By Weight (kg)</option>
                     </select>
@@ -470,5 +624,57 @@
     <script src="../js/database.js"></script>
     <script src="../js/network-monitor.js"></script>
     <script src="../js/pos.js"></script>
+    <script>
+        // 根据班次更新收银员名字显示样式
+        document.addEventListener('DOMContentLoaded', function() {
+            const cashierNameForm = document.getElementById('cashierNameForm');
+            const cashierNameDisplay = document.getElementById('cashierNameDisplay');
+            const cashierShiftDisplay = document.getElementById('cashierShiftDisplay');
+            
+            // 从本地存储中获取当前班次信息
+            function updateCashierNameStyle() {
+                const currentShift = localStorage.getItem('cashierShift');
+                
+                // 移除所有样式类
+                cashierNameDisplay.classList.remove('first-shift-name', 'second-shift-name');
+                
+                // 根据班次添加相应的样式类
+                if (currentShift === '1st Shift') {
+                    cashierNameDisplay.classList.add('first-shift-name');
+                } else if (currentShift === '2nd Shift') {
+                    cashierNameDisplay.classList.add('second-shift-name');
+                }
+            }
+            
+            // 初始化时应用样式
+            updateCashierNameStyle();
+            
+            // 当提交收银员信息表单时
+            if (cashierNameForm) {
+                cashierNameForm.addEventListener('submit', function(e) {
+                    // 原有的表单处理逻辑会在pos.js中执行
+                    
+                    // 在表单提交后延迟一点应用样式，确保localStorage已更新
+                    setTimeout(updateCashierNameStyle, 100);
+                });
+            }
+            
+            // 监听本地存储变化
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'cashierShift' || e.key === 'cashierName') {
+                    updateCashierNameStyle();
+                }
+            });
+            
+            // 添加一个变更收银员按钮的事件监听器
+            const changeCashierBtn = document.getElementById('changeCashierBtn');
+            if (changeCashierBtn) {
+                changeCashierBtn.addEventListener('click', function() {
+                    // 按钮点击后延迟应用样式，确保modal处理完成
+                    setTimeout(updateCashierNameStyle, 500);
+                });
+            }
+        });
+    </script>
 </body>
 </html> 
