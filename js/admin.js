@@ -48,7 +48,6 @@ const currentDateTime = document.getElementById('currentDateTime');
 const viewTitle = document.getElementById('viewTitle');
 const navItems = document.querySelectorAll('.nav-item');
 const views = document.querySelectorAll('.view');
-const storesSubmenu = document.getElementById('storesSubmenu');
 
 // 统计面板DOM元素
 const dateFilter = document.getElementById('dateFilter');
@@ -256,12 +255,6 @@ function initEventListeners() {
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             const targetView = item.dataset.view;
-            
-            // 当点击dashboard菜单项时，切换子菜单的展开/折叠状态
-            if (targetView === 'dashboard') {
-                toggleStoresSubmenu();
-            }
-            
             switchView(targetView);
         });
     });
@@ -541,10 +534,7 @@ function toggleStoreSelection() {
     }
 }
 
-// 切换店铺子菜单的展开/折叠状态
-function toggleStoresSubmenu() {
-    storesSubmenu.classList.toggle('expanded');
-}
+// 之前的店铺子菜单切换函数已被移除
 
 // 加载所有店铺
 function loadStores() {
@@ -553,7 +543,6 @@ function loadStores() {
             stores = storeData;
             renderStores();
             populateStoreDropdowns();
-            populateStoresSubmenu(); // 填充店铺子菜单
         })
         .catch(error => {
             console.error('Failed to load stores:', error);
@@ -631,10 +620,7 @@ function populateStoreDropdowns() {
     // 为销售仪表板添加店铺按钮
     populateStoreButtons();
     
-    // 填充店铺子菜单
-    populateStoresSubmenu();
-    
-    console.log("已填充所有下拉菜单、店铺按钮和子菜单");
+    console.log("已填充所有下拉菜单和店铺按钮");
 }
 
 // 填充店铺按钮
@@ -679,67 +665,7 @@ function populateStoreButtons() {
     }
 }
 
-// 填充店铺子菜单
-function populateStoresSubmenu() {
-    // 清空子菜单
-    storesSubmenu.innerHTML = '';
-    
-    // 添加"All Stores"选项
-    const allStoresItem = document.createElement('div');
-    allStoresItem.className = 'submenu-item';
-    if (selectedStoreInDashboard === null) {
-        allStoresItem.classList.add('active');
-    }
-    allStoresItem.innerHTML = '<i class="material-icons">store</i> All Stores';
-    allStoresItem.addEventListener('click', () => {
-        // 移除所有子菜单项的active类
-        document.querySelectorAll('.submenu-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        // 为当前项添加active类
-        allStoresItem.classList.add('active');
-        
-        // 更新当前选中的店铺
-        selectedStoreInDashboard = null;
-        selectedStoreId = 'all';
-        
-        // 更新页面标题并加载数据
-        viewTitle.textContent = 'Sales Dashboard - All Stores';
-        loadStats();
-    });
-    storesSubmenu.appendChild(allStoresItem);
-    
-    // 添加各个店铺选项
-    Object.keys(stores).forEach(storeId => {
-        const storeName = stores[storeId].name;
-        const storeItem = document.createElement('div');
-        storeItem.className = 'submenu-item';
-        if (selectedStoreInDashboard === storeId) {
-            storeItem.classList.add('active');
-        }
-        storeItem.innerHTML = `<i class="material-icons">storefront</i> ${storeName}`;
-        storeItem.addEventListener('click', () => {
-            // 移除所有子菜单项的active类
-            document.querySelectorAll('.submenu-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            // 为当前项添加active类
-            storeItem.classList.add('active');
-            
-            // 更新当前选中的店铺
-            selectedStoreInDashboard = storeId;
-            selectedStoreId = storeId;
-            
-            // 更新页面标题并加载数据
-            viewTitle.textContent = `Sales Dashboard - ${storeName}`;
-            loadStats();
-        });
-        storesSubmenu.appendChild(storeItem);
-    });
-    
-    // 默认展开子菜单
-    storesSubmenu.classList.add('expanded');
-}
+// 店铺子菜单功能已被移除
 
 // 加载销售统计数据
 function loadStats() {
@@ -4069,7 +3995,7 @@ function showAddStockModal(productId) {
     
     if (quantity === null) return; // 用户取消
     
-    const quantityNumber = parseInt(quantity);
+    const quantityNumber = parseFloat(quantity);
     if (isNaN(quantityNumber) || quantityNumber <= 0) {
         alert('Please enter a valid positive number');
         return;
