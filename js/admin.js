@@ -1400,7 +1400,7 @@ function handleAddProduct(e) {
     const productId = productIdInput.value.trim();
     const name = productNameInput.value.trim();
     const price = parseFloat(productPriceInput.value);
-    const stock = parseInt(productQuantityInput.value) || 0; // 更名为stock
+    const stock = parseFloat(productQuantityInput.value) || 0; // 更名为stock
     const category = productCategoryInput.value.trim();
     const storeId = productStoreIdInput.value;
     
@@ -1451,7 +1451,7 @@ function editProduct(productId) {
                 </div>
                 <div class="form-group">
                     <label for="editProductStock"><i class="material-icons">inventory_2</i> Stock:</label>
-                    <input type="number" id="editProductStock" value="${product.stock !== undefined ? product.stock : (product.quantity || 0)}" min="0" required>
+                    <input type="number" id="editProductStock" value="${product.stock !== undefined ? product.stock : (product.quantity || 0)}" min="0" step="0.001" required>
                 </div>
                 <div class="form-group">
                     <label for="editProductCategory"><i class="material-icons">category</i> Category:</label>
@@ -1502,7 +1502,7 @@ function editProduct(productId) {
         
         const newName = document.getElementById('editProductName').value.trim();
         const newPrice = parseFloat(document.getElementById('editProductPrice').value);
-        const newStock = parseInt(document.getElementById('editProductStock').value) || 0;
+        const newStock = parseFloat(document.getElementById('editProductStock').value) || 0;
         const newCategory = document.getElementById('editProductCategory').value.trim();
         const newStoreId = document.getElementById('editProductStoreId').value;
         
@@ -2324,7 +2324,7 @@ function handleUpdateStock(e) {
     
     const productId = document.getElementById('updateProductId').value;
     const operation = document.getElementById('updateOperation').value;
-    const quantity = parseInt(document.getElementById('updateQuantity').value);
+    const quantity = parseFloat(document.getElementById('updateQuantity').value);
     const reasonSelect = document.getElementById('updateReason');
     const reason = reasonSelect.value === 'other' ? document.getElementById('otherReason').value : reasonSelect.options[reasonSelect.selectedIndex].text;
     const notes = document.getElementById('updateNotes').value;
