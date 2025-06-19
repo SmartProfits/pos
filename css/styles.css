@@ -4800,3 +4800,19 @@ body.simple-mode .hot-item-price {
     background-color: #ccc;
     color: #333;
 }
+
+/* 库存页面搜索框样式 */
+.inventory-search {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+.inventory-search:focus {
+    border-color: #26c6da;
+    box-shadow: 0 0 0 2px rgba(38, 198, 218, 0.1);
+}
