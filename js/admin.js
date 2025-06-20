@@ -260,7 +260,12 @@ function initEventListeners() {
     });
     
     // 刷新统计按钮
-    refreshStatsBtn.addEventListener('click', loadStats);
+    refreshStatsBtn.addEventListener('click', () => {
+        // 先清除缓存，然后重新加载数据
+        dataCache.clearCache();
+        console.log("缓存已清除，正在从Firebase重新加载数据...");
+        loadStats();
+    });
     
     // 查看销售汇总按钮
     viewSalesSummaryBtn.addEventListener('click', showSalesSummary);
