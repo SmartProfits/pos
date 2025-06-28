@@ -362,7 +362,7 @@ body {
 /* Store stats 三列卡片 */
 .stats-container {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
 
@@ -491,4 +491,19 @@ body {
 /* Datetime right alignment & colors */
 #currentDateTime{ text-align:right; }
 .ios-time{ color:var(--ios-primary); }
-.ios-date{ color:var(--ios-text-secondary); } 
+.ios-date{ color:var(--ios-text-secondary); }
+
+/* Store buttons flex-wrap */
+.store-buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.store-button{
+  flex:1 1 calc(50% - 8px);
+}
+
+/* Sales Details table: fit without horizontal scroll */
+.sale-details-container{ overflow-x:hidden; }
+#saleDetailsTable{ width:100%; table-layout:fixed; }
+#saleDetailsTable th, #saleDetailsTable td{ padding:8px 6px; font-size:13px; word-wrap:break-word; } 

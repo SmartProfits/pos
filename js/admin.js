@@ -2197,7 +2197,7 @@ function renderInventory(productsEntries) {
     // Clear card grid
     const cardGrid = document.getElementById('inventoryCardGrid');
     if (cardGrid) cardGrid.innerHTML = '';
-
+    
     productsEntries.forEach(([productId, product]) => {
         const storeName = stores[product.store_id]?.name || product.store_id;
         const stock = product.stock !== undefined ? product.stock : (product.quantity || 0);
@@ -2212,7 +2212,7 @@ function renderInventory(productsEntries) {
             statusClass = 'status-good';
             statusText = 'In Stock';
         }
-
+        
         const row = document.createElement('tr');
         row.innerHTML = `
             <td><input type="checkbox" class="inventory-select" data-id="${productId}"></td>
@@ -2258,11 +2258,11 @@ function renderInventory(productsEntries) {
     // After appending cards, re-bind listeners for buttons inside cards as well
     if (cardGrid) {
         cardGrid.querySelectorAll('.update-stock-btn').forEach(btn => {
-            btn.addEventListener('click', () => showUpdateStockModal(btn.dataset.id));
-        });
+        btn.addEventListener('click', () => showUpdateStockModal(btn.dataset.id));
+    });
         cardGrid.querySelectorAll('.view-history-btn').forEach(btn => {
-            btn.addEventListener('click', () => showStockHistory(btn.dataset.id));
-        });
+        btn.addEventListener('click', () => showStockHistory(btn.dataset.id));
+    });
     }
 }
 
