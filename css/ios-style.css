@@ -1,0 +1,494 @@
+:root {
+  --ios-primary: #007AFF; /* iOS 系统蓝 */
+  --ios-background: #F2F2F7; /* iOS 默认浅灰背景 */
+  --ios-card-bg: #FFFFFF; /* 卡片背景 */
+  --ios-text-primary: #000000;
+  --ios-text-secondary: rgba(60, 60, 67, 0.6);
+}
+
+/* 基础排版与背景 */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--ios-background);
+  color: var(--ios-text-primary);
+}
+
+/* -------------------- 侧边栏 -------------------- */
+.sidebar {
+  background: rgba(255, 255, 255, 0.72); /* 半透明磨砂 */
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(60, 60, 67, 0.29);
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.05);
+}
+
+.nav-menu {
+  padding: 8px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: var(--ios-text-primary);
+  cursor: pointer;
+  transition: background 0.25s;
+  font-weight: 500;
+}
+
+.nav-item.active,
+.nav-item:hover {
+  background: var(--ios-primary);
+  color: #ffffff;
+}
+
+.nav-item ion-icon {
+  font-size: 22px;
+  margin-right: 8px;
+}
+
+.nav-item span {
+  font-size: 15px;
+}
+
+/* -------------------- 顶部标题栏 -------------------- */
+.content .header {
+  padding: 24px 16px 8px;
+  backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.72);
+  position: relative !important;
+  top: auto;
+  z-index: 50;
+  border-bottom: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.content .header h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+/* 日期时间文本颜色调淡一点 */
+#currentDateTime {
+  font-size: 13px;
+  color: var(--ios-text-secondary);
+  text-align: right;
+}
+
+/* -------------------- 卡片 / 模块 -------------------- */
+.stats-container,
+.data-table-container,
+.inventory-table-container {
+  padding: 16px;
+  display: grid;
+  grid-gap: 16px;
+}
+
+.stat-card,
+.card,
+.modal-content {
+  background: var(--ios-card-bg);
+  border-radius: 20px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+}
+
+/* ================== Stat Card 字体适配 ================== */
+.stat-card h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.stat-card .stat-value {
+  font-size: 22px;
+  font-weight: 700;
+}
+.stat-card .stat-subtitle {
+  font-size: 12px;
+  color: var(--ios-text-secondary);
+}
+
+/* -------------------- 按钮 -------------------- */
+.action-button,
+.icon-button,
+.button-primary,
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ios-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.action-button:hover,
+.icon-button:hover,
+.button-primary:hover,
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.action-button:active,
+.icon-button:active,
+.button-primary:active,
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+/* -------------------- 表格 -------------------- */
+.table-container table,
+.summary-table,
+#saleDetailsTable,
+#storesTable,
+#productsTable,
+#usersTable,
+#inventoryTable,
+#onlineUsersTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px; /* 行间距，更像 iOS 卡片 */
+}
+
+.table-container th,
+.table-container td,
+.summary-table th,
+.summary-table td {
+  text-align: left;
+  padding: 12px 14px;
+}
+
+.table-container thead tr,
+.summary-table thead tr {
+  color: var(--ios-text-secondary);
+  font-size: 13px;
+  letter-spacing: 0.3px;
+}
+
+.table-container tbody tr,
+.summary-table tbody tr {
+  background: var(--ios-card-bg);
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* 圆角需在 table-row 内模拟，可通过 overflow */
+.table-container tbody tr td:first-child,
+.summary-table tbody tr td:first-child {
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
+}
+.table-container tbody tr td:last-child,
+.summary-table tbody tr td:last-child {
+  border-top-right-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+
+/* -------------------- 模态 -------------------- */
+.modal {
+  display: none; /* 默认隐藏，由脚本控制显示 */
+  position: fixed;
+  z-index: 100;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.modal-content {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* 关闭按钮 */
+.modal-content .close {
+  font-size: 24px;
+  color: var(--ios-text-secondary);
+  cursor: pointer;
+  float: right;
+}
+
+/* -------------------- 响应式：移动设备底部标签栏 -------------------- */
+@media (max-width: 768px) {
+  .sidebar {
+    display: none; /* 移动端隐藏侧边栏 */
+  }
+
+  .pos-container {
+    flex-direction: column;
+  }
+
+  /* 创建底部 tabBar 替代原侧边栏 */
+  .ios-tabbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    padding-bottom: env(safe-area-inset-bottom); /* iPhone X 底部安全区 */
+    background: rgba(255, 255, 255, 0.93);
+    backdrop-filter: blur(20px);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-top: 1px solid rgba(60, 60, 67, 0.29);
+    z-index: 60;
+  }
+
+  .ios-tabbar-item {
+    flex: 1;
+    text-align: center;
+    color: var(--ios-text-secondary);
+    font-size: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: color 0.25s;
+  }
+
+  .ios-tabbar-item ion-icon {
+    font-size: 32px; /* 更大图标 */
+  }
+
+  /* 激活指示条 */
+  .ios-tabbar-item.active::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 3px;
+    background: var(--ios-primary);
+    border-radius: 1.5px;
+  }
+
+  .ios-tabbar-item.active {
+    color: var(--ios-primary);
+  }
+
+  /* TabBar 文字调整 */
+  .ios-tabbar-item span {
+    display: block;
+    margin-top: 0px;
+    letter-spacing: 0.2px;
+    font-size: 10px;
+  }
+
+  /* 隐藏 Bill Number, Shift, Items 列 (第1,5,6 列) */
+  #saleDetailsTable thead th:nth-child(1),
+  #saleDetailsTable thead th:nth-child(5),
+  #saleDetailsTable thead th:nth-child(6),
+  #saleDetailsTable thead th:nth-child(8),
+  #saleDetailsTable tbody td:nth-child(1),
+  #saleDetailsTable tbody td:nth-child(5),
+  #saleDetailsTable tbody td:nth-child(6),
+  #saleDetailsTable tbody td:nth-child(8) {
+    display: none;
+  }
+  /* 调整单元格间距 */
+  #saleDetailsTable tbody td {
+    padding: 10px 8px;
+    font-size: 14px;
+  }
+
+  /* ================== Sales Details 恢复 eye 列 ================== */
+  #saleDetailsTable thead th:nth-child(8),
+  #saleDetailsTable tbody td:nth-child(8) {
+    display: table-cell !important;
+  }
+
+  /* ================== Inventory 移动端卡片布局 ================== */
+  /* 隐藏表头 */
+  #inventoryTable thead { display:none; }
+  /* 区块化 */
+  #inventoryTable, #inventoryTable tbody { display:block; width:100%; }
+  #inventoryTable tr { display:block; background: var(--ios-card-bg); border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,0.05); margin-bottom:12px; padding:8px; }
+  #inventoryTable td { display:flex; justify-content:space-between; padding:6px 8px; font-size:13px; }
+  /* 标签 */
+  #inventoryTable td:nth-child(3)::before { content:"Name"; }
+  #inventoryTable td:nth-child(4)::before { content:"Category"; }
+  #inventoryTable td:nth-child(5)::before { content:"Price"; }
+  #inventoryTable td:nth-child(6)::before { content:"Current Stock"; }
+  #inventoryTable td:nth-child(7)::before { content:"Status"; }
+  #inventoryTable td:nth-child(8)::before { content:"Store"; }
+}
+
+/* ================== Header 日期时间重新设计 ================== */
+.content .header #currentDateTime {
+  margin-top: 2px;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ios-text-secondary);
+}
+
+/* ---------- 其他辅助 ---------- */
+.material-icons {
+  vertical-align: middle;
+}
+
+/* ================== TabBar override 取消蓝底问题 ================== */
+.ios-tabbar .nav-item {
+  padding: 0 !important;
+  gap: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* ================== Store buttons 三列布局 ================== */
+.store-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.store-button {
+  width: 100%;
+}
+
+/* Store stats 三列卡片 */
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+/* ================== 隐藏动态标题 ================== */
+.content .header h1 {
+  display: none;
+}
+
+/* ================== TabBar active 颜色修正 ================== */
+.ios-tabbar .nav-item {
+  color: var(--ios-text-secondary);
+}
+.ios-tabbar .nav-item ion-icon {
+  color: inherit;
+}
+.ios-tabbar .nav-item.active {
+  color: var(--ios-primary) !important;
+  background: transparent !important;
+}
+.ios-tabbar .nav-item.active ion-icon {
+  color: var(--ios-primary) !important;
+}
+
+/* ================== Inventory 列隐藏 ================== */
+#inventoryTable thead th:nth-child(1),
+#inventoryTable thead th:nth-child(2),
+#inventoryTable thead th:nth-child(9),
+#inventoryTable tbody td:nth-child(1),
+#inventoryTable tbody td:nth-child(2),
+#inventoryTable tbody td:nth-child(9) {
+  display: none;
+}
+
+/* ================== TabBar 取消顶部蓝线并加入按压动画 ================== */
+.ios-tabbar-item.active::before { display:none !important; }
+.ios-tabbar-item { transition: color 0.25s, transform 0.15s; }
+.ios-tabbar-item:active { transform: scale(0.92); }
+
+/* ================== Inventory 过滤器紧凑布局 ================== */
+.inventory-header {
+  padding: 8px 16px;
+}
+.inventory-filters {
+  display: flex;
+  flex-wrap: wrap;
+  overflow: visible;
+  gap: 8px;
+}
+.filter-item {
+  flex: 1 1 0;
+  min-width: 110px;
+  display: flex;
+  align-items: center;
+  background: var(--ios-card-bg);
+  border-radius: 12px;
+  padding: 4px 8px;
+  gap:4px;
+}
+.filter-item label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ios-text-secondary);
+}
+.filter-item select {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  outline: none;
+  padding: 2px 4px;
+  width: auto;
+  min-width: 80px;
+}
+.filter-item ion-icon {
+  font-size: 20px;
+  color: var(--ios-primary);
+}
+@media (max-width: 768px) {
+  .filter-item span { display:none; }
+  .filter-item label { gap:2px; }
+  .filter-item select { font-size:13px; min-width:90px; }
+}
+
+/* ================== Inventory 卡片化桌面布局 ================== */
+@media (min-width: 769px) {
+  .inventory-table-container { display:none; }
+  #inventoryCardGrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:16px; padding:16px; }
+  .inventory-card {
+    background: var(--ios-card-bg);
+    border-radius:20px;
+    box-shadow:0 1px 4px rgba(0,0,0,0.05);
+    padding:14px;
+    font-size:14px;
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .inventory-card .card-header { font-weight:600; font-size:16px; margin-bottom:4px; }
+  .inventory-card .status-good { color:#4CAF50; }
+  .inventory-card .status-low { color:#FF9800; }
+  .inventory-card .status-out { color:#F44336; }
+}
+
+/* Hide inventory-actions */
+.inventory-actions{display:none !important;}
+
+/* ================== Inventory 过滤器紧凑布局 ================== */
+.inventory-filters{
+  flex-wrap: wrap;
+  overflow: visible;
+}
+.filter-item select{width:auto;min-width:80px;}
+
+/* Dashboard header layout */
+.dashboard-header{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.dashboard-header .dashboard-actions{
+  display:flex;
+  gap:6px;
+  margin-left:0!important;
+}
+
+/* Datetime right alignment & colors */
+#currentDateTime{ text-align:right; }
+.ios-time{ color:var(--ios-primary); }
+.ios-date{ color:var(--ios-text-secondary); } 

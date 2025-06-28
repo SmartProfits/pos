@@ -114,7 +114,9 @@ firebase.auth().onAuthStateChanged((user) => {
                     if (userData) {
                         const userRole = userData.role;
                         if (userRole === 'sadmin' || userRole === 'admin') {
-                            window.location.href = 'pages/admin.html';
+                            const isMobileDevice = window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+                            const adminPage = isMobileDevice ? 'pages/adminp.html' : 'pages/admin.html';
+                            window.location.href = adminPage;
                         } else {
                             window.location.href = 'pages/pos.html';
                         }

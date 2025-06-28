@@ -108,13 +108,19 @@ auth.onAuthStateChanged(user => {
                 // 根据角色重定向到相应页面
                 let targetPage;
                 if (userData.role === 'admin' || userData.role === 'sadmin') {
-                    // 检查当前是否已经在admin页面或产品目录页面
-                    if (currentPath.includes('/pages/admin.html') || 
+                    // 判断是否为移动设备（宽度阈值可按需调整）
+                    const isMobileDevice = window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+                    const adminPage = isMobileDevice ? 'pages/adminp.html' : 'pages/admin.html';
+
+                    // 检查当前是否已经在对应的管理员页面或产品目录页面
+                    if (currentPath.includes('/' + adminPage) || 
                         currentPath.includes('/pages/product_catalog.html')) {
                         console.log("已在管理员相关页面，无需重定向");
                         return;
                     }
-                    targetPage = getFullPath('pages/admin.html');
+
+                    targetPage = getFullPath(adminPage);
                 } else if (userData.role === 'staff') {
                     // 检查当前是否已经在pos页面或产品目录页面
                     if (currentPath.includes('/pages/pos.html') || 

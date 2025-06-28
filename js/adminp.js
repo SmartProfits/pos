@@ -267,6 +267,12 @@ function initEventListeners() {
         loadStats();
     });
     
+    // 查看销售汇总按钮
+    viewSalesSummaryBtn.addEventListener('click', showSalesSummary);
+    
+    // 销售汇总相关事件监听器
+    initSalesSummaryEventListeners();
+    
     // 日期过滤器变化
     dateFilter.addEventListener('change', (e) => {
         selectedDate = e.target.value;
@@ -1757,22 +1763,61 @@ function updateDateTime() {
     
     // 创建HTML结构
     currentDateTime.innerHTML = `
-        <div class="ios-datetime">
-            <div class="ios-time">${hours12}:${minutes}<span class="seconds">:${seconds}</span> <span class="ampm">${ampm}</span></div>
-            <div class="ios-date">${weekday}, ${day}/${month}/${year}</div>
+        <div class="datetime-container">
+            <div class="date-display">
+                <span class="calendar-icon">📅</span>
+                <span class="date">${day}/${month}/${year}</span>
+                <span class="weekday">${weekday}</span>
+            </div>
+            <div class="time-display">
+                <span class="clock-icon">🕒</span>
+                <span class="time">${hours12}:${minutes}<span class="seconds">:${seconds}</span></span>
+                <span class="ampm">${ampm}</span>
+            </div>
         </div>
     `;
     
     // 添加样式
     const style = document.createElement('style');
-    if (!document.querySelector('style#ios-datetime-style')) {
-        style.id = 'ios-datetime-style';
+    if (!document.querySelector('style#datetime-style')) {
+        style.id = 'datetime-style';
         style.textContent = `
-            .ios-datetime { text-align:center; display:flex; flex-direction:column; gap:2px; }
-            .ios-time { font-size:28px; font-weight:700; letter-spacing:0.5px; }
-            .ios-time .seconds { font-size:16px; font-weight:400; }
-            .ios-time .ampm { font-size:16px; font-weight:500; margin-left:4px; }
-            .ios-date { font-size:13px; color: var(--ios-text-secondary); }
+            .datetime-container {
+                display: flex;
+                flex-direction: column;
+                background: linear-gradient(135deg, #1a237e, #311b92);
+                padding: 10px;
+                border-radius: 10px;
+                color: white;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+                min-width: 200px;
+            }
+            .date-display, .time-display {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 5px 0;
+            }
+            .calendar-icon, .clock-icon {
+                margin-right: 8px;
+                font-size: 1.1em;
+            }
+            .date, .time {
+                font-size: 1.1em;
+                font-weight: 600;
+                margin-right: 8px;
+            }
+            .weekday, .ampm {
+                font-size: 0.9em;
+                opacity: 0.9;
+                background-color: rgba(255, 255, 255, 0.2);
+                padding: 2px 6px;
+                border-radius: 4px;
+            }
+            .seconds {
+                font-size: 0.8em;
+                opacity: 0.8;
+            }
         `;
         document.head.appendChild(style);
     }
@@ -2194,13 +2239,12 @@ function renderInventory(productsEntries) {
         return;
     }
     
-    // Clear card grid
-    const cardGrid = document.getElementById('inventoryCardGrid');
-    if (cardGrid) cardGrid.innerHTML = '';
-
     productsEntries.forEach(([productId, product]) => {
         const storeName = stores[product.store_id]?.name || product.store_id;
+        // 获取库存，如果不存在则使用quantity，确保兼容旧数据
         const stock = product.stock !== undefined ? product.stock : (product.quantity || 0);
+        
+        // 确定库存状态
         let statusClass, statusText;
         if (stock <= 0) {
             statusClass = 'status-out';
@@ -2212,7 +2256,7 @@ function renderInventory(productsEntries) {
             statusClass = 'status-good';
             statusText = 'In Stock';
         }
-
+        
         const row = document.createElement('tr');
         row.innerHTML = `
             <td><input type="checkbox" class="inventory-select" data-id="${productId}"></td>
@@ -2234,36 +2278,27 @@ function renderInventory(productsEntries) {
         `;
         
         inventoryTableBody.appendChild(row);
-
-        // --- New Card creation for desktop ---
-        if (cardGrid) {
-            const card = document.createElement('div');
-            card.className = 'inventory-card';
-            card.innerHTML = `
-                <div class="card-header">${product.name}</div>
-                <div>Category: ${product.category || '-'}</div>
-                <div>Price: RM${product.price.toFixed(2)}</div>
-                <div>Current Stock: ${stock}</div>
-                <div>Status: <span class="stock-status ${statusClass}">${statusText}</span></div>
-                <div>Store: ${storeName}</div>
-                <div class="inventory-action-buttons" style="margin-top:6px; display:flex; gap:6px;">
-                    <button class="icon-button update-stock-btn" title="Update Stock" data-id="${productId}"><i class="material-icons">edit</i></button>
-                    <button class="icon-button view-history-btn" title="Stock History" data-id="${productId}"><i class="material-icons">history</i></button>
-                </div>
-            `;
-            cardGrid.appendChild(card);
-        }
     });
-
-    // After appending cards, re-bind listeners for buttons inside cards as well
-    if (cardGrid) {
-        cardGrid.querySelectorAll('.update-stock-btn').forEach(btn => {
-            btn.addEventListener('click', () => showUpdateStockModal(btn.dataset.id));
-        });
-        cardGrid.querySelectorAll('.view-history-btn').forEach(btn => {
-            btn.addEventListener('click', () => showStockHistory(btn.dataset.id));
-        });
-    }
+    
+    // 添加更新库存按钮事件
+    document.querySelectorAll('.update-stock-btn').forEach(btn => {
+        btn.addEventListener('click', () => showUpdateStockModal(btn.dataset.id));
+    });
+    
+    // 添加查看历史按钮事件
+    document.querySelectorAll('.view-history-btn').forEach(btn => {
+        btn.addEventListener('click', () => showStockHistory(btn.dataset.id));
+    });
+    
+    // 添加快速增加库存按钮事件
+    document.querySelectorAll('.add-stock-btn').forEach(btn => {
+        btn.addEventListener('click', () => showAddStockModal(btn.dataset.id));
+    });
+    
+    // 添加测试按钮事件
+    document.querySelectorAll('.tester-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleTesterAction(btn.dataset.id));
+    });
 }
 
 // 显示更新库存模态框
