@@ -95,7 +95,13 @@ body {
   border-radius: 20px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
   padding: 16px;
+
+  width: 100%;          /* 宽度默认占满容器 */
+  max-width: 600px;     /* 但最多不超过 600px */
+  margin: 0 auto;       /* 居中显示 */
+  box-sizing: border-box; /* 确保 padding 不会撑大元素 */
 }
+
 
 /* ================== Stat Card 字体适配 ================== */
 .stat-card h3 {
@@ -505,8 +511,9 @@ body {
 
 /* Sales Details table: fit without horizontal scroll */
 .sale-details-container{ overflow-x:hidden; }
-#saleDetailsTable{ width:100%; table-layout:fixed; }
-#saleDetailsTable th, #saleDetailsTable td{ padding:8px 6px; font-size:13px; word-wrap:break-word; }
+#saleDetailsTable{ width:100%; table-layout:auto
+; }
+#saleDetailsTable th, #saleDetailsTable td{ padding:8px 6px; font-size:11px; word-wrap:break-word; }
 
 /* Hide Cashier column (4th) */
 #saleDetailsTable th:nth-child(4),
