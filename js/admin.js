@@ -1083,12 +1083,8 @@ function renderSaleDetails(sales) {
         const sale = sales[saleId];
         const storeName = stores[sale.store_id]?.name || sale.store_id;
         const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0);
+        const cashierName = sale.cashierName || 'N/A';
         const shiftName = sale.cashierShift || 'N/A';
-        // Extract time part HH:MM from timestamp
-        let timeOnly = sale.timestamp;
-        if (typeof timeOnly === 'string' && timeOnly.includes(' ')) {
-            timeOnly = timeOnly.split(' ')[1];
-        }
         
         // 计算折扣信息的显示
         let discountInfo = '';
@@ -1112,7 +1108,8 @@ function renderSaleDetails(sales) {
         row.innerHTML = `
             <td>${sale.billNumber || 'N/A'}</td>
             <td>${storeName}</td>
-            <td>${timeOnly}</td>
+            <td>${sale.timestamp}</td>
+            <td>${cashierName}</td>
             <td><div class="shift-badge ${shiftClass}">${shiftName}</div></td>
             <td>${itemCount}</td>
             <td>RM${sale.total_amount.toFixed(2)}${discountInfo}</td>
