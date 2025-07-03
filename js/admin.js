@@ -267,12 +267,6 @@ function initEventListeners() {
         loadStats();
     });
     
-    // 销售汇总按钮
-    viewSalesSummaryBtn.addEventListener('click', () => {
-        console.log("销售汇总按钮被点击");
-        showSalesSummary();
-    });
-    
     // 日期过滤器变化
     dateFilter.addEventListener('change', (e) => {
         selectedDate = e.target.value;
@@ -2947,9 +2941,6 @@ function showSalesSummary() {
     
     // 显示模态框
     showModal(salesSummaryModal);
-    
-    // 初始化事件监听器
-    initSalesSummaryEventListeners();
     
     // 显示加载状态
     showSummaryLoadingState(true);
