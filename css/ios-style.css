@@ -511,7 +511,7 @@ body {
 
 /* Sales Details table: fit without horizontal scroll */
 .sale-details-container{ overflow-x:hidden; }
-#saleDetailsTable{ width:100%; table-layout:auto
+#saleDetailsTable{ width:110%; table-layout:auto
 ; }
 #saleDetailsTable th, #saleDetailsTable td{ padding:8px 6px; font-size:11px; word-wrap:break-word; }
 
