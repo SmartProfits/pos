@@ -9,13 +9,21 @@
     <!-- 添加字体图标 -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <!-- 添加Font Awesome图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- 修复侧边栏白边问题的样式 -->
     <style>
         body {
             margin: 0;
             padding: 0;
             overflow-x: hidden;
+            transition: background 1s ease;
         }
+        
+        body.darkened {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+        }
+        
         .pos-container {
             display: flex;
             width: 100%;
@@ -31,6 +39,172 @@
             height: 100vh;
             overflow-y: auto;
         }
+        
+        /* 魔法刷新按钮样式 */
+        #refreshStatsBtn {
+            position: relative;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid rgba(0, 114, 255, 0.5);
+            color: #0072ff;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 
+                0 10px 25px rgba(0, 114, 255, 0.2),
+                inset 0 0 15px rgba(0, 114, 255, 0.15);
+            z-index: 30;
+        }
+        
+        #refreshStatsBtn:hover {
+            transform: scale(1.05);
+            box-shadow: 
+                0 15px 30px rgba(0, 114, 255, 0.3),
+                inset 0 0 20px rgba(0, 114, 255, 0.2);
+        }
+        
+        #refreshStatsBtn:active {
+            transform: scale(0.95);
+        }
+        
+        #refreshStatsBtn i {
+            font-size: 20px;
+            transition: transform 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            will-change: transform;
+        }
+        
+        #refreshStatsBtn.active i {
+            transform: rotate(720deg);
+        }
+        
+        #refreshStatsBtn::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, 
+                transparent, 
+                rgba(0, 114, 255, 0.15), 
+                transparent);
+            transform: rotate(0deg);
+            transition: transform 0.8s linear;
+            z-index: -1;
+        }
+        
+        #refreshStatsBtn:hover::before {
+            transform: rotate(360deg);
+        }
+        
+        /* 魔法遮罩层 */
+        .magic-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0);
+            pointer-events: none;
+            z-index: 10;
+            transition: background 0.8s ease;
+        }
+        
+        .magic-overlay.active {
+            background: rgba(0, 0, 0, 0.85);
+        }
+        
+        /* 魔法效果 */
+        .magic-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 15;
+        }
+        
+        .magic-effect.active {
+            opacity: 1;
+        }
+        
+        .magic-circle {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(0, 198, 255, 0.5);
+            box-shadow: 0 0 50px rgba(0, 114, 255, 0.7);
+            transform: scale(0);
+            opacity: 0;
+        }
+        
+        .magic-circle.active {
+            animation: magic-pulse 1.5s forwards;
+        }
+        
+        /* 粒子动画容器 */
+        .particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 25;
+        }
+        
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: #0072ff;
+            box-shadow: 
+                0 0 8px #00c6ff,
+                0 0 16px #0072ff,
+                0 0 24px #0051cc;
+            z-index: 1;
+            will-change: transform, opacity;
+        }
+        
+        /* 动画关键帧 */
+        @keyframes explode-move {
+            0% { 
+                transform: translate(0, 0) scale(1); 
+                opacity: 1; 
+                box-shadow: 
+                    0 0 10px #00c6ff,
+                    0 0 20px #0072ff,
+                    0 0 30px #0051cc;
+            }
+            100% { 
+                transform: translate(var(--tx), var(--ty)) scale(0); 
+                opacity: 0; 
+                box-shadow: 
+                    0 0 5px #00c6ff,
+                    0 0 10px #0072ff,
+                    0 0 15px #0051cc;
+            }
+        }
+        
+        @keyframes magic-pulse {
+            0% { 
+                transform: scale(0.1);
+                opacity: 0.8; 
+            }
+            70% { 
+                opacity: 0.4; 
+            }
+            100% { 
+                transform: scale(3);
+                opacity: 0; 
+            }
+        }
+        
         /* 新增的管理员信息样式 */
         .admin-profile {
             padding: 15px;
@@ -172,6 +346,11 @@
     </style>
 </head>
 <body>
+    <!-- 魔法效果容器 -->
+    <div class="magic-overlay" id="magicOverlay"></div>
+    <div class="magic-effect" id="magicEffect"></div>
+    <div class="particles-container" id="particlesContainer"></div>
+    
     <div class="pos-container">
         <div class="sidebar">
             <div class="admin-profile">
@@ -208,15 +387,22 @@
             <div id="dashboardView" class="view active">
                 <div class="dashboard-header">
                     <div class="date-selector">
-                        <label for="dateFilter"><i class="material-icons">event</i></label>
+                        <label for="dateFilter"><ion-icon name="calendar-outline"></ion-icon></label>
                     <input type="date" id="dateFilter" value="">
                     </div>
                     
                     <div class="dashboard-actions">
                         <button id="refreshStatsBtn" class="icon-button" title="刷新数据">
-                            <i class="material-icons">refresh</i>
+                            <i class="fas fa-sync-alt"></i>
                         </button>
-                        <!-- Sales Summary button removed -->
+                        <button id="viewSalesSummaryBtn" class="action-button" style="display: none;">
+                            <ion-icon name="bar-chart-outline"></ion-icon>
+                            <span>Sales Summary</span>
+                        </button>
+                        <button id="diagnoseFbBtn" class="action-button" onclick="testFirebaseConnection()" style="display: none;">
+                            <ion-icon name="bug-outline"></ion-icon>
+                            <span>诊断连接</span>
+                        </button>
                     </div>
                 </div>
                 
@@ -953,6 +1139,156 @@
     <!-- Ionicons for iOS 风格图标 -->
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-    <script src="../js/admin.js"></script>
+    
+    <!-- 魔法粒子效果脚本 -->
+    <script>
+        // 魔法粒子效果代码
+        document.addEventListener('DOMContentLoaded', function() {
+            const refreshBtn = document.getElementById('refreshStatsBtn');
+            const particlesContainer = document.getElementById('particlesContainer');
+            const magicOverlay = document.getElementById('magicOverlay');
+            const magicEffect = document.getElementById('magicEffect');
+            const body = document.body;
+            
+            // 预创建粒子元素
+            function preCreateParticles() {
+                for (let i = 0; i < 30; i++) {
+                    const particle = document.createElement('div');
+                    particle.classList.add('particle');
+                    particle.style.display = 'none';
+                    particlesContainer.appendChild(particle);
+                }
+            }
+            
+            // 初始化时预创建粒子
+            preCreateParticles();
+            const particles = document.querySelectorAll('.particle');
+            
+            // 创建粒子动画
+            function createParticles() {
+                // 获取按钮位置
+                const rect = refreshBtn.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                // 创建魔法圆圈效果
+                createMagicCircle(centerX, centerY);
+                
+                particles.forEach(particle => {
+                    // 重置粒子状态
+                    particle.style.display = 'block';
+                    particle.style.animation = 'none';
+                    
+                    // 随机大小 (4-8px)
+                    const size = 4 + Math.random() * 4;
+                    particle.style.width = `${size}px`;
+                    particle.style.height = `${size}px`;
+                    
+                    // 随机蓝色色调
+                    const hue = 200 + Math.random() * 40;
+                    particle.style.background = `hsl(${hue}, 100%, 60%)`;
+                    
+                    // 随机角度和距离
+                    const angle = Math.random() * Math.PI * 2;
+                    const distance = 50 + Math.random() * 150;
+                    
+                    // 计算目标位置
+                    const tx = Math.cos(angle) * distance;
+                    const ty = Math.sin(angle) * distance;
+                    
+                    // 设置初始位置（按钮中心）
+                    particle.style.left = `${centerX - size/2}px`;
+                    particle.style.top = `${centerY - size/2}px`;
+                    
+                    // 设置CSS变量用于动画
+                    particle.style.setProperty('--tx', `${tx}px`);
+                    particle.style.setProperty('--ty', `${ty}px`);
+                    
+                    // 随机动画时长
+                    const duration = 0.8 + Math.random() * 0.7;
+                    
+                    // 强制重排
+                    void particle.offsetWidth;
+                    
+                    // 应用动画
+                    particle.style.animation = `explode-move ${duration}s forwards`;
+                    
+                    // 随机延迟动画开始
+                    particle.style.animationDelay = `${Math.random() * 0.3}s`;
+                    
+                    // 动画结束后隐藏粒子
+                    particle.addEventListener('animationend', () => {
+                        particle.style.display = 'none';
+                    }, {once: true});
+                });
+            }
+            
+            // 创建魔法圆圈效果
+            function createMagicCircle(x, y) {
+                magicEffect.innerHTML = '';
+                
+                for (let i = 0; i < 3; i++) {
+                    const circle = document.createElement('div');
+                    circle.classList.add('magic-circle');
+                    circle.style.left = `${x}px`;
+                    circle.style.top = `${y}px`;
+                    circle.style.width = `${30 * (i+1)}px`;
+                    circle.style.height = `${30 * (i+1)}px`;
+                    circle.style.marginLeft = `-${15 * (i+1)}px`;
+                    circle.style.marginTop = `-${15 * (i+1)}px`;
+                    circle.style.borderWidth = `${1 + i}px`;
+                    circle.style.animationDelay = `${i * 0.2}s`;
+                    magicEffect.appendChild(circle);
+                    
+                    // 激活圆圈
+                    setTimeout(() => {
+                        circle.classList.add('active');
+                    }, 10);
+                    
+                    // 动画结束后移除
+                    circle.addEventListener('animationend', () => {
+                        circle.remove();
+                    }, {once: true});
+                }
+            }
+            
+            // 包装原有的刷新功能
+            function wrapRefreshFunction() {
+                // 重新绑定魔法效果
+                refreshBtn.addEventListener('click', function(e) {
+                    // 执行原有的刷新功能
+                    if (window.performStatsRefresh) {
+                        window.performStatsRefresh();
+                    }
+                    
+                    // 激活按钮动画
+                    refreshBtn.classList.add('active');
+                    
+                    // 激活魔法效果
+                    body.classList.add('darkened');
+                    magicOverlay.classList.add('active');
+                    magicEffect.classList.add('active');
+                    
+                    // 创建粒子
+                    createParticles();
+                    
+                    // 动画完成后重置状态
+                    setTimeout(() => {
+                        refreshBtn.classList.remove('active');
+                        body.classList.remove('darkened');
+                        magicOverlay.classList.remove('active');
+                        magicEffect.classList.remove('active');
+                    }, 1800);
+                });
+            }
+            
+            // 等待adminp.js加载完成后初始化
+            setTimeout(() => {
+                wrapRefreshFunction();
+            }, 1500);
+        });
+    </script>
+    
+    <script src="../js/adminp.js"></script>
 </body>
 </html>

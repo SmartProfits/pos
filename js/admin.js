@@ -267,6 +267,12 @@ function initEventListeners() {
         loadStats();
     });
     
+    // 查看销售汇总按钮
+    viewSalesSummaryBtn.addEventListener('click', showSalesSummary);
+    
+    // 销售汇总相关事件监听器
+    initSalesSummaryEventListeners();
+    
     // 日期过滤器变化
     dateFilter.addEventListener('change', (e) => {
         selectedDate = e.target.value;

@@ -259,13 +259,18 @@ function initEventListeners() {
         });
     });
     
-    // 刷新统计按钮
-    refreshStatsBtn.addEventListener('click', () => {
-        // 先清除缓存，然后重新加载数据
-        dataCache.clearCache();
-        console.log("缓存已清除，正在从Firebase重新加载数据...");
-        loadStats();
-    });
+    // 刷新统计按钮 - 通过函数调用而不是直接绑定事件
+    if (refreshStatsBtn) {
+        // 创建刷新函数供外部调用
+        window.performStatsRefresh = function() {
+            // 先清除缓存，然后重新加载数据
+            dataCache.clearCache();
+            console.log("缓存已清除，正在从Firebase重新加载数据...");
+            loadStats();
+        };
+        
+        refreshStatsBtn.addEventListener('click', window.performStatsRefresh);
+    }
     
     // 查看销售汇总按钮
     viewSalesSummaryBtn.addEventListener('click', showSalesSummary);
@@ -543,15 +548,21 @@ function toggleStoreSelection() {
 
 // 加载所有店铺
 function loadStores() {
-    getAllStores()
+    console.log("开始加载店铺列表...");
+    return getAllStores()
         .then(storeData => {
+            console.log(`成功获取店铺数据: 找到 ${Object.keys(storeData).length} 个店铺`);
             stores = storeData;
-            renderStores();
+            
+            // 填充店铺下拉菜单和按钮
             populateStoreDropdowns();
+            populateStoreButtons();
+            
+            return storeData;
         })
         .catch(error => {
-            console.error('Failed to load stores:', error);
-            alert('Failed to load stores. Please refresh the page and try again.');
+            console.error("加载店铺列表失败:", error);
+            return {};
         });
 }
 
@@ -677,10 +688,39 @@ function loadStats() {
     const date = dateFilter.value || selectedDate;
     const storeId = selectedStoreId;
     
+    console.log(`正在加载销售统计数据: 日期=${date}, 店铺ID=${storeId}`);
+    
     // 显示加载状态
     statsContainer.innerHTML = '<div class="loading"><i class="material-icons">hourglass_empty</i> Loading...</div>';
     saleDetailsBody.innerHTML = '<tr><td colspan="7" class="loading"><i class="material-icons">hourglass_empty</i> Loading...</td></tr>';
     
+    // 清除缓存以确保获取最新数据
+    dataCache.clearCache();
+    
+    // 确保店铺数据已加载
+    if (Object.keys(stores).length === 0) {
+        console.log("店铺数据未加载，先加载店铺数据");
+        loadStores()
+            .then(storeData => {
+                if (Object.keys(storeData).length === 0) {
+                    console.error("无法加载店铺数据，销售统计无法继续");
+                    statsContainer.innerHTML = '<div class="error"><i class="material-icons">error</i>无法加载店铺数据，请刷新页面重试</div>';
+                    return;
+                }
+                console.log("店铺数据加载成功，继续加载销售统计");
+                loadStatsData(date, storeId);
+            })
+            .catch(error => {
+                console.error("加载店铺数据失败:", error);
+                statsContainer.innerHTML = '<div class="error"><i class="material-icons">error</i>加载店铺数据失败，请刷新页面重试</div>';
+            });
+    } else {
+        loadStatsData(date, storeId);
+    }
+}
+
+// 实际加载销售统计数据
+function loadStatsData(date, storeId) {
     if (storeId === 'all') {
         // 加载所有店铺的统计数据
         loadAllStoresData(date);
@@ -1975,10 +2015,13 @@ function getStoreDailySales(storeId, date) {
 // 从transactions表计算特定店铺的销售统计
 function loadStoreSalesFromTransactions(storeId, date) {
     console.log(`Getting sales from transactions for store ${storeId} on date ${date}`);
+    console.log(`Firebase path: sales/${storeId}/${date}`);
     
     return database.ref(`sales/${storeId}/${date}`).once('value')
         .then(snapshot => {
+            console.log(`Firebase snapshot received for sales/${storeId}/${date}:`, snapshot.exists() ? "Data exists" : "No data");
             const sales = snapshot.val() || {};
+            console.log(`Sales data received:`, sales);
             let totalSales = 0;
             let transactionCount = 0;
             
@@ -1995,6 +2038,13 @@ function loadStoreSalesFromTransactions(storeId, date) {
             return {
                 total_sales: totalSales,
                 transaction_count: transactionCount
+            };
+        })
+        .catch(error => {
+            console.error(`Error fetching sales data for store ${storeId} on date ${date}:`, error);
+            return {
+                total_sales: 0,
+                transaction_count: 0
             };
         });
 }
@@ -2022,17 +2072,22 @@ function getAllStoresDailySales(date) {
 
 // 从transactions表直接计算销售统计数据
 function loadSalesFromTransactions(date) {
+    console.log(`Loading sales data for all stores on date ${date}`);
+    
     // 先获取所有店铺列表
     return getAllStores()
         .then(storeList => {
             const storeIds = Object.keys(storeList);
+            console.log(`Found ${storeIds.length} stores to check for sales data:`, storeIds);
             const promises = [];
             
             // 对每个店铺获取销售记录 - 只获取特定日期的数据
             storeIds.forEach(storeId => {
+                console.log(`Preparing to fetch sales data for store ${storeId} on date ${date}`);
                 promises.push(
                     database.ref(`sales/${storeId}/${date}`).once('value')
                         .then(snapshot => {
+                            console.log(`Firebase snapshot for store ${storeId}:`, snapshot.exists() ? "Data exists" : "No data");
                             const sales = snapshot.val() || {};
                             let totalSales = 0;
                             let transactionCount = 0;
@@ -2045,11 +2100,23 @@ function loadSalesFromTransactions(date) {
                                 }
                             });
                             
+                            console.log(`Store ${storeId} calculation: total sales = ${totalSales}, transactions = ${transactionCount}`);
+                            
                             return {
                                 storeId,
                                 stats: {
                                     total_sales: totalSales,
                                     transaction_count: transactionCount
+                                }
+                            };
+                        })
+                        .catch(error => {
+                            console.error(`Error fetching sales data for store ${storeId}:`, error);
+                            return {
+                                storeId,
+                                stats: {
+                                    total_sales: 0,
+                                    transaction_count: 0
                                 }
                             };
                         })
@@ -2065,8 +2132,13 @@ function loadSalesFromTransactions(date) {
                             allStats[result.storeId] = result.stats;
                         }
                     });
+                    console.log(`Combined stats for all stores on date ${date}:`, allStats);
                     return allStats;
                 });
+        })
+        .catch(error => {
+            console.error(`Error in loadSalesFromTransactions for date ${date}:`, error);
+            return {};
         });
 }
 
@@ -2956,11 +3028,66 @@ function initializeFirebase() {
     // 如果已经初始化，则不再重复初始化
     if (firebase.apps.length) return;
     
+    console.log("正在初始化Firebase...");
+    
     // 初始化Firebase
     firebase.initializeApp(firebaseConfig);
     
     // 获取数据库引用
     database = firebase.database();
+    
+    // 测试Firebase连接和权限
+    testFirebaseConnection();
+}
+
+// 测试Firebase数据库连接和权限
+function testFirebaseConnection() {
+    console.log("测试Firebase数据库连接...");
+    
+    // 测试简单连接
+    database.ref('.info/connected').on('value', (snapshot) => {
+        const connected = snapshot.val();
+        console.log("Firebase连接状态:", connected ? "已连接" : "未连接");
+    });
+    
+    // 获取当前时间作为测试路径
+    const testDate = getCurrentDate();
+    
+    // 测试读取权限 - 尝试读取stores数据
+    database.ref('stores').once('value')
+        .then(snapshot => {
+            console.log("Firebase读取stores权限测试: 成功");
+            console.log(`找到 ${Object.keys(snapshot.val() || {}).length} 个店铺`);
+        })
+        .catch(error => {
+            console.error("Firebase读取stores权限测试: 失败", error);
+        });
+    
+    // 测试读取sales数据结构
+    getAllStores()
+        .then(storeList => {
+            if (!storeList || Object.keys(storeList).length === 0) {
+                console.log("没有找到店铺，无法继续测试sales数据");
+                return;
+            }
+            
+            // 使用第一个店铺测试
+            const testStoreId = Object.keys(storeList)[0];
+            console.log(`使用店铺 ${testStoreId} 测试sales数据路径...`);
+            
+            // 测试新路径格式
+            database.ref(`sales/${testStoreId}/${testDate}`).once('value')
+                .then(snapshot => {
+                    console.log(`Firebase sales/${testStoreId}/${testDate} 路径测试:`, 
+                        snapshot.exists() ? `成功，找到 ${Object.keys(snapshot.val() || {}).length} 条记录` : "成功，但没有数据");
+                })
+                .catch(error => {
+                    console.error(`Firebase sales/${testStoreId}/${testDate} 路径测试: 失败`, error);
+                });
+        })
+        .catch(error => {
+            console.error("获取店铺列表失败，无法继续测试sales数据", error);
+        });
 }
 
 // 新的销售汇总功能
