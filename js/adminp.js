@@ -61,7 +61,7 @@ function initializeApp() {
             
             loadUserProfile();
             loadDashboardData();
-        } else {
+                    } else {
             console.log('User not authenticated, redirecting to login...');
             // Redirect to login page
             window.location.href = '../index.html';
@@ -132,7 +132,7 @@ function setupEventListeners() {
 function switchView(viewName) {
     // Update navigation state
     document.querySelectorAll('.tab-item').forEach(item => {
-        item.classList.remove('active');
+                        item.classList.remove('active');
     });
     document.querySelector(`[data-view="${viewName}"]`).classList.add('active');
 
@@ -234,19 +234,20 @@ async function loadProducts() {
         Object.entries(storeProducts).forEach(([storeId, storeProductList]) => {
             if (storeProductList) {
                 Object.entries(storeProductList).forEach(([productId, product]) => {
-                    // 使用店铺ID和产品ID组合作为唯一标识符
-                    const uniqueProductId = `${storeId}_${productId}`;
-                    productsData[uniqueProductId] = {
+                    // 使用 storeId + productId 作为唯一键，避免产品ID冲突
+                    const uniqueKey = `${storeId}_${productId}`;
+                    productsData[uniqueKey] = {
                         ...product,
                         id: productId,
-                        store_id: storeId,
-                        unique_id: uniqueProductId
+                        unique_id: uniqueKey,
+                        store_id: storeId
                     };
                 });
             }
         });
         
         console.log('Loaded products data:', productsData);
+        console.log('Total products loaded:', Object.keys(productsData).length);
     } catch (error) {
         console.error('Failed to load products data:', error);
     }
@@ -419,7 +420,7 @@ function animateValue(elementId, targetValue, prefix = '', suffix = '') {
         } else if (elementId === 'growthRate') {
             const sign = currentValue >= 0 ? '+' : '';
             element.textContent = `${sign}${currentValue.toFixed(1)}${suffix}`;
-                    } else {
+            } else {
             element.textContent = `${prefix}${Math.round(currentValue)}${suffix}`;
         }
         
@@ -468,7 +469,7 @@ function renderStoreCardsForDate(date) {
         storesGrid.innerHTML = '<div class="loading"><div class="spinner"></div>Loading stores data...</div>';
         return;
     }
-
+    
     // Check if any stores have sales for this date
     let hasAnySales = false;
     Object.keys(storesData).forEach(storeId => {
@@ -487,16 +488,16 @@ function renderStoreCardsForDate(date) {
         storeCard.innerHTML = `
             <div class="store-image">
                 <img src="${storeImage}" alt="${store.name}" onerror="this.src='../icons/pos.png'">
-            </div>
+                </div>
             <div class="store-info">
                 <h3>${store.name}</h3>
                 <div class="store-sales">
                     <div class="sales-amount">RM ${storeRevenue.toFixed(2)}</div>
                     <div class="sales-label">Sales</div>
                 </div>
-            </div>
-        `;
-        
+        </div>
+    `;
+    
         storesGrid.appendChild(storeCard);
     });
 }
@@ -642,16 +643,16 @@ async function loadStoreDetailData(storeId, date) {
         const salesData = salesSnapshot.val() || {};
         
         // Calculate totals
-        let totalSales = 0;
-        let transactionCount = 0;
-        
+            let totalSales = 0;
+            let transactionCount = 0;
+            
         Object.values(salesData).forEach(sale => {
             if (sale && sale.total_amount) {
                 totalSales += parseFloat(sale.total_amount || 0);
-                transactionCount++;
-            }
-        });
-        
+                    transactionCount++;
+                }
+            });
+            
         // Update sales summary
         document.getElementById('storeDetailTotalSales').textContent = `RM ${totalSales.toFixed(2)}`;
         document.getElementById('storeDetailTransactionText').textContent = `${transactionCount} sales transaction`;
@@ -685,11 +686,11 @@ function renderSalesRecords(salesData) {
             <div style="text-align: center; padding: 40px; color: var(--ios-gray-1);">
                 <i class="material-icons" style="font-size: 48px; margin-bottom: 16px;">receipt_long</i>
                 <div>No sales records available</div>
-            </div>
+                </div>
         `;
         return;
     }
-
+    
     // Convert to array and sort by timestamp (newest first)
     const salesArray = Object.entries(salesData).map(([saleId, sale]) => ({
         id: saleId,
@@ -781,12 +782,12 @@ const formattedDateTime = `${datePart} ${timePart}`;
                 <div class="sale-item-amount">
                     <div class="sale-item-price">RM ${parseFloat(item.price || 0).toFixed(2)}</div>
                     <div class="sale-item-subtotal">Total: RM ${parseFloat(item.subtotal || 0).toFixed(2)}</div>
-                </div>
-            `;
-            
+        </div>
+    `;
+    
             itemsList.appendChild(itemDiv);
         });
-    } else {
+            } else {
         itemsList.innerHTML = `
             <div style="text-align: center; padding: 20px; color: var(--ios-gray-1);">
                 No items information available
@@ -895,9 +896,9 @@ async function renderStoreDetailSales(storeId, date = null) {
                 day: 'numeric' 
             });
             salesList.innerHTML = `<div style="text-align: center; padding: 20px; color: #8E8E93;">No sales data available for ${dateString}</div>`;
-        return;
-    }
-    
+                return;
+            }
+            
         // Convert to array and sort by timestamp
         const salesArray = Object.entries(salesData).map(([saleId, sale]) => ({
             id: saleId,
@@ -995,7 +996,7 @@ function populateStoreSelector() {
 function filterProducts() {
     const searchTerm = document.getElementById('productSearch')?.value.toLowerCase() || '';
     const activeFilter = document.querySelector('.filter-tab.active')?.getAttribute('data-filter') || 'all';
-    const selectedStore = document.getElementById('storeSelector')?.value || Object.keys(storesData)[0];
+    const selectedStore = document.getElementById('storeSelector')?.value || 'all';
     
     const productList = document.getElementById('productList');
     if (!productList) return;

@@ -73,6 +73,23 @@
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             color: var(--ios-label);
+            /* Hide all scrollbars globally */
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        body::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* Global scrollbar hiding */
+        * {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        *::-webkit-scrollbar {
+            display: none;
         }
 
         /* App Container */
@@ -130,6 +147,13 @@
             display: none;
             overflow-y: auto;
             height: 100%;
+            /* Hide scrollbar but keep scrolling */
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .view::-webkit-scrollbar {
+            display: none;
         }
 
         .view.active {
@@ -272,7 +296,6 @@
 
         .store-info {
             text-align: center;
-            padding: 16px;
         }
 
         .store-info h3 {
@@ -291,7 +314,7 @@
         }
 
         .sales-amount {
-            font-size: var(--ios-title-2);
+            font-size: var(--ios-title-);
             font-weight: 700;
             color: var(--ios-blue);
             letter-spacing: -0.3px;
@@ -565,7 +588,7 @@
         /* Bottom Tab Bar */
         .tab-bar {
             position: fixed;
-            bottom: -5px;
+            bottom: -10px;
             left: 50%;
             transform: translateX(-50%);
             width: 100%;
@@ -575,7 +598,7 @@
             -webkit-backdrop-filter: blur(20px);
             border-top: 0.5px solid var(--ios-gray-4);
             display: flex;
-            padding: 6px 0 28px;
+            padding: 8px 0 25px;
             box-shadow: 0 -0.5px 0 var(--ios-gray-5);
         }
 
@@ -584,7 +607,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 6px;
+            padding: 8px;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -594,8 +617,8 @@
         }
 
         .tab-item .icon {
-            font-size: 22px;
-            margin-bottom: 1px;
+            font-size: 24px;
+            margin-bottom: 2px;
             transition: all 0.2s;
             color: var(--ios-gray-1);
         }
@@ -1292,34 +1315,10 @@
             }
         }
 
-        /* Mobile Responsive */
-        @media (max-width: 480px) {
-            .store-info {
-                padding: 12px;
-            }
-            
-            .store-info h3 {
-                font-size: var(--ios-subhead);
-                margin-bottom: 8px;
-            }
-            
-            .sales-amount {
-                font-size: var(--ios-title-3);
-            }
-            
-            .sales-label {
-                font-size: var(--ios-caption-2);
-            }
-            
-            .store-image {
-                height: 80px;
-            }
-        }
-
         /* Safe Area Support */
         @supports (padding: max(0px)) {
             .tab-bar {
-                padding-bottom: max(24px, env(safe-area-inset-bottom) + 4px);
+                padding-bottom: max(15px, env(safe-area-inset-bottom) + 8px);
             }
         }
 
