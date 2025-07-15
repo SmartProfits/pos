@@ -240,6 +240,22 @@ function updateSalesRateStars(salesData) {
     document.getElementById('adminSalesRate').innerHTML = starsHtml;
 }
 
+// 显示刷新动画效果
+function showRefreshAnimation() {
+    const refreshAnimation = document.getElementById('refreshAnimation');
+    if (refreshAnimation) {
+        // 显示动画
+        refreshAnimation.style.opacity = '1';
+        refreshAnimation.style.pointerEvents = 'all';
+        
+        // 1.5秒后隐藏动画
+        setTimeout(() => {
+            refreshAnimation.style.opacity = '0';
+            refreshAnimation.style.pointerEvents = 'none';
+        }, 1500);
+    }
+}
+
 // 初始化事件监听器
 function initEventListeners() {
     // 添加导航项点击事件处理
@@ -261,10 +277,21 @@ function initEventListeners() {
     
     // 刷新统计按钮
     refreshStatsBtn.addEventListener('click', () => {
+        // 显示粒子动画效果
+        showRefreshAnimation();
+        
+        // 添加按钮旋转效果
+        refreshStatsBtn.classList.add('refreshing');
+        
         // 先清除缓存，然后重新加载数据
         dataCache.clearCache();
         console.log("缓存已清除，正在从Firebase重新加载数据...");
         loadStats();
+        
+        // 1.5秒后移除按钮旋转效果
+        setTimeout(() => {
+            refreshStatsBtn.classList.remove('refreshing');
+        }, 1500);
     });
     
     // 查看销售汇总按钮
@@ -360,7 +387,21 @@ function initEventListeners() {
     inventoryStoreFilter.addEventListener('change', loadInventory);
     inventoryCategoryFilter.addEventListener('change', loadInventory);
     inventoryStockFilter.addEventListener('change', loadInventory);
-    refreshInventoryBtn.addEventListener('click', loadInventory);
+    refreshInventoryBtn.addEventListener('click', () => {
+        // 显示粒子动画效果
+        showRefreshAnimation();
+        
+        // 添加按钮旋转效果
+        refreshInventoryBtn.classList.add('refreshing');
+        
+        // 执行库存刷新
+        loadInventory();
+        
+        // 1.5秒后移除按钮旋转效果
+        setTimeout(() => {
+            refreshInventoryBtn.classList.remove('refreshing');
+        }, 1500);
+    });
     bulkUpdateBtn.addEventListener('click', showBulkUpdateModal);
     
     // 确保导出和导入按钮在下拉菜单中仍然可以工作
@@ -387,7 +428,21 @@ function initEventListeners() {
     // 在线用户刷新按钮
     const refreshOnlineUsersBtn = document.getElementById('refreshOnlineUsersBtn');
     if (refreshOnlineUsersBtn) {
-        refreshOnlineUsersBtn.addEventListener('click', loadOnlineUsers);
+        refreshOnlineUsersBtn.addEventListener('click', () => {
+            // 显示粒子动画效果
+            showRefreshAnimation();
+            
+            // 添加按钮旋转效果
+            refreshOnlineUsersBtn.classList.add('refreshing');
+            
+            // 执行在线用户数据刷新
+            loadOnlineUsers();
+            
+            // 1.5秒后移除按钮旋转效果
+            setTimeout(() => {
+                refreshOnlineUsersBtn.classList.remove('refreshing');
+            }, 1500);
+        });
     }
     
     // 添加编辑用户表单的提交事件处理

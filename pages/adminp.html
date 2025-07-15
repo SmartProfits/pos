@@ -3,1292 +3,1673 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POS System - Admin</title>
+    <title>SmartProfits</title>
     <link rel="stylesheet" href="../css/styles.css">
     <link rel="stylesheet" href="../css/ios-style.css">
-    <!-- 添加字体图标 -->
+    <!-- SF Symbols & Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
-    <!-- 添加Font Awesome图标库 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- 修复侧边栏白边问题的样式 -->
     <style>
-        body {
+        /* iOS Native Design System */
+        :root {
+            /* iOS Color System */
+            --ios-blue: #007AFF;
+            --ios-green: #34C759;
+            --ios-orange: #FF9500;
+            --ios-red: #FF3B30;
+            --ios-purple: #AF52DE;
+            
+            /* iOS Gray Scale */
+            --ios-gray-1: #8E8E93;
+            --ios-gray-2: #AEAEB2;
+            --ios-gray-3: #C7C7CC;
+            --ios-gray-4: #D1D1D6;
+            --ios-gray-5: #E5E5EA;
+            --ios-gray-6: #F2F2F7;
+            
+            /* iOS System Colors */
+            --ios-label: #000000;
+            --ios-secondary-label: #3C3C43;
+            --ios-tertiary-label: #3C3C43;
+            --ios-background: #FFFFFF;
+            --ios-secondary-background: #F2F2F7;
+            --ios-tertiary-background: #FFFFFF;
+            
+            /* iOS Typography Scale */
+            --ios-large-title: 34px;
+            --ios-title-1: 28px;
+            --ios-title-2: 22px;
+            --ios-title-3: 20px;
+            --ios-headline: 17px;
+            --ios-body: 17px;
+            --ios-callout: 16px;
+            --ios-subhead: 15px;
+            --ios-footnote: 13px;
+            --ios-caption-1: 12px;
+            --ios-caption-2: 11px;
+            
+            /* iOS Corner Radius */
+            --ios-corner-radius-small: 8px;
+            --ios-corner-radius-medium: 12px;
+            --ios-corner-radius-large: 16px;
+            --ios-corner-radius-xlarge: 20px;
+            
+            /* iOS Shadows */
+            --ios-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.12);
+            --ios-shadow-2: 0 4px 12px rgba(0, 0, 0, 0.15);
+            --ios-shadow-3: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
             margin: 0;
             padding: 0;
-            overflow-x: hidden;
-            transition: background 1s ease;
+            box-sizing: border-box;
         }
         
-        body.darkened {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-        }
-        
-        .pos-container {
-            display: flex;
-            width: 100%;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+            background: var(--ios-secondary-background);
             height: 100vh;
             overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            color: var(--ios-label);
         }
-        .sidebar {
-            min-width: 250px;
+
+        /* App Container */
+        .app-container {
+            display: flex;
+            flex-direction: column;
             height: 100vh;
+            max-width: 414px;
+            margin: 0 auto;
+            background: var(--ios-background);
+            overflow: hidden;
         }
-        .content {
+
+
+
+        /* Navigation Bar */
+        .nav-bar {
+            background: var(--ios-background);
+            padding: 5px 20px;
+            border-bottom: 0.5px solid var(--ios-gray-4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .nav-title {
+    display: flex;
+    align-items: center;
+    font-size: 24px;
+    font-weight: bold;
+    gap: 8px; /* 按钮和文字间的间距 */
+}
+
+        .nav-subtitle {
+            font-size: var(--ios-subhead);
+            color: var(--ios-gray-1);
+            font-weight: 500;
+        }
+
+        /* Main Content */
+        .app-main {
             flex: 1;
-            height: 100vh;
             overflow-y: auto;
+            background: var(--ios-secondary-background);
+            padding-bottom: 100px;
+            /* Hide scrollbar but keep scrolling */
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
         
-        /* 魔法刷新按钮样式 */
-        #refreshStatsBtn {
-            position: relative;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.95);
-            border: 2px solid rgba(0, 114, 255, 0.5);
-            color: #0072ff;
-            cursor: pointer;
-            overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 
-                0 10px 25px rgba(0, 114, 255, 0.2),
-                inset 0 0 15px rgba(0, 114, 255, 0.15);
-            z-index: 30;
+        .app-main::-webkit-scrollbar {
+            display: none;
         }
-        
-        #refreshStatsBtn:hover {
-            transform: scale(1.05);
-            box-shadow: 
-                0 15px 30px rgba(0, 114, 255, 0.3),
-                inset 0 0 20px rgba(0, 114, 255, 0.2);
-        }
-        
-        #refreshStatsBtn:active {
-            transform: scale(0.95);
-        }
-        
-        #refreshStatsBtn i {
-            font-size: 20px;
-            transition: transform 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-            will-change: transform;
-        }
-        
-        #refreshStatsBtn.active i {
-            transform: rotate(720deg);
-        }
-        
-        #refreshStatsBtn::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, 
-                transparent, 
-                rgba(0, 114, 255, 0.15), 
-                transparent);
-            transform: rotate(0deg);
-            transition: transform 0.8s linear;
-            z-index: -1;
-        }
-        
-        #refreshStatsBtn:hover::before {
-            transform: rotate(360deg);
-        }
-        
-        /* 魔法遮罩层 */
-        .magic-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
+
+        .view {
+            display: none;
+            overflow-y: auto;
             height: 100%;
-            background: rgba(0, 0, 0, 0);
-            pointer-events: none;
-            z-index: 10;
-            transition: background 0.8s ease;
         }
-        
-        .magic-overlay.active {
-            background: rgba(0, 0, 0, 0.85);
+
+        .view.active {
+            display: block;
+            animation: slideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
-        
-        /* 魔法效果 */
-        .magic-effect {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 15;
-        }
-        
-        .magic-effect.active {
-            opacity: 1;
-        }
-        
-        .magic-circle {
-            position: absolute;
-            border-radius: 50%;
-            border: 2px solid rgba(0, 198, 255, 0.5);
-            box-shadow: 0 0 50px rgba(0, 114, 255, 0.7);
-            transform: scale(0);
-            opacity: 0;
-        }
-        
-        .magic-circle.active {
-            animation: magic-pulse 1.5s forwards;
-        }
-        
-        /* 粒子动画容器 */
-        .particles-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 25;
-        }
-        
-        .particle {
-            position: absolute;
-            border-radius: 50%;
-            background: #0072ff;
-            box-shadow: 
-                0 0 8px #00c6ff,
-                0 0 16px #0072ff,
-                0 0 24px #0051cc;
-            z-index: 1;
-            will-change: transform, opacity;
-        }
-        
-        /* 动画关键帧 */
-        @keyframes explode-move {
-            0% { 
-                transform: translate(0, 0) scale(1); 
-                opacity: 1; 
-                box-shadow: 
-                    0 0 10px #00c6ff,
-                    0 0 20px #0072ff,
-                    0 0 30px #0051cc;
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
             }
-            100% { 
-                transform: translate(var(--tx), var(--ty)) scale(0); 
-                opacity: 0; 
-                box-shadow: 
-                    0 0 5px #00c6ff,
-                    0 0 10px #0072ff,
-                    0 0 15px #0051cc;
+            to {
+                opacity: 1;
+                transform: translateX(0);
             }
         }
-        
-        @keyframes magic-pulse {
-            0% { 
-                transform: scale(0.1);
-                opacity: 0.8; 
-            }
-            70% { 
-                opacity: 0.4; 
-            }
-            100% { 
-                transform: scale(3);
-                opacity: 0; 
-            }
+
+        /* iOS Cards */
+        .ios-card {
+            background: var(--ios-tertiary-background);
+            border-radius: var(--ios-corner-radius-medium);
+            box-shadow: var(--ios-shadow-1);
+            margin-bottom: 16px;
         }
-        
-        /* 新增的管理员信息样式 */
-        .admin-profile {
+
+        /* Stats Overview */
+        .stats-overview {
+            margin-bottom: 32px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .stat-card {
+            background: var(--ios-tertiary-background);
+            border-radius: var(--ios-corner-radius-medium);
             padding: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .admin-profile-header {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        .admin-avatar {
-            width: 80px;
-            height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 10px;
-        }
-        .admin-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        .admin-title {
             text-align: center;
-            width: 100%;
+            box-shadow: var(--ios-shadow-1);
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            border: 0.5px solid var(--ios-gray-5);
         }
-        .admin-title h2 {
-            margin: 0;
+
+        .stat-card:active {
+            transform: scale(0.97);
+            box-shadow: var(--ios-shadow-2);
+        }
+
+        .stat-card .icon {
             font-size: 28px;
-            font-weight: 600;
-            font-family: 'Poppins', sans-serif;
-            color: white;
+            margin-bottom: 8px;
+            color: var(--ios-blue);
         }
-        .admin-info {
-            width: 100%;
-            font-size: 14px;
+
+        .stat-card .value {
+            font-size: var(--ios-title-2);
+            font-weight: 700;
+            color: var(--ios-label);
+            margin-bottom: 4px;
+            letter-spacing: -0.3px;
         }
-        .admin-info p {
-            margin: 5px 0;
-            display: flex;
-            align-items: center;
+
+        .stat-card .label {
+            font-size: var(--ios-caption-1);
+            color: var(--ios-gray-1);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        .admin-info .material-icons {
-            font-size: 16px;
-            margin-right: 5px;
-        }
-        .admin-actions {
+
+        /* Section Headers */
+        .section-header {
             display: flex;
             justify-content: space-between;
-            width: 100%;
-            margin-top: 10px;
+            align-items: center;
+            margin-bottom: 16px;
         }
-        .admin-action-btn {
-            background: rgba(255,255,255,0.1);
-            border: none;
-            border-radius: 4px;
-            padding: 5px 8px;
-            color: white;
-            font-size: 12px;
+
+        .section-title {
+            font-size: var(--ios-title-3);
+            font-weight: 600;
+            color: var(--ios-label);
+            letter-spacing: -0.3px;
+        }
+
+        .section-action {
+            font-size: var(--ios-callout);
+            color: var(--ios-blue);
+            font-weight: 500;
             cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .section-action:active {
+            opacity: 0.6;
+        }
+
+        /* Store Cards */
+        .stores-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 9px;
+        }
+
+        .store-card {
+            background: var(--ios-tertiary-background);
+            border-radius: var(--ios-corner-radius-large);
+            overflow: hidden;
+            box-shadow: var(--ios-shadow-1);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            cursor: pointer;
+            border: 0.5px solid var(--ios-gray-5);
+        }
+
+        .store-card:active {
+            transform: scale(0.95);
+            box-shadow: var(--ios-shadow-3);
+        }
+
+        .store-image {
+            width: 100%;
+            height: 100px;
+            background: linear-gradient(135deg, var(--ios-blue) 0%, var(--ios-purple) 100%);
             display: flex;
             align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
         }
-        .admin-action-btn .material-icons {
-            font-size: 14px;
-            margin-right: 4px;
+
+        .store-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
-        .admin-action-btn:hover {
-            background: rgba(255,255,255,0.2);
+
+        .store-info {
+            text-align: center;
         }
-        /* 通知徽章样式 */
-        .notification-badge {
-            background-color: #ff5252;
-            color: white;
-            border-radius: 50%;
-            min-width: 16px;
-            height: 16px;
-            font-size: 10px;
-            display: inline-flex;
+
+        .store-info h3 {
+            font-size: var(--ios-headline);
+            font-weight: 600;
+            color: var(--ios-label);
+            margin: 0 0 0px 0;
+            letter-spacing: 0.1px;
+        }
+
+        .store-sales {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0px;
+        }
+
+        .sales-amount {
+            font-size: var(--ios-title-);
+            font-weight: 700;
+            color: var(--ios-blue);
+            letter-spacing: -0.3px;
+        }
+
+        .sales-label {
+            font-size: var(--ios-caption-1);
+            color: var(--ios-gray-1);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1.6px;
+        }
+
+        /* Date Selector */
+        .date-selector-section {
+            margin-bottom: 20px;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .date-picker {
+            background: var(--ios-secondary-background);
+            border-radius: var(--ios-corner-radius-medium);
+            padding: 16px;
+            border: 0.5px solid var(--ios-gray-5);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+            flex: 1;
+        }
+
+        .refresh-btn {
+            background: var(--ios-blue);
+            border: none;
+            border-radius: var(--ios-corner-radius-medium);
+            width: 33px;
+            height: 33px;
+            min-width: 33px; /* 防止按钮缩小 */
+            min-height: 33px; /* 防止按钮缩小 */
+            max-width: 33px; /* 防止按钮变大 */
+            max-height: 33px; /* 防止按钮变大 */
+            display: flex;
             align-items: center;
             justify-content: center;
-            margin-left: 5px;
-            padding: 0 4px;
-            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: var(--ios-shadow-1);
+            flex-shrink: 0; /* 防止flex布局压缩按钮 */
         }
-        /* 星级评分样式 */
-        .star-rating {
-            color: #FFD700; /* 黄色星星 */
-            display: inline-flex;
+
+        .refresh-btn:active {
+            transform: scale(0.95);
+            box-shadow: var(--ios-shadow-2);
+        }
+
+        .refresh-btn i {
+            color: white;
+            font-size: 20px; /* 调整图标大小 */
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            line-height: 1; /* 确保图标垂直居中 */
+        }
+
+        .refresh-btn.loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        .refresh-btn.success {
+            background: var(--ios-green);
+            animation: pulse 0.6s ease-out;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .date-picker:focus-within {
+            border-color: var(--ios-blue);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        }
+
+        .date-picker label {
+            display: flex;
             align-items: center;
+            gap: 8px;
+            font-size: var(--ios-subhead);
+            font-weight: 500;
+            color: var(--ios-label);
+            cursor: pointer;
         }
-        .star-rating .material-icons {
-            font-size: 14px;
-            margin-right: 2px;
-            animation: twinkle 1.5s infinite alternate;
+
+        .date-picker label i {
+            color: var(--ios-blue);
+            font-size: 20px;
         }
-        /* 星星闪烁动画 */
-        @keyframes twinkle {
-            0% {
-                opacity: 0.5;
-                transform: scale(0.9);
+
+        .date-picker input[type="date"] {
+            background: transparent;
+            border: none;
+            color: var(--ios-blue);
+            font-size: var(--ios-subhead);
+            font-weight: 600;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .date-picker input[type="date"]:focus {
+            outline: none;
+            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .date-picker input[type="date"]::-webkit-calendar-picker-indicator {
+            opacity: 0;
+            position: absolute;
+            right: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        /* Search & Filter */
+        .search-section {
+            margin-bottom: 20px;
+        }
+
+        .search-bar {
+            background: var(--ios-tertiary-background);
+            border-radius: var(--ios-corner-radius-small);
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 0.5px solid var(--ios-gray-5);
+            transition: all 0.2s;
+        }
+
+        .search-bar:focus-within {
+            border-color: var(--ios-blue);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        }
+
+        .search-bar i {
+            color: var(--ios-gray-1);
+            font-size: 18px;
+        }
+
+        .search-bar input {
+            border: none;
+            outline: none;
+            flex: 1;
+            font-size: var(--ios-body);
+            background: transparent;
+            color: var(--ios-label);
+        }
+
+        .search-bar input::placeholder {
+            color: var(--ios-gray-1);
+        }
+
+        /* Filter Segmented Control */
+        .filter-control {
+            background: var(--ios-gray-6);
+            border-radius: var(--ios-corner-radius-small);
+            padding: 2px;
+            display: flex;
+        }
+
+        .filter-tab {
+            flex: 1;
+            padding: 8px 12px;
+            text-align: center;
+            border-radius: 6px;
+            font-size: var(--ios-footnote);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            color: var(--ios-label);
+        }
+
+        .filter-tab.active {
+            background: var(--ios-tertiary-background);
+            color: var(--ios-label);
+            box-shadow: var(--ios-shadow-1);
+        }
+
+        /* Product List */
+        .product-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            background: var(--ios-gray-4);
+            border-radius: var(--ios-corner-radius-medium);
+            overflow: hidden;
+        }
+
+        .product-item {
+            background: var(--ios-tertiary-background);
+            border-radius: var(--ios-corner-radius-medium);
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--ios-shadow-1);
+            border: 0.5px solid var(--ios-gray-5);
+        }
+
+        .product-item:active {
+            background: var(--ios-gray-6);
+        }
+
+        .product-item:first-child {
+            border-top-left-radius: var(--ios-corner-radius-medium);
+            border-top-right-radius: var(--ios-corner-radius-medium);
+        }
+
+        .product-item:last-child {
+            border-bottom-left-radius: var(--ios-corner-radius-medium);
+            border-bottom-right-radius: var(--ios-corner-radius-medium);
+        }
+
+        .product-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--ios-corner-radius-small);
+            background: var(--ios-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .product-details {
+            flex: 1;
+        }
+
+        .product-name {
+            font-size: var(--ios-body);
+            font-weight: 500;
+            color: var(--ios-label);
+            margin-bottom: 2px;
+            letter-spacing: -0.2px;
+        }
+
+        .product-meta {
+            font-size: var(--ios-footnote);
+            color: var(--ios-gray-1);
+            display: flex;
+            gap: 12px;
+        }
+
+        .stock-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: var(--ios-footnote);
+            font-weight: 500;
+        }
+
+        .stock-status.low { color: var(--ios-orange); }
+        .stock-status.normal { color: var(--ios-green); }
+        .stock-status.out { color: var(--ios-red); }
+
+        /* Bottom Tab Bar */
+        .tab-bar {
+            position: fixed;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 414px;
+            background: var(--ios-background);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 0.5px solid var(--ios-gray-4);
+            display: flex;
+            padding: 8px 0 44px;
+            box-shadow: 0 -0.5px 0 var(--ios-gray-5);
+        }
+
+        .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-item:active {
+            transform: scale(0.9);
+        }
+
+        .tab-item .icon {
+            font-size: 24px;
+            margin-bottom: 2px;
+            transition: all 0.2s;
+            color: var(--ios-gray-1);
+        }
+
+        .tab-item .label {
+            font-size: var(--ios-caption-2);
+            font-weight: 500;
+            color: var(--ios-gray-1);
+            letter-spacing: -0.1px;
+        }
+
+        .tab-item.active .icon {
+            color: var(--ios-blue);
+        }
+
+        .tab-item.active .label {
+            color: var(--ios-blue);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: modalFadeIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--ios-tertiary-background);
+            border-radius: var(--ios-corner-radius-xlarge);
+            margin: 20px;
+            max-width: 350px;
+            width: 100%;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: var(--ios-shadow-3);
+            animation: modalSlideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes modalSlideUp {
+            from {
+                transform: translateY(100px) scale(0.95);
+            opacity: 0;
             }
-            100% {
+            to {
+                transform: translateY(0) scale(1);
                 opacity: 1;
-                transform: scale(1.1);
             }
         }
-        /* 使星星交错闪烁 */
-        .star-rating .material-icons:nth-child(1) {
-            animation-delay: 0s;
+
+        .modal-header {
+            padding: 20px 20px 0;
+            text-align: center;
+            position: relative;
+            border-bottom: 0.5px solid var(--ios-gray-5);
+            padding-bottom: 16px;
         }
-        .star-rating .material-icons:nth-child(2) {
-            animation-delay: 0.3s;
+
+        .modal-title {
+            font-size: var(--ios-headline);
+            font-weight: 600;
+            color: var(--ios-label);
+            letter-spacing: -0.2px;
         }
-        .star-rating .material-icons:nth-child(3) {
-            animation-delay: 0.6s;
+
+        .close-btn {
+            position: absolute;
+            top: 6px;
+            right: 16px;
+            background: var(--ios-gray-6);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--ios-gray-1);
         }
-        .star-rating .material-icons:nth-child(4) {
-            animation-delay: 0.9s;
+
+        .close-btn:active {
+            background: var(--ios-gray-4);
+            transform: scale(0.9);
         }
-        .star-rating .material-icons:nth-child(5) {
-            animation-delay: 1.2s;
+
+        .modal-body {
+            padding: 20px;
+            text-align: center;
+            overflow-y: auto;
+            max-height: calc(80vh - 100px);
+            /* Hide scrollbar but keep scrolling */
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
-        /* 星星注释说明样式 */
-        .star-note {
-            font-size: 10px;
-            color: #aaa;
-            margin-top: 0;
+        
+        .modal-body::-webkit-scrollbar {
+            display: none;
+        }
+
+        .store-detail-image {
+            width: 100px;
+            height: 100px;
+            border-radius: var(--ios-corner-radius-large);
+            background: linear-gradient(135deg, var(--ios-blue) 0%, var(--ios-purple) 100%);
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: var(--ios-shadow-2);
+        }
+
+        .store-detail-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .store-detail-name {
+            font-size: var(--ios-title-3);
+            font-weight: 600;
+            color: var(--ios-label);
+            margin-bottom: 6px;
+            letter-spacing: -0.3px;
+        }
+
+        .store-detail-address {
+            font-size: var(--ios-subhead);
+            color: var(--ios-gray-1);
+            margin-bottom: 20px;
+        }
+
+        .detail-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .detail-stat {
+            background: var(--ios-secondary-background);
+            border-radius: var(--ios-corner-radius-medium);
+            padding: 16px;
+            text-align: center;
+        }
+
+        .detail-stat .value {
+            font-size: var(--ios-title-3);
+            font-weight: 700;
+            color: var(--ios-label);
+            letter-spacing: -0.3px;
+        }
+
+        .detail-stat .label {
+            font-size: var(--ios-caption-1);
+            color: var(--ios-gray-1);
+            font-weight: 500;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0px 0px;
+            color: var(--ios-gray-1);
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 2px solid var(--ios-gray-5);
+            border-top: 2px solid var(--ios-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 12px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--ios-gray-1);
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            color: var(--ios-gray-2);
+            margin-bottom: 16px;
+        }
+
+        .empty-state .title {
+            font-size: var(--ios-headline);
+            font-weight: 600;
+            color: var(--ios-secondary-label);
             margin-bottom: 8px;
-            padding-left: 21px;
-            font-style: italic;
+        }
+
+        .empty-state .message {
+            font-size: var(--ios-subhead);
+            color: var(--ios-gray-1);
+        }
+
+        /* Store Detail View Styles */
+        .store-detail-nav {
+            display: flex;
+            align-items: center;
+            padding: 3px 20px;
+            background: var(--ios-background);
+            border-bottom: 0.5px solid var(--ios-gray-4);
+            gap: 16px;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--ios-blue);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 1px;
+            border-radius: var(--ios-corner-radius-small);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .back-btn:hover {
+            background: var(--ios-gray-6);
+        }
+
+        .store-detail-title {
+            font-size: var(--ios-headline);
+            font-weight: 600;
+            color: var(--ios-label);
+        }
+
+        .store-detail-content {
+            padding: 0 20px 100px 20px;
+            margin-top: 0;
+        }
+
+        .store-detail-image-section {
+            text-align: center;
+            margin: 10px 0 24px 0;
+        }
+
+        .store-detail-image-section img {
+            width: 300px;
+            height: 200px;
+            border-radius: var(--ios-corner-radius-large);
+            object-fit: cover;
+            border: 2px solid var(--ios-gray-5);
+        }
+
+        .store-info-section {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .store-info-section h2 {
+            font-size: var(--ios-title-2);
+            font-weight: 700;
+            color: var(--ios-label);
+            margin: 0 0 8px 0;
+        }
+
+        .store-info-section p {
+            font-size: var(--ios-subhead);
+            color: var(--ios-gray-1);
+            margin: 0;
+        }
+
+        .sales-summary-section {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .summary-card {
+            background: var(--ios-tertiary-background);
+            border-radius: var(--ios-corner-radius-large);
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: var(--ios-shadow-1);
+            border: 0.5px solid var(--ios-gray-5);
+        }
+
+        .summary-icon {
+            font-size: 32px;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--ios-secondary-background);
+            border-radius: var(--ios-corner-radius-medium);
+        }
+
+        .summary-info {
+            flex: 1;
+        }
+
+        .summary-value {
+            font-size: var(--ios-title-3);
+            font-weight: 700;
+            color: var(--ios-blue);
+            margin-bottom: 4px;
+        }
+
+        .summary-label {
+            font-size: var(--ios-caption-1);
+            color: var(--ios-gray-1);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .summary-transactions {
+            font-size: var(--ios-caption-1);
+            color: var(--ios-gray-1);
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        /* Shift Sales Cards */
+        .shirt-sales-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .shirt-card {
+            background: var(--ios-tertiary-background);
+            border-radius: var(--ios-corner-radius-large);
+            padding: 20px;
+            text-align: center;
+            box-shadow: var(--ios-shadow-1);
+            border: 0.5px solid var(--ios-gray-5);
+        }
+
+        .shirt-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+            color: var(--ios-blue);
+        }
+
+        .shirt-value {
+            font-size: var(--ios-title-3);
+            font-weight: 700;
+            color: var(--ios-green);
+            margin-bottom: 4px;
+        }
+
+        .shirt-label {
+            font-size: var(--ios-caption-1);
+            color: var(--ios-gray-1);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .record-bill-number {
+            display: none;
+            font-size: var(--ios-headline);
+            font-weight: 600;
+            color: var(--ios-label);
+            margin-bottom: 4px;
+        }
+
+        /* Product Sales */
+        .product-sales-section {
+            margin-bottom: 32px;
+        }
+
+        .product-sales-section h3 {
+            font-size: var(--ios-title-3);
+            font-weight: 600;
+            color: var(--ios-label);
+            margin: 0 0 16px 0;
+        }
+
+        .product-item {
+            background: var(--ios-tertiary-background);
+            border-radius: var(--ios-corner-radius-medium);
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--ios-shadow-1);
+            border: 0.5px solid var(--ios-gray-5);
+        }
+
+        .product-info {
+            flex: 1;
+        }
+
+        .product-name {
+            font-size: var(--ios-headline);
+            font-weight: 600;
+            color: var(--ios-label);
+            margin-bottom: 4px;
+        }
+
+        .product-details {
+            font-size: var(--ios-subhead);
+            color: var(--ios-gray-1);
+        }
+
+        .product-sales-data {
+            text-align: right;
+        }
+
+        .product-revenue {
+            font-size: var(--ios-headline);
+            font-weight: 700;
+            color: var(--ios-green);
+            margin-bottom: 4px;
+        }
+
+        .product-quantity {
+            font-size: var(--ios-caption-1);
+            color: var(--ios-gray-1);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Sales Record Item Styles */
+        .sales-record-item {
+            background: var(--ios-tertiary-background);
+            border-radius: var(--ios-corner-radius-medium);
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--ios-shadow-1);
+            border: 0.5px solid var(--ios-gray-5);
+            transition: all 0.2s;
+        }
+
+        .sales-record-item:active {
+            transform: scale(0.98);
+            background: var(--ios-gray-6);
+        }
+
+        .record-info {
+            flex: 1;
+        }
+
+        .record-bill-number {
+            display: none;
+            font-size: var(--ios-headline);
+            font-weight: 600;
+            color: var(--ios-label);
+            margin-bottom: 4px;
+        }
+
+        .record-details {
+            font-size: var(--ios-subhead);
+            color: var(--ios-gray-1);
+            margin-bottom: 2px;
+        }
+
+        .record-cashier {
+            font-size: var(--ios-caption-1);
+            color: var(--ios-blue);
+            font-weight: 500;
+        }
+
+        .record-amount-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .record-amount {
+            text-align: right;
+        }
+
+        .record-total {
+            font-size: var(--ios-headline);
+            font-weight: 700;
+            color: var(--ios-green);
+            margin-bottom: 4px;
+        }
+
+        .record-time {
+            font-size: var(--ios-caption-1);
+            color: var(--ios-gray-1);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-icon {
+            color: var(--ios-blue);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: var(--ios-corner-radius-small);
+            transition: all 0.2s;
+        }
+
+        .detail-icon:hover {
+            background: var(--ios-gray-6);
+        }
+
+        /* Sales Record Detail Modal Styles */
+        .sale-basic-info {
+            background: var(--ios-secondary-background);
+            border-radius: var(--ios-corner-radius-medium);
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .sale-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 0.5px solid var(--ios-gray-5);
+        }
+
+        .sale-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .sale-label {
+            font-size: var(--ios-subhead);
+            color: var(--ios-gray-1);
+            font-weight: 500;
+        }
+
+        .sale-value {
+            font-size: var(--ios-subhead);
+            color: var(--ios-label);
+            font-weight: 600;
+        }
+
+        .sale-value.sale-total {
+            color: var(--ios-green);
+            font-weight: 700;
+            font-size: var(--ios-headline);
+        }
+
+        .sale-items-section {
+            margin-bottom: 20px;
+        }
+
+        .sale-items-section h4 {
+            font-size: var(--ios-headline);
+            font-weight: 600;
+            color: var(--ios-label);
+            margin: 0 0 12px 0;
+        }
+
+        .sale-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--ios-tertiary-background);
+            border-radius: var(--ios-corner-radius-small);
+            margin-bottom: 8px;
+            border: 0.5px solid var(--ios-gray-5);
+        }
+
+        .sale-item-info {
+            flex: 1;
+        }
+
+        .sale-item-name {
+            font-size: var(--ios-subhead);
+            font-weight: 600;
+            color: var(--ios-label);
+            margin-bottom: 2px;
+        }
+
+        .sale-item-details {
+            font-size: var(--ios-caption-1);
+            color: var(--ios-gray-1);
+        }
+
+        .sale-item-amount {
+            text-align: right;
+        }
+
+        .sale-item-price {
+            font-size: var(--ios-subhead);
+            font-weight: 600;
+            color: var(--ios-blue);
+            margin-bottom: 2px;
+        }
+
+        .sale-item-subtotal {
+            font-size: var(--ios-caption-1);
+            color: var(--ios-gray-1);
+        }
+
+        .sale-summary-section {
+            background: var(--ios-secondary-background);
+            border-radius: var(--ios-corner-radius-medium);
+            padding: 16px;
+            margin-top: 20px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 0.5px solid var(--ios-gray-5);
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .summary-row.total-row {
+            border-top: 2px solid var(--ios-gray-4);
+            padding-top: 12px;
+            margin-top: 8px;
+        }
+
+        .summary-label {
+            font-size: var(--ios-subhead);
+            color: var(--ios-gray-1);
+            font-weight: 500;
+        }
+
+        .summary-value {
+            font-size: var(--ios-subhead);
+            color: var(--ios-label);
+            font-weight: 600;
+        }
+
+        .summary-value.discount-value {
+            color: var(--ios-red);
+        }
+
+        .summary-value.total-value {
+            color: var(--ios-green);
+            font-weight: 700;
+            font-size: var(--ios-headline);
+        }
+
+        /* Responsive Design */
+        @media (min-width: 768px) {
+            .app-container {
+                max-width: 768px;
+                border-radius: var(--ios-corner-radius-xlarge);
+                margin-top: 20px;
+                height: calc(100vh - 40px);
+                box-shadow: var(--ios-shadow-3);
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .stores-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* Safe Area Support */
+        @supports (padding: max(0px)) {
+            .tab-bar {
+                padding-bottom: max(34px, env(safe-area-inset-bottom) + 8px);
+            }
+        }
+
+        /* Reduced Motion Support */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            background: var(--ios-tertiary-background);
+            padding: 30px;
+            border-radius: var(--ios-corner-radius-xlarge);
+            text-align: center;
+            box-shadow: var(--ios-shadow-3);
+            max-width: 200px;
+        }
+
+        .loading-content .spinner {
+            margin: 0 auto 15px;
+        }
+
+        .loading-content p {
+            color: var(--ios-label);
+            font-size: var(--ios-subhead);
+            margin: 0;
+        }
+
+        /* Error toast */
+        .error-toast {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--ios-red);
+            color: white;
+            padding: 12px 20px;
+            border-radius: var(--ios-corner-radius-medium);
+            font-size: var(--ios-subhead);
+            font-weight: 500;
+            z-index: 9999;
+            animation: slideInFromTop 0.3s ease-out;
+        }
+
+        @keyframes slideInFromTop {
+            from {
+                transform: translateX(-50%) translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- 魔法效果容器 -->
-    <div class="magic-overlay" id="magicOverlay"></div>
-    <div class="magic-effect" id="magicEffect"></div>
-    <div class="particles-container" id="particlesContainer"></div>
+    <div class="app-container">
+        <!-- Status Bar -->
+ 
+                
+        <!-- Navigation Bar -->
+<div class="nav-bar">
+    <div class="nav-title" id="navTitle">
+        Sales
+        <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
+        <i class="material-icons">refresh</i>
+        </button><br>
+                    </div>
+    <div class="nav-subtitle" id="navSubtitle">Today's Performance</div>
+                </div>
+                
+                
+        <!-- Main Content -->
+        <div class="app-main">
+            
+            <!-- Sales View -->
+            <div id="salesView" class="view active">
+                                <!-- Date Selector & Refresh -->
+                <div class="date-selector-section">
+                    <div class="date-picker">
+                        <label for="salesDatePicker">
+                            <i class="material-icons">event</i>
+                            <span>Date</span>
+                        </label>
+                        <input type="date" id="salesDatePicker" value="">
+    </div>
     
-    <div class="pos-container">
-        <div class="sidebar">
-            <div class="admin-profile">
-                <div class="admin-profile-header">
-                    <div class="admin-avatar">
-                        <img src="../icons/pos.png" alt="SmartProfits Logo">
-                    </div>
-                    <div class="admin-title">
-                        <h2>SmartProfits</h2>
-                    </div>
+    </div>
+    
+                <!-- Stats Overview -->
+                <div class="stats-overview">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="icon">💰</div>
+                            <div class="value" id="totalRevenue">RM 0</div>
+                            <div class="label">Revenue</div>
                 </div>
-                <div class="admin-info">
-                    <p><i class="material-icons">person_outline</i><span id="adminName">User</span></p>
-                    <p><i class="material-icons">email</i><span id="adminEmail">loading@example.com</span></p>
-                    <p><i class="material-icons">verified_user</i><span id="adminRole">Admin</span></p>
-                    <p><i class="material-icons">trending_up</i>Sales Rate: <span id="adminSalesRate" class="star-rating">Loading...</span></p>
-                    <p class="star-note">One star equals RM 10,000</p>
+                        <div class="stat-card">
+                            <div class="icon">📊</div>
+                            <div class="value" id="totalSales">0</div>
+                            <div class="label">Sales</div>
                 </div>
-            </div>
-            <div class="nav-menu">
-                <div class="nav-item active" data-view="dashboard"><ion-icon name="home-outline"></ion-icon><span>Sales</span></div>
-                <div class="nav-item" data-view="inventory"><ion-icon name="cube-outline"></ion-icon><span>Inventory</span></div>
-                <div class="nav-item" onclick="logout()"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></div>
-            </div>
-        </div>
-        
-        <div class="content">
-            <div class="header">
-                <h1 id="viewTitle">Dashboard</h1>
-                <div id="currentDateTime"></div>
-            </div>
-            
-            <!-- Dashboard View -->
-            <div id="dashboardView" class="view active">
-                <div class="dashboard-header">
-                    <div class="date-selector">
-                        <label for="dateFilter"><ion-icon name="calendar-outline"></ion-icon></label>
-                    <input type="date" id="dateFilter" value="">
-                    </div>
-                    
-                    <div class="dashboard-actions">
-                        <button id="refreshStatsBtn" class="icon-button" title="刷新数据">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
-                        <button id="viewSalesSummaryBtn" class="action-button" style="display: none;">
-                            <ion-icon name="bar-chart-outline"></ion-icon>
-                            <span>Sales Summary</span>
-                        </button>
-                        <button id="diagnoseFbBtn" class="action-button" onclick="testFirebaseConnection()" style="display: none;">
-                            <ion-icon name="bug-outline"></ion-icon>
-                            <span>诊断连接</span>
-                        </button>
-                    </div>
+                        <div class="stat-card">
+                            <div class="icon">🏪</div>
+                            <div class="value" id="activeStores">0</div>
+                            <div class="label">Stores</div>
                 </div>
-                
-                <div class="store-buttons-container">
-                    <div class="store-buttons-label"><i class="material-icons">store</i> Store:</div>
-                    <div class="store-buttons" id="storeButtons">
-                        <button class="store-button active" data-store="all">All Stores</button>
-                        <!-- Store buttons will be loaded dynamically -->
-                    </div>
+                        <div class="stat-card">
+                            <div class="icon">📈</div>
+                            <div class="value" id="growthRate">+0%</div>
+                            <div class="label">Growth</div>
                 </div>
-                
-                <div class="stats-container" id="statsContainer">
-                    <!-- Stat cards will be loaded dynamically -->
-                </div>
-                
-                <h2>Sales Details</h2>
-                <div class="sale-details-container">
-                    <table id="saleDetailsTable">
-                        <thead>
-                            <tr>
-                                <th>Bill Number</th>
-                                <th>Store</th>
-                                <th>Time</th>
-                                <th>Cashier</th>
-                                <th>Shift</th>
-                                <th>Items</th>
-                                <th>Total</th>
-                                <th>Details</th>
-                            </tr>
-                        </thead>
-                        <tbody id="saleDetailsBody">
-                            <!-- Sale details will be loaded dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Stores Management View -->
-            <div id="storesView" class="view">
-                <h2>Store Management</h2>
-                
-                <div class="page-header">
-                    <div class="header-title">
-                        <span>Manage all your retail locations</span>
-                    </div>
-                    <div class="header-actions">
-                        <button id="addStoreBtn" class="action-button">
-                            <i class="material-icons">add_business</i>
-                            <span>Add Store</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="data-table-container">
-                    <table id="storesTable">
-                        <thead>
-                            <tr>
-                                <th>Store ID</th>
-                                <th>Store Name</th>
-                                <th>Address</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="storesTableBody">
-                            <!-- Store list will be loaded dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Products Management View -->
-            <div id="productsView" class="view">
-                <h2>Product Management</h2>
-                
-                <div class="page-header">
-                    <div class="filter-section">
-                        <div class="filter-item">
-                            <label for="productStoreFilter">
-                                <i class="material-icons">store</i>
-                                <span>Store</span>
-                            </label>
-                            <select id="productStoreFilter">
-                                <option value="all">All Stores</option>
-                                <!-- Store options will be loaded dynamically -->
-                            </select>
-                        </div>
-                        
-                        <div class="filter-item">
-                            <label for="productSearch">
-                                <i class="material-icons">search</i>
-                                <span>Search</span>
-                            </label>
-                            <input type="text" id="productSearch" placeholder="Search products...">
-                        </div>
-                    </div>
-                    <div class="header-actions">
-                        <button id="addProductBtn" class="action-button">
-                            <i class="material-icons">add_shopping_cart</i>
-                            <span>Add Product</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="data-table-container">
-                    <table id="productsTable">
-                        <thead>
-                            <tr>
-                                <th>Product ID</th>
-                                <th>Product Name</th>
-                                <th>Price</th>
-                                <th>Quantity</th>
-                                <th>Category</th>
-                                <th>Store</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productsTableBody">
-                            <!-- Product list will be loaded dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Users Management View -->
-            <div id="usersView" class="view">
-                <h2>User Management</h2>
-                
-                <div class="page-header">
-                    <div class="header-title">
-                        <span>Manage user accounts and permissions</span>
-                    </div>
-                    <div class="header-actions">
-                        <button id="addUserBtn" class="action-button">
-                            <i class="material-icons">person_add</i>
-                            <span>Add User</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="data-table-container">
-                    <table id="usersTable">
-                        <thead>
-                            <tr>
-                                <th>User ID</th>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Store</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersTableBody">
-                            <!-- User list will be loaded dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Inventory Management View -->
-            <div id="inventoryView" class="view">
-                <h2>Inventory</h2>
-                
-                <div class="inventory-header">
-                    <div class="inventory-filters">
-                        <div class="filter-item">
-                            <label for="inventoryStoreFilter"><ion-icon name="home-outline"></ion-icon></label>
-                    <select id="inventoryStoreFilter">
-                        <option value="all">All Stores</option>
-                        <!-- Store options will be loaded dynamically -->
-                    </select>
-                        </div>
-                        
-                        <div class="filter-item">
-                            <label for="inventoryCategoryFilter"><ion-icon name="layers-outline"></ion-icon></label>
-                    <select id="inventoryCategoryFilter">
-                        <option value="all">All Categories</option>
-                        <!-- Category options will be loaded dynamically -->
-                    </select>
-                        </div>
-                        
-                        <div class="filter-item">
-                            <label for="inventoryStockFilter"><ion-icon name="alert-circle-outline"></ion-icon></label>
-                    <select id="inventoryStockFilter">
-                        <option value="all">Stock</option>
-                        <option value="low">Low Stock</option>
-                        <option value="out">Out of Stock</option>
-                    </select>
-                        </div>
-                    </div>
-                    
-                    <div class="inventory-actions">
-                        <button id="refreshInventoryBtn" class="icon-button" title="刷新库存">
-                            <i class="material-icons">refresh</i>
-                        </button>
-                        <button id="bulkUpdateBtn" class="action-button">
-                            <i class="material-icons">update</i>
-                            <span>Bulk Update</span>
-                        </button>
-                        <div class="dropdown">
-                            <button class="action-button dropdown-toggle">
-                                <i class="material-icons">more_horiz</i>
-                            </button>
-                            <div class="dropdown-menu">
-                                <button id="exportInventoryBtn" class="dropdown-item">
-                                    <i class="material-icons">download</i>
-                                    <span>Export</span>
-                                </button>
-                                <button id="importInventoryBtn" class="dropdown-item">
-                                    <i class="material-icons">upload</i>
-                                    <span>Import</span>
-                                </button>
-                            </div>
-                        </div>
-                </div>
-                </div>
-                
-                <div class="inventory-table-container" id="inventoryTableWrapper">
-                    <table id="inventoryTable">
-                        <thead>
-                            <tr>
-                                <th><input type="checkbox" id="selectAllInventory"></th>
-                                <th>Product ID</th>
-                                <th>Name</th>
-                                <th>Category</th>
-                                <th>Price</th>
-                                <th>Current Stock</th>
-                                <th>Status</th>
-                                <th>Store</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventoryTableBody">
-                            <!-- Inventory list will be loaded dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-                <!-- Desktop Card Grid -->
-                <div id="inventoryCardGrid"></div>
-            </div>
-            
-            <!-- Online Users View -->
-            <div id="online-usersView" class="view">
-                <h2>Online Users</h2>
-                
-                <div class="page-header">
-                    <div class="header-title">
-                        <span>View all users currently online in the system</span>
-                    </div>
-                    <div class="header-actions">
-                        <button id="refreshOnlineUsersBtn" class="icon-button" title="Refresh online users list">
-                            <i class="material-icons">refresh</i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="data-table-container">
-                    <table id="onlineUsersTable">
-                        <thead>
-                            <tr>
-                                <th>User</th>
-                                <th>Role</th>
-                                <th>Status</th>
-                                <th>Current Activity</th>
-                                <th>Last Online Time</th>
-                            </tr>
-                        </thead>
-                        <tbody id="onlineUsersTableBody">
-                            <!-- Online user list will be dynamically generated here -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     </div>
     
-    <!-- Sale Detail Modal -->
-    <div id="saleDetailModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2><i class="material-icons">receipt</i> Sale Details</h2>
-            <div class="sale-detail-container">
-                <div class="sale-detail-header">
-                    <p><strong>Bill Number:</strong> <span id="sale-detail-bill">-</span></p>
-                    <p><strong>Store:</strong> <span id="sale-detail-store">-</span></p>
-                    <p><strong>Time:</strong> <span id="sale-detail-date">-</span></p>
-                    <p><strong>Cashier:</strong> <span id="sale-detail-cashier">-</span></p>
-                    <p><strong>Shift:</strong> <span id="sale-detail-shift">-</span></p>
+                <!-- Stores Section -->
+                <div class="section-header">
+                    <div class="section-title">Stores</div>
+                    <div class="section-action">View All</div>
                 </div>
-                <table class="sale-detail-table">
-                    <thead>
-                        <tr>
-                            <th>Product</th>
-                            <th>Quantity</th>
-                            <th>Unit Price</th>
-                            <th>Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody id="sale-details-items">
-                        <!-- Sale items will be loaded dynamically -->
-                    </tbody>
-                </table>
-                <div id="sale-detail-footer">
-                    <!-- Sale summary (subtotal, discount, total) will be loaded dynamically -->
-                </div>
-            </div>
+                <div class="stores-grid" id="storesGrid">
+                    <!-- Store cards will be loaded dynamically -->
         </div>
     </div>
     
-    <!-- Add Store Modal -->
-    <div id="addStoreModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2><i class="material-icons">add_business</i> Add Store</h2>
-            <form id="addStoreForm">
-                <div class="form-group">
-                    <label for="storeId"><i class="material-icons">tag</i> Store ID:</label>
-                    <input type="text" id="storeId" required>
-                </div>
-                <div class="form-group">
-                    <label for="storeName"><i class="material-icons">store</i> Store Name:</label>
-                    <input type="text" id="storeName" required>
-                </div>
-                <div class="form-group">
-                    <label for="storeAddress"><i class="material-icons">location_on</i> Address:</label>
-                    <input type="text" id="storeAddress" required>
-                </div>
-                <button type="submit"><i class="material-icons">save</i> Save</button>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Add Product Modal -->
-    <div id="addProductModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2><i class="material-icons">add_shopping_cart</i> Add Product</h2>
-            <form id="addProductForm">
-                <div class="form-group">
-                    <label for="productId"><i class="material-icons">tag</i> Product ID:</label>
-                    <input type="text" id="productId" required>
-                </div>
-                <div class="form-group">
-                    <label for="productName"><i class="material-icons">inventory</i> Product Name:</label>
-                    <input type="text" id="productName" required>
-                </div>
-                <div class="form-group">
-                    <label for="productPrice"><i class="material-icons">attach_money</i> Price:</label>
-                    <input type="number" id="productPrice" step="0.01" min="0" required>
-                </div>
-                <div class="form-group">
-                    <label for="productQuantity"><i class="material-icons">inventory_2</i> Stock:</label>
-                    <input type="number" id="productQuantity" min="0" value="0" step="0.001">
-                </div>
-                <div class="form-group">
-                    <label for="productCategory"><i class="material-icons">category</i> Category:</label>
-                    <input type="text" id="productCategory">
-                </div>
-                <div class="form-group">
-                    <label for="productStoreId"><i class="material-icons">store</i> Store:</label>
-                    <select id="productStoreId" required>
-                        <option value="">Select Store</option>
-                        <!-- Store options will be loaded dynamically -->
-                    </select>
-                </div>
-                <button type="submit"><i class="material-icons">save</i> Save</button>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Add User Modal -->
-    <div id="addUserModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2><i class="material-icons">person_add</i> Add User</h2>
-            <form id="addUserForm">
-                <div class="form-group">
-                    <label for="userEmail"><i class="material-icons">email</i> Email:</label>
-                    <input type="email" id="userEmail" required>
-                </div>
-                <div class="form-group">
-                    <label for="userName"><i class="material-icons">badge</i> Name:</label>
-                    <input type="text" id="userName" placeholder="User's full name">
-                </div>
-                <div class="form-group">
-                    <label for="userPassword"><i class="material-icons">lock</i> Password:</label>
-                    <input type="password" id="userPassword" required>
-                </div>
-                <div class="form-group">
-                    <label for="userRole"><i class="material-icons">assignment_ind</i> Role:</label>
-                    <select id="userRole" required>
-                        <option value="staff">Staff</option>
-                        <option value="admin">Admin</option>
-                        <option value="sadmin">Super Admin</option>
-                    </select>
-                </div>
-                <div class="form-group" id="userStoreContainer">
-                    <label for="userStoreId"><i class="material-icons">store</i> Store:</label>
-                    <select id="userStoreId">
-                        <option value="">Select Store</option>
-                        <!-- Store options will be loaded dynamically -->
-                    </select>
-                </div>
-                <button type="submit"><i class="material-icons">save</i> Save</button>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Update Stock Modal -->
-    <div class="modal" id="updateStockModal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2><i class="material-icons">edit</i> Update Stock</h2>
-            <form id="updateStockForm">
-                <input type="hidden" id="updateProductId">
-                
-                <div class="form-group">
-                    <label for="updateProductName">Product Name:</label>
-                    <input type="text" id="updateProductName" readonly>
-                </div>
-                
-                <div class="form-group">
-                    <label for="updateCurrentStock">Current Stock:</label>
-                    <input type="number" id="updateCurrentStock" readonly>
-                </div>
-                
-                <div class="form-group">
-                    <label for="updateOperation">Operation:</label>
-                    <select id="updateOperation">
-                        <option value="add">Add Stock</option>
-                        <option value="subtract">Remove Stock</option>
-                        <option value="set">Set Stock Value</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="updateQuantity">Quantity:</label>
-                    <input type="number" id="updateQuantity" min="0.001" value="1" step="0.001" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="updateReason">Reason:</label>
-                    <select id="updateReason" onchange="toggleOtherReason()">
-                        <option value="new_stock">New Stock</option>
-                        <option value="returned">Returned Items</option>
-                        <option value="damaged">Damaged/Lost</option>
-                        <option value="correction">Inventory Correction</option>
-                        <option value="expired">Expired</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                
-                <div class="form-group" id="otherReasonContainer" style="display: none;">
-                    <label for="otherReason">Specify Reason:</label>
-                    <input type="text" id="otherReason">
-                </div>
-                
-                <div class="form-group">
-                    <label for="updateNotes">Notes:</label>
-                    <textarea id="updateNotes" rows="3"></textarea>
-                </div>
-                
-                <button type="submit" class="btn-primary"><i class="material-icons">save</i> Update Stock</button>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Bulk Update Modal -->
-    <div class="modal" id="bulkUpdateModal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2><i class="material-icons">group_work</i> Bulk Update Stock</h2>
-            
-            <div class="selected-products-summary">
-                <p>Selected Products: <span id="selectedProductsCount">0</span></p>
-            </div>
-            
-            <div class="selected-products-list" id="selectedProductsList">
-                <!-- 选中的产品将在此显示 -->
-            </div>
-            
-            <form id="bulkUpdateForm">
-                <div class="form-group">
-                    <label for="bulkUpdateOperation">Operation:</label>
-                    <select id="bulkUpdateOperation">
-                        <option value="add">Add Stock</option>
-                        <option value="subtract">Remove Stock</option>
-                        <option value="percentage">Adjust by Percentage (%)</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="bulkUpdateQuantity">Quantity/Percentage:</label>
-                    <input type="number" id="bulkUpdateQuantity" min="0.001" value="1" step="0.001" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="bulkUpdateReason">Reason:</label>
-                    <select id="bulkUpdateReason" onchange="toggleBulkOtherReason()">
-                        <option value="new_stock">New Stock</option>
-                        <option value="returned">Returned Items</option>
-                        <option value="damaged">Damaged/Lost</option>
-                        <option value="correction">Inventory Correction</option>
-                        <option value="expired">Expired</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                
-                <div class="form-group" id="bulkOtherReasonContainer" style="display: none;">
-                    <label for="bulkOtherReason">Specify Reason:</label>
-                    <input type="text" id="bulkOtherReason">
-                </div>
-                
-                <div class="form-group">
-                    <label for="bulkUpdateNotes">Notes:</label>
-                    <textarea id="bulkUpdateNotes" rows="3"></textarea>
-                </div>
-                
-                <button type="submit" class="btn-primary"><i class="material-icons">save</i> Update Stock</button>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Sales Summary Modal -->
-    <div id="salesSummaryModal" class="modal sales-summary-fullscreen">
-        <div class="modal-content sales-summary-modal">
-            <div class="modal-header">
-                <h2><i class="material-icons">assessment</i> Sales Summary Report</h2>
-            <span class="close">&times;</span>
-            </div>
-            
-            <!-- 可滚动内容容器 -->
-            <div class="sales-summary-scrollable">
-            
-            <!-- 汇总控制面板 -->
-            <div class="summary-control-panel">
-                <div class="control-section">
-                    <div class="control-group">
-                        <label><i class="material-icons">view_module</i> View Mode</label>
-                        <div class="view-mode-selector">
-                            <button class="view-mode-btn active" data-mode="table">
-                                <i class="material-icons">table_chart</i>
-                                <span>Table</span>
-                            </button>
-                            <button class="view-mode-btn" data-mode="heatmap">
-                                <i class="material-icons">grid_on</i>
-                                <span>Heatmap</span>
-                            </button>
-                            <button class="view-mode-btn" data-mode="chart">
-                                <i class="material-icons">bar_chart</i>
-                                <span>Chart</span>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="control-group">
-                        <label><i class="material-icons">sort</i> Sort By</label>
-                <select id="summarySortBy">
-                    <option value="quantity">Sort by Quantity</option>
-                    <option value="revenue">Sort by Revenue</option>
-                    <option value="name">Sort by Name</option>
-                            <option value="profit">Sort by Profit</option>
+            <!-- Stock View -->
+            <div id="stockView" class="view">
+                <!-- Store Selection -->
+                <div class="date-selector-section">
+                    <div class="date-picker">
+                        <label for="storeSelector">
+                            <i class="material-icons">store</i>
+                            <span>Store</span>
+                        </label>
+                        <select id="storeSelector" style="background: transparent; border: none; color: var(--ios-blue); font-size: var(--ios-subhead); font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px;">
+                            <option value="all">All Stores</option>
+                            <!-- Store options will be loaded dynamically -->
                         </select>
                     </div>
+                </div>
+                
+                <!-- Search Section -->
+                <div class="search-section">
+                    <div class="search-bar">
+                        <i class="material-icons">search</i>
+                        <input type="text" placeholder="Search products" id="productSearch">
+                </div>
+                
+                    <div class="filter-control">
+                        <div class="filter-tab active" data-filter="all">All</div>
+                        <div class="filter-tab" data-filter="low">Low Stock</div>
+                        <div class="filter-tab" data-filter="out">Out of Stock</div>
+                </div>
+                </div>
+                
+                <!-- Product List -->
+                <div class="product-list" id="productList">
+                    <!-- Product items will be loaded dynamically -->
+                </div>
+                </div>
+                
+            <!-- Store Detail View -->
+            <div id="storeDetailView" class="view">
+                <!-- Store Detail Navigation -->
+                <div class="store-detail-nav">
+                    <button class="back-btn" onclick="goBackToSales()">
+                        <i class="material-icons">arrow_back_ios</i>
+                        <span class="back-btn">Back</span>
+                    </button>
+                    <div class="store-detail-title" id="storeDetailTitle"></div>
+                </div>
+                
+                <!-- Store Detail Content -->
+                <div class="store-detail-content">
+                    <!-- Store Image -->
+                    <div class="store-detail-image-section">
+                        <img id="storeDetailImage" src="../icons/pos.png" alt="Store Image">
+                </div>
+                
+                    <!-- Store Info -->
+                    <div class="store-info-section">
+                        <h2 id="storeDetailName">Store Name</h2>
+                        <p id="storeDetailLocation">Location</p>
+    </div>
+    
+                    <!-- Sales Summary -->
+                    <div class="sales-summary-section">
+                        <div class="summary-card">
+                            <div class="summary-icon">💰</div>
+                            <div class="summary-info">
+                                <div class="summary-value" id="storeDetailTotalSales" style="font-size: 24px; color: #1e7be9; font-weight: 900;">
+    RM 0
+            </div>
+                                <div class="summary-label">Total Sales</div>
+                                <div class="summary-transactions" id="storeDetailTransactionText">0 sales transaction</div>
+            </div>
+                </div>
+                </div>
+                
+                    <!-- Shift Sales -->
+                    <div class="shirt-sales-section">
+                        <div class="shirt-card">
+                            <div class="shirt-icon">☀️</div>
+                            <div class="shirt-value" id="shift1Sales" style="font-size: 19px; color: #f0a111; font-weight: 900;">RM 0</div>
+                            <div class="shirt-label">Shift 1</div>
+                </div>
+                        <div class="shirt-card">
+                            <div class="shirt-icon">🌙</div>
+                            <div class="shirt-value" id="shift2Sales" style="font-size: 19px; color: #9706f9; font-weight: 900;">RM 0</div>
+                            <div class="shirt-label">Shift 2</div>
+                </div>
+                </div>
+                
+                    <!-- Product Sales -->
+                    <div class="product-sales-section">
+                        <h3>Sales Records</h3>
+                        <div id="salesRecordsList">
+                            <!-- Sales records will be loaded here -->
+        </div>
+    </div>
+            </div>
+                        </div>
+                    </div>
                     
-                    <div class="control-group">
-                        <label><i class="material-icons">filter_list</i> Filter Options</label>
-                        <div class="filter-options">
-                            <select id="summaryCategory">
-                                <option value="all">All Categories</option>
-                                <!-- Category options will be loaded dynamically -->
-                            </select>
-                            <select id="summaryMinQuantity">
-                                <option value="0">Min Quantity</option>
-                                <option value="1">≥ 1</option>
-                                <option value="5">≥ 5</option>
-                                <option value="10">≥ 10</option>
-                                <option value="20">≥ 20</option>
-                </select>
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+            <div class="tab-item active" data-view="sales">
+                <i class="material-icons icon">trending_up</i>
+                <span class="label">Sales</span>
+                    </div>
+            <div class="tab-item" data-view="stock">
+                <i class="material-icons icon">inventory_2</i>
+                <span class="label">Stock</span>
+                        </div>
+            <div class="tab-item" onclick="logout()">
+                <i class="material-icons icon">logout</i>
+                <span class="label">Logout</span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="action-section">
-                    <label><i class="material-icons">more_horiz</i> Actions</label>
-                    <div class="action-mode-selector">
-                        <button id="screenshotSummaryBtn" class="action-mode-btn">
-                            <i class="material-icons">photo_camera</i>
-                            <span>Screenshot</span>
-                        </button>
-                        <button id="exportSummaryBtn" class="action-mode-btn">
-                            <i class="material-icons">download</i>
-                            <span>Export</span>
-                        </button>
-                        <button id="printSummaryBtn" class="action-mode-btn">
-                            <i class="material-icons">print</i>
-                            <span>Print</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-
-            
-            <!-- 汇总内容区域 -->
-            <div class="summary-content-area">
-                <!-- 表格视图 -->
-                <div id="summaryTableView" class="summary-view active">
-                    <div class="table-container">
-                        <table class="summary-table">
-                            <thead>
-                                <tr>
-                                    <th>Product ID</th>
-                                    <th>Product Name</th>
-                                    <th>Unit Price</th>
-                                    <th>Quantity Sold</th>
-                                    <th>Revenue</th>
-                                    <th>Sales Count</th>
-                                    <th>Percentage</th>
-                                </tr>
-                            </thead>
-                            <tbody id="summaryTableBody">
-                                <!-- Table content will be generated dynamically -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <!-- Heatmap View -->
-                <div id="summaryHeatmapView" class="summary-view">
-                    <div class="heatmap-container" id="summaryHeatmapContainer">
-                        <div class="heatmap-legend">
-                            <div class="legend-title">Sales Heatmap</div>
-                            <div class="legend-scale">
-                                <div class="legend-item">
-                                    <div class="legend-color low"></div>
-                                    <span>Low Sales</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-color medium-low"></div>
-                                    <span>Medium-Low Sales</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-color medium-high"></div>
-                                    <span>Medium-High Sales</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-color high"></div>
-                                    <span>High Sales</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="heatmap-grid" id="heatmapGrid">
-                            <!-- Heatmap content will be generated dynamically -->
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Chart View -->
-                <div id="summaryChartView" class="summary-view">
-                    <div class="chart-container">
-                        <div class="chart-tabs">
-                            <button class="chart-tab active" data-chart="bar">Bar Chart</button>
-                            <button class="chart-tab" data-chart="pie">Pie Chart</button>
-                            <button class="chart-tab" data-chart="line">Line Chart</button>
-                        </div>
-                        <div class="chart-content">
-                            <canvas id="summaryChart" width="800" height="400"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Loading State -->
-            <div id="summaryLoadingState" class="loading-state">
-                <div class="loading-spinner">
-                    <i class="material-icons">hourglass_empty</i>
-                </div>
-                <div class="loading-text">Loading sales summary data...</div>
-            </div>
-            
-            </div> <!-- 结束可滚动内容容器 -->
-        </div>
-    </div>
-    
-    <!-- Add Edit User Modal -->
-    <div id="editUserModal" class="modal">
+    <!-- Store Detail Modal -->
+    <div id="storeDetailModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2><i class="material-icons">edit</i> Edit User</h2>
-            <form id="editUserForm">
-                <input type="hidden" id="editUserId">
-                <div class="form-group">
-                    <label for="editUserEmail"><i class="material-icons">email</i> Email:</label>
-                    <input type="email" id="editUserEmail" readonly>
+            <div class="modal-header">
+                <div class="modal-title">Store Details</div>
+                <button class="close-btn" onclick="closeStoreDetail()">
+                    <i class="material-icons" style="font-size: 18px;">close</i>
+                        </button>
+                    </div>
+            <div class="modal-body">
+                
+        
+                <div class="detail-stats-grid">
+                    <div class="detail-stat">
+                        <div class="value" id="storeDetailRevenue">RM 0</div>
+                        <div class="label">Revenue</div>
+                    </div>
+                    <div class="detail-stat">
+                        <div class="value" id="storeDetailSales">0</div>
+                        <div class="label">Sales</div>
                 </div>
-                <div class="form-group">
-                    <label for="editUserName"><i class="material-icons">badge</i> Name:</label>
-                    <input type="text" id="editUserName" placeholder="User's full name">
+                    <div class="detail-stat">
+                        <div class="value" id="storeDetailProducts">0</div>
+                        <div class="label">Products</div>
+                                </div>
+                    <div class="detail-stat">
+                        <div class="value" id="storeDetailOrders">0</div>
+                        <div class="label">Orders</div>
+                                </div>
+                                </div>
+            
+                <div id="storeDetailSalesList">
+                    <!-- Detailed sales list will be loaded here -->
+                                </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="editUserRole"><i class="material-icons">assignment_ind</i> Role:</label>
-                    <select id="editUserRole">
-                        <option value="staff">Staff</option>
-                        <option value="admin">Admin</option>
-                        <option value="sadmin">Super Admin</option>
-                    </select>
+                
+    <!-- Sales Record Detail Modal -->
+    <div id="salesRecordDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Sales Record Details</div>
+                <button class="close-btn" onclick="closeSalesRecordDetail()">
+                    <i class="material-icons" style="font-size: 18px;">close</i>
+                </button>
+                        </div>
+            <div class="modal-body">
+                <!-- Sale Basic Info -->
+                <div class="sale-basic-info">
+                    <div class="sale-info-row">
+                        <span class="sale-label">Bill Number:</span>
+                        <span class="sale-value" id="saleDetailBillNumber">-</span>
+                        </div>
+                    <div class="sale-info-row">
+                        <span class="sale-label">Time:</span>
+                        <span class="sale-value" id="saleDetailDateTime">-</span>
+                    </div>
+                    <div class="sale-info-row">
+                        <span class="sale-label">Shift:</span>
+                        <span class="sale-value" id="saleDetailShift">-</span>
                 </div>
-                <div class="form-group" id="editUserStoreContainer">
-                    <label for="editUserStoreId"><i class="material-icons">store</i> Store:</label>
-                    <select id="editUserStoreId">
-                        <option value="">Select Store</option>
-                        <!-- Store options will be loaded dynamically -->
-                    </select>
+                    <div class="sale-info-row">
+                        <span class="sale-label">Cashier:</span>
+                        <span class="sale-value" id="saleDetailCashier">-</span>
                 </div>
-                <button type="submit"><i class="material-icons">save</i> Update</button>
-            </form>
+                    <div class="sale-info-row">
+                        <span class="sale-label">Total Amount:</span>
+                        <span class="sale-value sale-total" id="saleDetailTotal">RM 0</span>
+            </div>
+            </div>
+            
+                <!-- Items List -->
+                <div class="sale-items-section">
+                    <h4>Items Purchased</h4>
+                    <div id="saleDetailItemsList">
+                        <!-- Items will be loaded here -->
         </div>
     </div>
     
+                <!-- Summary -->
+                <div class="sale-summary-section">
+                    <div class="summary-row">
+                        <span class="summary-label">Subtotal:</span>
+                        <span class="summary-value" id="saleDetailSubtotal">RM 0</span>
+                </div>
+                    <div class="summary-row" id="discountRow" style="display: none;">
+                        <span class="summary-label">Discount:</span>
+                        <span class="summary-value discount-value" id="saleDetailDiscount">-RM 0</span>
+                </div>
+                    <div class="summary-row total-row">
+                        <span class="summary-label">Total:</span>
+                        <span class="summary-value total-value" id="saleDetailFinalTotal">RM 0</span>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+
+    <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="../js/firebase-config.js"></script>
     <script src="../js/database.js"></script>
     <script src="../js/network-monitor.js"></script>
-    <!-- iOS TabBar：移动端底部导航 -->
-    <div class="ios-tabbar">
-        <div class="ios-tabbar-item active nav-item" data-view="dashboard"><ion-icon name="home-outline"></ion-icon><span>Sales</span></div>
-        <div class="ios-tabbar-item nav-item" data-view="inventory"><ion-icon name="cube-outline"></ion-icon><span>Inventory</span></div>
-        <div class="ios-tabbar-item nav-item" onclick="logout()"><ion-icon name="log-out-outline"></ion-icon><span>Logout</span></div>
-    </div>
-    <!-- Ionicons for iOS 风格图标 -->
-    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-    
-    <!-- 魔法粒子效果脚本 -->
-    <script>
-        // 魔法粒子效果代码
-        document.addEventListener('DOMContentLoaded', function() {
-            const refreshBtn = document.getElementById('refreshStatsBtn');
-            const particlesContainer = document.getElementById('particlesContainer');
-            const magicOverlay = document.getElementById('magicOverlay');
-            const magicEffect = document.getElementById('magicEffect');
-            const body = document.body;
-            
-            // 预创建粒子元素
-            function preCreateParticles() {
-                for (let i = 0; i < 30; i++) {
-                    const particle = document.createElement('div');
-                    particle.classList.add('particle');
-                    particle.style.display = 'none';
-                    particlesContainer.appendChild(particle);
-                }
-            }
-            
-            // 初始化时预创建粒子
-            preCreateParticles();
-            const particles = document.querySelectorAll('.particle');
-            
-            // 创建粒子动画
-            function createParticles() {
-                // 获取按钮位置
-                const rect = refreshBtn.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-                
-                // 创建魔法圆圈效果
-                createMagicCircle(centerX, centerY);
-                
-                particles.forEach(particle => {
-                    // 重置粒子状态
-                    particle.style.display = 'block';
-                    particle.style.animation = 'none';
-                    
-                    // 随机大小 (4-8px)
-                    const size = 4 + Math.random() * 4;
-                    particle.style.width = `${size}px`;
-                    particle.style.height = `${size}px`;
-                    
-                    // 随机蓝色色调
-                    const hue = 200 + Math.random() * 40;
-                    particle.style.background = `hsl(${hue}, 100%, 60%)`;
-                    
-                    // 随机角度和距离
-                    const angle = Math.random() * Math.PI * 2;
-                    const distance = 50 + Math.random() * 150;
-                    
-                    // 计算目标位置
-                    const tx = Math.cos(angle) * distance;
-                    const ty = Math.sin(angle) * distance;
-                    
-                    // 设置初始位置（按钮中心）
-                    particle.style.left = `${centerX - size/2}px`;
-                    particle.style.top = `${centerY - size/2}px`;
-                    
-                    // 设置CSS变量用于动画
-                    particle.style.setProperty('--tx', `${tx}px`);
-                    particle.style.setProperty('--ty', `${ty}px`);
-                    
-                    // 随机动画时长
-                    const duration = 0.8 + Math.random() * 0.7;
-                    
-                    // 强制重排
-                    void particle.offsetWidth;
-                    
-                    // 应用动画
-                    particle.style.animation = `explode-move ${duration}s forwards`;
-                    
-                    // 随机延迟动画开始
-                    particle.style.animationDelay = `${Math.random() * 0.3}s`;
-                    
-                    // 动画结束后隐藏粒子
-                    particle.addEventListener('animationend', () => {
-                        particle.style.display = 'none';
-                    }, {once: true});
-                });
-            }
-            
-            // 创建魔法圆圈效果
-            function createMagicCircle(x, y) {
-                magicEffect.innerHTML = '';
-                
-                for (let i = 0; i < 3; i++) {
-                    const circle = document.createElement('div');
-                    circle.classList.add('magic-circle');
-                    circle.style.left = `${x}px`;
-                    circle.style.top = `${y}px`;
-                    circle.style.width = `${30 * (i+1)}px`;
-                    circle.style.height = `${30 * (i+1)}px`;
-                    circle.style.marginLeft = `-${15 * (i+1)}px`;
-                    circle.style.marginTop = `-${15 * (i+1)}px`;
-                    circle.style.borderWidth = `${1 + i}px`;
-                    circle.style.animationDelay = `${i * 0.2}s`;
-                    magicEffect.appendChild(circle);
-                    
-                    // 激活圆圈
-                    setTimeout(() => {
-                        circle.classList.add('active');
-                    }, 10);
-                    
-                    // 动画结束后移除
-                    circle.addEventListener('animationend', () => {
-                        circle.remove();
-                    }, {once: true});
-                }
-            }
-            
-            // 包装原有的刷新功能
-            function wrapRefreshFunction() {
-                // 重新绑定魔法效果
-                refreshBtn.addEventListener('click', function(e) {
-                    // 执行原有的刷新功能
-                    if (window.performStatsRefresh) {
-                        window.performStatsRefresh();
-                    }
-                    
-                    // 激活按钮动画
-                    refreshBtn.classList.add('active');
-                    
-                    // 激活魔法效果
-                    body.classList.add('darkened');
-                    magicOverlay.classList.add('active');
-                    magicEffect.classList.add('active');
-                    
-                    // 创建粒子
-                    createParticles();
-                    
-                    // 动画完成后重置状态
-                    setTimeout(() => {
-                        refreshBtn.classList.remove('active');
-                        body.classList.remove('darkened');
-                        magicOverlay.classList.remove('active');
-                        magicEffect.classList.remove('active');
-                    }, 1800);
-                });
-            }
-            
-            // 等待adminp.js加载完成后初始化
-            setTimeout(() => {
-                wrapRefreshFunction();
-            }, 1500);
-        });
-    </script>
-    
     <script src="../js/adminp.js"></script>
 </body>
 </html>
