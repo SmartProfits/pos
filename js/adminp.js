@@ -7,7 +7,6 @@ let productsData = {};
 let salesData = {};
 let dailySalesData = {};
 let selectedDate = null;
-let isRefreshing = false; // Global refresh state
 
 // Store image mapping - maps store IDs to images in shop folder
 const storeImageMap = {
@@ -21,6 +20,7 @@ const storeImageMap = {
     'jkl': '../shop/jkl.png',
     'som': '../shop/som.png',
     'left': '../shop/left.png',
+    'ktsp': '../shop/ktsp.png',
     // Fallback options
     'store1': '../shop/dalam.png',
     'store2': '../shop/luar.png',
@@ -61,7 +61,7 @@ function initializeApp() {
             
             loadUserProfile();
             loadDashboardData();
-                    } else {
+        } else {
             console.log('User not authenticated, redirecting to login...');
             // Redirect to login page
             window.location.href = '../index.html';
@@ -117,34 +117,6 @@ function setupEventListeners() {
         });
     }
 
-    // Pull to refresh functionality
-    let startY = 0;
-    let currentY = 0;
-    
-    const appMain = document.querySelector('.app-main');
-    
-    if (appMain) {
-        appMain.addEventListener('touchstart', (e) => {
-            startY = e.touches[0].pageY;
-        });
-        
-        appMain.addEventListener('touchmove', (e) => {
-            currentY = e.touches[0].pageY;
-            
-            // Check if user is at the top and pulling down
-            if (appMain.scrollTop === 0 && currentY > startY + 80 && !isRefreshing) {
-                e.preventDefault();
-                // Use the same refresh function for consistency
-                refreshData();
-            }
-        });
-        
-        appMain.addEventListener('touchend', () => {
-            startY = 0;
-            currentY = 0;
-        });
-    }
-
     // Sales record detail modal background click
     const salesRecordModal = document.getElementById('salesRecordDetailModal');
     if (salesRecordModal) {
@@ -156,104 +128,17 @@ function setupEventListeners() {
     }
 }
 
-// Refresh data function
-async function refreshData() {
-    // Prevent multiple simultaneous refreshes
-    if (isRefreshing) return;
-    
-    const refreshBtn = document.getElementById('refreshBtn');
-    
-    try {
-        isRefreshing = true;
-        hapticFeedback();
-        
-        // Add loading animation to refresh button
-        if (refreshBtn) {
-            refreshBtn.classList.add('loading');
-            refreshBtn.disabled = true;
-        }
-        
-        if (currentView === 'sales') {
-            const dateToRefresh = selectedDate || getCurrentDate();
-            await loadSalesDataForDate(dateToRefresh);
-            console.log(`Sales data refreshed for ${dateToRefresh}`);
-        } else if (currentView === 'stock') {
-            await loadStockData();
-            console.log('Stock data refreshed');
-        }
-        
-        // Show success animation, then reset
-        setTimeout(() => {
-            if (refreshBtn) {
-                refreshBtn.classList.remove('loading');
-                refreshBtn.classList.add('success');
-                
-                // Reset to normal state after success animation
-                setTimeout(() => {
-                    refreshBtn.classList.remove('success');
-                    refreshBtn.disabled = false;
-                    
-                    // Show a brief success message
-                    const dateToShow = selectedDate || getCurrentDate();
-                    const isToday = dateToShow === getCurrentDate();
-                    const message = isToday ? 'Data refreshed' : `Data refreshed for ${dateToShow}`;
-                    
-                    // Create temporary success toast
-                    const successToast = document.createElement('div');
-                    successToast.style.cssText = `
-                        position: fixed;
-                        top: 120px;
-                        left: 50%;
-                        transform: translateX(-50%);
-                        background: var(--ios-green);
-                        color: white;
-                        padding: 8px 16px;
-                        border-radius: 20px;
-                        font-size: 13px;
-                        font-weight: 500;
-                        z-index: 9999;
-                        opacity: 0;
-                        transition: opacity 0.3s;
-                    `;
-                    successToast.textContent = message;
-                    document.body.appendChild(successToast);
-                    
-                    // Show and hide the toast
-                    setTimeout(() => successToast.style.opacity = '1', 10);
-                    setTimeout(() => {
-                        successToast.style.opacity = '0';
-                        setTimeout(() => successToast.remove(), 300);
-                    }, 1500);
-                }, 600);
-            }
-            isRefreshing = false;
-        }, 800);
-        
-    } catch (error) {
-        console.error('Failed to refresh data:', error);
-        showError('Failed to refresh data. Please try again.');
-        
-        // Remove loading animation on error
-        if (refreshBtn) {
-            refreshBtn.classList.remove('loading');
-            refreshBtn.classList.remove('success');
-            refreshBtn.disabled = false;
-        }
-        isRefreshing = false;
-    }
-}
-
 // Switch view
 function switchView(viewName) {
     // Update navigation state
     document.querySelectorAll('.tab-item').forEach(item => {
-                        item.classList.remove('active');
+        item.classList.remove('active');
     });
     document.querySelector(`[data-view="${viewName}"]`).classList.add('active');
 
     // Show corresponding view
     document.querySelectorAll('.view').forEach(view => {
-            view.classList.remove('active');
+        view.classList.remove('active');
     });
     
     const targetView = document.getElementById(`${viewName}View`);
@@ -266,11 +151,11 @@ function switchView(viewName) {
         const navSubtitle = document.getElementById('navSubtitle');
         
         if (viewName === 'sales') {
-            navTitle.innerHTML = 'Sales<button class="refresh-btn" id="refreshBtn" onclick="refreshData()"><i class="material-icons">refresh</i></button>';
+            navTitle.innerHTML = 'Sales';
             navSubtitle.textContent = "Today's Performance";
             loadRealSalesData();
         } else if (viewName === 'stock') {
-            navTitle.innerHTML = 'Stock<button class="refresh-btn" id="refreshBtn" onclick="refreshData()"><i class="material-icons">refresh</i></button>';
+            navTitle.innerHTML = 'Stock';
             navSubtitle.textContent = 'Inventory Management';
             loadStockData();
         }
@@ -515,7 +400,7 @@ function animateValue(elementId, targetValue, prefix = '', suffix = '') {
     if (!element) return;
     
     const startValue = 0;
-    const duration = 2000;
+    const duration = 1500;
     const startTime = performance.now();
     
     function update(currentTime) {
@@ -1154,6 +1039,14 @@ function filterProducts() {
         // 根据是否选择了特定店铺来决定是否显示店铺名称
         const showStoreName = selectedStore === 'all';
         
+        // 确定库存状态的CSS类
+        let stockClass = 'stock';
+        if (stock === 0) {
+            stockClass = 'stock out';
+        } else if (stock <= 10) {
+            stockClass = 'stock low';
+        }
+        
         productItem.innerHTML = `
             <div class="product-icon">
                 <i class="material-icons">inventory_2</i>
@@ -1161,10 +1054,10 @@ function filterProducts() {
             <div class="product-details">
                 <div class="product-name">${product.name || 'Unnamed Product'}</div>
                 <div class="product-meta">
-                    <span>Price: RM ${parseFloat(product.price || 0).toFixed(2)}</span>
-                    <span>Stock: ${stock}</span>
-                    ${showStoreName ? `<span>Store: ${storeName}</span>` : ''}
-                    <span>Category: ${product.category || 'Uncategorized'}</span>
+                    <span class="price">RM ${parseFloat(product.price || 0).toFixed(2)}</span>
+                    <span class="${stockClass}">Stock: ${stock}</span>
+                    ${showStoreName ? `<span class="store">${storeName}</span>` : ''}
+                    <span class="category">${product.category || 'Uncategorized'}</span>
             </div>
             </div>
         `;

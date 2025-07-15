@@ -189,7 +189,7 @@
         }
 
         .stat-card .value {
-            font-size: var(--ios-title-2);
+            font-size: var(--ios-title-3);
             font-weight: 700;
             color: var(--ios-label);
             margin-bottom: 4px;
@@ -325,56 +325,7 @@
             flex: 1;
         }
 
-        .refresh-btn {
-            background: var(--ios-blue);
-            border: none;
-            border-radius: var(--ios-corner-radius-medium);
-            width: 33px;
-            height: 33px;
-            min-width: 33px; /* 防止按钮缩小 */
-            min-height: 33px; /* 防止按钮缩小 */
-            max-width: 33px; /* 防止按钮变大 */
-            max-height: 33px; /* 防止按钮变大 */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            box-shadow: var(--ios-shadow-1);
-            flex-shrink: 0; /* 防止flex布局压缩按钮 */
-        }
 
-        .refresh-btn:active {
-            transform: scale(0.95);
-            box-shadow: var(--ios-shadow-2);
-        }
-
-        .refresh-btn i {
-            color: white;
-            font-size: 20px; /* 调整图标大小 */
-            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            line-height: 1; /* 确保图标垂直居中 */
-        }
-
-        .refresh-btn.loading i {
-            animation: spin 1s linear infinite;
-        }
-
-        .refresh-btn.success {
-            background: var(--ios-green);
-            animation: pulse 0.6s ease-out;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
 
         .date-picker:focus-within {
             border-color: var(--ios-blue);
@@ -493,7 +444,7 @@
             display: flex;
             flex-direction: column;
             gap: 1px;
-            background: var(--ios-gray-4);
+            background: var(--ios-gray-6);
             border-radius: var(--ios-corner-radius-medium);
             overflow: hidden;
         }
@@ -553,6 +504,49 @@
             color: var(--ios-gray-1);
             display: flex;
             gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .product-meta .price {
+            color: var(--ios-green);
+            font-weight: 600;
+            background: rgba(52, 199, 89, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .product-meta .stock {
+            color: var(--ios-blue);
+            font-weight: 600;
+            background: rgba(0, 122, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .product-meta .stock.low {
+            color: var(--ios-orange);
+            background: rgba(255, 149, 0, 0.1);
+        }
+
+        .product-meta .stock.out {
+            color: var(--ios-red);
+            background: rgba(255, 59, 48, 0.1);
+        }
+
+        .product-meta .category {
+            color: var(--ios-purple);
+            font-weight: 500;
+            background: rgba(175, 82, 222, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .product-meta .store {
+            color: var(--ios-orange);
+            font-weight: 500;
+            background: rgba(255, 149, 0, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
         }
 
         .stock-status {
@@ -1384,13 +1378,10 @@
         <!-- Navigation Bar -->
 <div class="nav-bar">
     <div class="nav-title" id="navTitle">
-        Sales
-        <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
-        <i class="material-icons">refresh</i>
-        </button><br>
-                    </div>
+        Sales<br>
+    </div>
     <div class="nav-subtitle" id="navSubtitle">Today's Performance</div>
-                </div>
+</div>
                 
                 
         <!-- Main Content -->
