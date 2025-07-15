@@ -272,6 +272,7 @@
 
         .store-info {
             text-align: center;
+            padding: 16px;
         }
 
         .store-info h3 {
@@ -290,7 +291,7 @@
         }
 
         .sales-amount {
-            font-size: var(--ios-title-);
+            font-size: var(--ios-title-2);
             font-weight: 700;
             color: var(--ios-blue);
             letter-spacing: -0.3px;
@@ -1291,6 +1292,30 @@
             }
         }
 
+        /* Mobile Responsive */
+        @media (max-width: 480px) {
+            .store-info {
+                padding: 12px;
+            }
+            
+            .store-info h3 {
+                font-size: var(--ios-subhead);
+                margin-bottom: 8px;
+            }
+            
+            .sales-amount {
+                font-size: var(--ios-title-3);
+            }
+            
+            .sales-label {
+                font-size: var(--ios-caption-2);
+            }
+            
+            .store-image {
+                height: 80px;
+            }
+        }
+
         /* Safe Area Support */
         @supports (padding: max(0px)) {
             .tab-bar {
@@ -1447,7 +1472,6 @@
                             <span>Store</span>
                         </label>
                         <select id="storeSelector" style="background: transparent; border: none; color: var(--ios-blue); font-size: var(--ios-subhead); font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px;">
-                            <option value="all">All Stores</option>
                             <!-- Store options will be loaded dynamically -->
                         </select>
                     </div>
@@ -1515,12 +1539,12 @@
                     <div class="shirt-sales-section">
                         <div class="shirt-card">
                             <div class="shirt-icon">☀️</div>
-                            <div class="shirt-value" id="shift1Sales" style="font-size: 19px; color: #f0a111; font-weight: 900;">RM 0</div>
+                            <div class="shirt-value" id="shift1Sales" style="font-size: 16px; color: #f0a111; font-weight: 900;">RM 0</div>
                             <div class="shirt-label">Shift 1</div>
                 </div>
                         <div class="shirt-card">
                             <div class="shirt-icon">🌙</div>
-                            <div class="shirt-value" id="shift2Sales" style="font-size: 19px; color: #9706f9; font-weight: 900;">RM 0</div>
+                            <div class="shirt-value" id="shift2Sales" style="font-size: 16px; color: #9706f9; font-weight: 900;">RM 0</div>
                             <div class="shirt-label">Shift 2</div>
                 </div>
                 </div>

@@ -234,10 +234,13 @@ async function loadProducts() {
         Object.entries(storeProducts).forEach(([storeId, storeProductList]) => {
             if (storeProductList) {
                 Object.entries(storeProductList).forEach(([productId, product]) => {
-                    productsData[productId] = {
+                    // 使用店铺ID和产品ID组合作为唯一标识符
+                    const uniqueProductId = `${storeId}_${productId}`;
+                    productsData[uniqueProductId] = {
                         ...product,
                         id: productId,
-                        store_id: storeId
+                        store_id: storeId,
+                        unique_id: uniqueProductId
                     };
                 });
             }
@@ -971,14 +974,19 @@ function populateStoreSelector() {
     const storeSelector = document.getElementById('storeSelector');
     if (!storeSelector) return;
 
-    // Clear existing options except "All Stores"
-    storeSelector.innerHTML = '<option value="all">All Stores</option>';
+    // Clear existing options
+    storeSelector.innerHTML = '';
 
     // Add store options
+    let firstStore = true;
     Object.entries(storesData).forEach(([storeId, store]) => {
         const option = document.createElement('option');
         option.value = storeId;
         option.textContent = store.name || storeId;
+        if (firstStore) {
+            option.selected = true;
+            firstStore = false;
+        }
         storeSelector.appendChild(option);
     });
 }
@@ -987,7 +995,7 @@ function populateStoreSelector() {
 function filterProducts() {
     const searchTerm = document.getElementById('productSearch')?.value.toLowerCase() || '';
     const activeFilter = document.querySelector('.filter-tab.active')?.getAttribute('data-filter') || 'all';
-    const selectedStore = document.getElementById('storeSelector')?.value || 'all';
+    const selectedStore = document.getElementById('storeSelector')?.value || Object.keys(storesData)[0];
     
     const productList = document.getElementById('productList');
     if (!productList) return;
@@ -1001,7 +1009,7 @@ function filterProducts() {
             (product.id && product.id.toLowerCase().includes(searchTerm));
         
         // Store filter
-        const matchesStore = selectedStore === 'all' || product.store_id === selectedStore;
+        const matchesStore = product.store_id === selectedStore;
         
         // Stock status filter - 使用 stock 字段或 quantity 字段
         const stock = product.stock !== undefined ? product.stock : (product.quantity || 0);
@@ -1030,14 +1038,8 @@ function filterProducts() {
     filteredProducts.forEach(([productId, product]) => {
         const stock = product.stock !== undefined ? product.stock : (product.quantity || 0);
 
-        // 获取店铺名称
-        const storeName = storesData[product.store_id]?.name || product.store_id;
-
         const productItem = document.createElement('div');
         productItem.className = 'product-item';
-        
-        // 根据是否选择了特定店铺来决定是否显示店铺名称
-        const showStoreName = selectedStore === 'all';
         
         // 确定库存状态的CSS类
         let stockClass = 'stock';
@@ -1056,7 +1058,6 @@ function filterProducts() {
                 <div class="product-meta">
                     <span class="price">RM ${parseFloat(product.price || 0).toFixed(2)}</span>
                     <span class="${stockClass}">Stock: ${stock}</span>
-                    ${showStoreName ? `<span class="store">${storeName}</span>` : ''}
                     <span class="category">${product.category || 'Uncategorized'}</span>
             </div>
             </div>
