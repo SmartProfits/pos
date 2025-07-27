@@ -17,68 +17,13 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const database = firebase.database();
 
-// 获取用户IP地址和位置信息
-async function getUserLocationInfo() {
-    try {
-        // 获取IP信息
-        const response = await fetch('https://ipapi.co/json/');
-        const data = await response.json();
-        return {
-            ip: data.ip,
-            country: data.country_name,
-            region: data.region,
-            city: data.city,
-            timezone: data.timezone,
-            isp: data.org
-        };
-    } catch (error) {
-        console.error('获取位置信息失败:', error);
-        return {
-            ip: 'Unknown',
-            country: 'Unknown',
-            region: 'Unknown', 
-            city: 'Unknown',
-            timezone: 'Unknown',
-            isp: 'Unknown'
-        };
-    }
-}
-
-// 获取当前页面信息
-function getCurrentPageInfo() {
-    const path = window.location.pathname;
-    let page = 'Unknown';
-    
-    if (path.includes('admin.html')) {
-        page = 'admin.html';
-    } else if (path.includes('adminp.html')) {
-        page = 'adminp.html';
-    } else if (path.includes('pos.html')) {
-        page = 'pos.html';
-    } else if (path.includes('product_catalog.html')) {
-        page = 'product_catalog.html';
-    } else if (path.includes('index.html') || path.endsWith('/')) {
-        page = 'index.html';
-    }
-    
-    return {
-        page: page,
-        url: window.location.href,
-        title: document.title
-    };
-}
-
 // 用户在线状态管理
-async function setupOnlineStatusTracking() {
+function setupOnlineStatusTracking() {
     // 当前用户已登录
     const uid = auth.currentUser.uid;
     
     // 创建用户在线状态引用
     const userStatusRef = database.ref('user_status/' + uid);
-    
-    // 获取位置和页面信息
-    const locationInfo = await getUserLocationInfo();
-    const pageInfo = getCurrentPageInfo();
     
     // 创建一个引用到Firebase数据库中的".info/connected"路径
     const connectionRef = database.ref('.info/connected');
@@ -108,26 +53,8 @@ async function setupOnlineStatusTracking() {
             last_changed: firebase.database.ServerValue.TIMESTAMP,
             last_online: firebase.database.ServerValue.TIMESTAMP, // 更新最后在线时间
             display_name: auth.currentUser.email,
-            role: localStorage.getItem('role') || 'unknown',
-            location: locationInfo,
-            page_info: pageInfo,
-            session_start: firebase.database.ServerValue.TIMESTAMP,
-            browser_info: {
-                userAgent: navigator.userAgent,
-                language: navigator.language,
-                platform: navigator.platform
-            }
+            role: localStorage.getItem('role') || 'unknown'
         });
-        
-        // 每5分钟更新一次活动状态
-        setInterval(() => {
-            if (auth.currentUser) {
-                userStatusRef.update({
-                    last_activity: firebase.database.ServerValue.TIMESTAMP,
-                    page_info: getCurrentPageInfo()
-                });
-            }
-        }, 5 * 60 * 1000);
     });
 }
 

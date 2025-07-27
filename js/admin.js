@@ -1553,8 +1553,7 @@ function editProduct(productId) {
             <form id="editProductForm">
                 <div class="form-group">
                     <label for="editProductId"><i class="material-icons">tag</i> Product ID:</label>
-                    <input type="text" id="editProductId" value="${productId}" required>
-                    <small style="color: #666; font-size: 12px;">⚠️ Changing Product ID will create a new product entry</small>
+                    <input type="text" id="editProductId" value="${productId}" readonly>
                 </div>
                 <div class="form-group">
                     <label for="editProductName"><i class="material-icons">inventory</i> Product Name:</label>
@@ -1615,62 +1614,32 @@ function editProduct(productId) {
     editForm.addEventListener('submit', (e) => {
         e.preventDefault();
         
-        const newProductId = document.getElementById('editProductId').value.trim();
         const newName = document.getElementById('editProductName').value.trim();
         const newPrice = parseFloat(document.getElementById('editProductPrice').value);
         const newStock = parseFloat(document.getElementById('editProductStock').value) || 0;
         const newCategory = document.getElementById('editProductCategory').value.trim();
         const newStoreId = document.getElementById('editProductStoreId').value;
         
-        if (!newProductId || !newName || isNaN(newPrice) || !newStoreId) {
+        if (!newName || isNaN(newPrice) || !newStoreId) {
             alert('Please fill in all required fields');
             return;
         }
         
-        // 检查Product ID是否改变
-        if (newProductId !== productId) {
-            // 如果Product ID改变，需要创建新产品并删除旧产品
-            if (!confirm(`Changing Product ID from "${productId}" to "${newProductId}" will create a new product entry and delete the old one. Continue?`)) {
-                return;
-            }
-            
-            // 检查新Product ID是否已存在
-            if (products[newProductId]) {
-                alert(`Product ID "${newProductId}" already exists. Please choose a different ID.`);
-                return;
-            }
-            
-            updateProductWithNewId(productId, newProductId, newName, newPrice, newStock, newCategory, newStoreId, product.store_id)
-                .then(() => {
-                    hideModal(editModal);
-                    // 移除模态框
-                    setTimeout(() => {
-                        document.body.removeChild(editModal);
-                    }, 300);
-                    loadProducts();
-                    alert('Product updated successfully with new ID!');
-                })
-                .catch(error => {
-                    console.error('Failed to update product with new ID:', error);
-                    alert('Failed to update product. Please try again.');
-                });
-        } else {
-            // Product ID没有改变，正常更新
-            updateProduct(productId, newName, newPrice, newStock, newCategory, newStoreId, product.store_id)
-                .then(() => {
-                    hideModal(editModal);
-                    // 移除模态框
-                    setTimeout(() => {
-                        document.body.removeChild(editModal);
-                    }, 300);
-                    loadProducts();
-                    alert('Product updated successfully!');
-                })
-                .catch(error => {
-                    console.error('Failed to update product:', error);
-                    alert('Failed to update product. Please try again.');
-                });
-        }
+        // 更新商品
+        updateProduct(productId, newName, newPrice, newStock, newCategory, newStoreId, product.store_id)
+            .then(() => {
+                hideModal(editModal);
+                // 移除模态框
+                setTimeout(() => {
+                    document.body.removeChild(editModal);
+                }, 300);
+                loadProducts();
+                alert('Product updated successfully!');
+            })
+            .catch(error => {
+                console.error('Failed to update product:', error);
+                alert('Failed to update product. Please try again.');
+            });
     });
 }
 
@@ -1693,35 +1662,6 @@ function updateProduct(productId, name, price, stock, category, newStoreId, oldS
     
     // 否则直接更新
     return database.ref(`store_products/${newStoreId}/${productId}`).update(productData);
-}
-
-// 更新商品并更改Product ID
-function updateProductWithNewId(oldProductId, newProductId, name, price, stock, category, newStoreId, oldStoreId) {
-    const productData = {
-        name,
-        price,
-        quantity: stock,
-        category: category || '',
-        store_id: newStoreId,
-        stock: stock // 确保更新stock字段
-    };
-    
-    // 创建批量更新对象
-    const updates = {};
-    
-    // 添加新的产品数据
-    updates[`store_products/${newStoreId}/${newProductId}`] = productData;
-    
-    // 删除旧的产品数据
-    updates[`store_products/${oldStoreId}/${oldProductId}`] = null;
-    
-    // 如果店铺不同，确保从旧店铺删除
-    if (newStoreId !== oldStoreId) {
-        updates[`store_products/${oldStoreId}/${oldProductId}`] = null;
-    }
-    
-    // 执行批量更新
-    return database.ref().update(updates);
 }
 
 // 删除商品
@@ -4214,85 +4154,15 @@ function renderOnlineUsers() {
         stateCell.innerHTML = `<span class="user-status ${isOnline ? 'online' : 'offline'}">${isOnline ? 'Online' : 'Offline'}</span>`;
         row.appendChild(stateCell);
         
-        // 当前页面
-        const pageCell = document.createElement('td');
-        if (userStatus.page_info && userStatus.page_info.page) {
-            const pageMap = {
-                'admin.html': '🖥️ Admin Desktop',
-                'adminp.html': '📱 Admin Mobile', 
-                'pos.html': '💰 POS System',
-                'product_catalog.html': '📚 Product Catalog',
-                'index.html': '🏠 Login Page'
-            };
-            pageCell.innerHTML = pageMap[userStatus.page_info.page] || userStatus.page_info.page;
-        } else {
-            pageCell.textContent = 'Unknown';
-        }
-        row.appendChild(pageCell);
-        
-        // IP地址
-        const ipCell = document.createElement('td');
-        if (userStatus.location && userStatus.location.ip) {
-            ipCell.textContent = userStatus.location.ip;
-            if (userStatus.location.isp) {
-                ipCell.title = `ISP: ${userStatus.location.isp}`;
-            }
-        } else {
-            ipCell.textContent = 'Unknown';
-        }
-        row.appendChild(ipCell);
-        
-        // 位置信息
-        const locationCell = document.createElement('td');
-        if (userStatus.location) {
-            const location = userStatus.location;
-            let locationText = [];
-            if (location.city && location.city !== 'Unknown') locationText.push(location.city);
-            if (location.region && location.region !== 'Unknown') locationText.push(location.region);
-            if (location.country && location.country !== 'Unknown') locationText.push(location.country);
-            
-            locationCell.textContent = locationText.length > 0 ? locationText.join(', ') : 'Unknown';
-            if (location.timezone && location.timezone !== 'Unknown') {
-                locationCell.title = `Timezone: ${location.timezone}`;
-            }
-        } else {
-            locationCell.textContent = 'Unknown';
-        }
-        row.appendChild(locationCell);
-        
-        // 会话时间 - 显示在线时长
-        const sessionTimeCell = document.createElement('td');
-        if (userStatus.session_start && isOnline) {
-            const sessionStart = new Date(userStatus.session_start);
-            const sessionDuration = getSessionDuration(sessionStart);
-            sessionTimeCell.textContent = sessionDuration;
-            sessionTimeCell.title = `Session started: ${formatDateTime(sessionStart)}`;
-        } else if (userStatus.last_changed) {
+        // 当前活动时间 - 显示最近状态变化时间
+        const lastChangedCell = document.createElement('td');
+        if (userStatus.last_changed) {
             const lastChangeDate = new Date(userStatus.last_changed);
-            sessionTimeCell.textContent = formatDateTime(lastChangeDate);
+            lastChangedCell.textContent = formatDateTime(lastChangeDate);
         } else {
-            sessionTimeCell.textContent = 'Unknown';
+            lastChangedCell.textContent = 'Unknown';
         }
-        row.appendChild(sessionTimeCell);
-        
-        // 最后活动时间
-        const lastActivityCell = document.createElement('td');
-        if (userStatus.last_activity) {
-            const lastActivityDate = new Date(userStatus.last_activity);
-            lastActivityCell.textContent = formatDateTime(lastActivityDate);
-            
-            // 计算离现在多久
-            const timeAgo = getTimeAgo(lastActivityDate);
-            if (timeAgo) {
-                lastActivityCell.innerHTML += `<br><span class="time-ago">(${timeAgo})</span>`;
-            }
-        } else if (userStatus.last_changed) {
-            const lastChangeDate = new Date(userStatus.last_changed);
-            lastActivityCell.textContent = formatDateTime(lastChangeDate);
-        } else {
-            lastActivityCell.textContent = 'Unknown';
-        }
-        row.appendChild(lastActivityCell);
+        row.appendChild(lastChangedCell);
         
         // 最后在线时间 - 显示用户最后一次在线的时间
         const lastOnlineCell = document.createElement('td');
@@ -4348,25 +4218,6 @@ function getTimeAgo(date) {
         return diffSec === 1 ? '1 second ago' : `${diffSec} seconds ago`;
     }
     return 'just now';
-}
-
-// 获取会话时长
-function getSessionDuration(sessionStart) {
-    const now = new Date();
-    const diffMs = now - sessionStart;
-    const diffSec = Math.floor(diffMs / 1000);
-    const diffMin = Math.floor(diffSec / 60);
-    const diffHour = Math.floor(diffMin / 60);
-    
-    if (diffHour > 0) {
-        const remainingMin = diffMin % 60;
-        return `${diffHour}h ${remainingMin}m`;
-    }
-    if (diffMin > 0) {
-        const remainingSec = diffSec % 60;
-        return `${diffMin}m ${remainingSec}s`;
-    }
-    return `${diffSec}s`;
 }
 
 // 检查用户是否是超级管理员
