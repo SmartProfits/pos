@@ -4816,3 +4816,91 @@ body.simple-mode .hot-item-price {
     border-color: #26c6da;
     box-shadow: 0 0 0 2px rgba(38, 198, 218, 0.1);
 }
+
+/* 库存历史记录样式 */
+.stock-history-container {
+    max-height: 500px;
+    overflow-y: auto;
+    margin-top: 15px;
+}
+
+.stock-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.stock-history-table th,
+.stock-history-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.stock-history-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.stock-history-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+.stock-history-table .positive {
+    color: #4caf50;
+    font-weight: 600;
+}
+
+.stock-history-table .negative {
+    color: #f44336;
+    font-weight: 600;
+}
+
+.stock-history-table .neutral {
+    color: #666;
+    font-weight: 500;
+}
+
+/* 选中产品样式 */
+.selected-product-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border-left: 3px solid #007bff;
+}
+
+.selected-product-item span:first-child {
+    font-weight: 500;
+    color: #333;
+}
+
+.selected-product-item span:last-child {
+    font-size: 12px;
+    color: #666;
+}
+
+.selected-products-summary {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #e3f2fd;
+    border-radius: 4px;
+    border-left: 4px solid #2196f3;
+}
+
+.selected-products-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    padding: 5px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+}

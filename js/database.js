@@ -448,4 +448,25 @@ function getDailySalesSummary(storeId, date) {
             })
             .catch(error => reject(error));
     });
+}
+
+/**
+ * 获取库存历史记录
+ * @param {string} storeId - 店铺ID
+ * @param {string} productId - 产品ID
+ * @returns {Promise} 返回库存历史记录
+ */
+function getStockHistory(storeId, productId) {
+    return new Promise((resolve, reject) => {
+        database.ref(`stock_history/${storeId}/${productId}`)
+            .once('value')
+            .then(snapshot => {
+                const history = snapshot.val() || {};
+                resolve(history);
+            })
+            .catch(error => {
+                console.error('获取库存历史失败:', error);
+                reject(error);
+            });
+    });
 } 

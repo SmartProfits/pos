@@ -629,7 +629,8 @@ function editCatalogProduct(productId) {
             <form id="editCatalogProductForm">
                 <div class="form-group">
                     <label for="editCatalogProductId"><i class="material-icons">tag</i> Product ID:</label>
-                    <input type="text" id="editCatalogProductId" value="${productId}" readonly>
+                    <input type="text" id="editCatalogProductId" value="${productId}" required>
+                    <small style="color: #666; font-size: 12px;">⚠️ Changing Product ID will create a new product entry</small>
                 </div>
                 <div class="form-group">
                     <label for="editCatalogProductName"><i class="material-icons">inventory</i> Product Name:</label>
@@ -680,30 +681,60 @@ function editCatalogProduct(productId) {
     editForm.addEventListener('submit', (e) => {
         e.preventDefault();
         
+        const newProductId = document.getElementById('editCatalogProductId').value.trim();
         const newName = document.getElementById('editCatalogProductName').value.trim();
         const newPrice = parseFloat(document.getElementById('editCatalogProductPrice').value);
         const newCategory = document.getElementById('editCatalogProductCategory').value.trim();
         
-        if (!newName || isNaN(newPrice)) {
+        if (!newProductId || !newName || isNaN(newPrice)) {
             alert('Please fill in all required fields');
             return;
         }
         
-        // 更新商品
-        updateCatalogProduct(productId, newName, newPrice, newCategory)
-            .then(() => {
-                hideModal(editModal);
-                // 移除模态框
-                setTimeout(() => {
-                    document.body.removeChild(editModal);
-                }, 300);
-                
-                alert('Product updated successfully!');
-            })
-            .catch(error => {
-                console.error('Failed to update product:', error);
-                alert('Failed to update product. Please try again.');
-            });
+        // 检查Product ID是否改变
+        if (newProductId !== productId) {
+            // 如果Product ID改变，需要创建新产品并删除旧产品
+            if (!confirm(`Changing Product ID from "${productId}" to "${newProductId}" will create a new product entry and delete the old one. Continue?`)) {
+                return;
+            }
+            
+            // 检查新Product ID是否已存在
+            if (catalogProducts[newProductId]) {
+                alert(`Product ID "${newProductId}" already exists. Please choose a different ID.`);
+                return;
+            }
+            
+            updateCatalogProductWithNewId(productId, newProductId, newName, newPrice, newCategory)
+                .then(() => {
+                    hideModal(editModal);
+                    // 移除模态框
+                    setTimeout(() => {
+                        document.body.removeChild(editModal);
+                    }, 300);
+                    
+                    alert('Product updated successfully with new ID!');
+                })
+                .catch(error => {
+                    console.error('Failed to update product with new ID:', error);
+                    alert('Failed to update product. Please try again.');
+                });
+        } else {
+            // Product ID没有改变，正常更新
+            updateCatalogProduct(productId, newName, newPrice, newCategory)
+                .then(() => {
+                    hideModal(editModal);
+                    // 移除模态框
+                    setTimeout(() => {
+                        document.body.removeChild(editModal);
+                    }, 300);
+                    
+                    alert('Product updated successfully!');
+                })
+                .catch(error => {
+                    console.error('Failed to update product:', error);
+                    alert('Failed to update product. Please try again.');
+                });
+        }
     });
 }
 
@@ -729,6 +760,45 @@ function updateCatalogProduct(productId, name, price, category) {
             
             // 如果类别改变且是新类别，更新类别集合
             if (category && category !== oldCategory && !categories.has(category)) {
+                categories.add(category);
+                populateCategoryFilters();
+            }
+            
+            // 重新渲染商品
+            renderCatalogProducts();
+        });
+}
+
+// 更新目录商品并更改Product ID
+function updateCatalogProductWithNewId(oldProductId, newProductId, name, price, category) {
+    const oldProductData = catalogProducts[oldProductId];
+    
+    // 新产品数据
+    const newProductData = {
+        name,
+        price,
+        category: category || '',
+        created_at: oldProductData.created_at || firebase.database.ServerValue.TIMESTAMP,
+        updated_at: firebase.database.ServerValue.TIMESTAMP
+    };
+    
+    // 创建批量更新对象
+    const updates = {};
+    
+    // 添加新的产品数据
+    updates[`product_catalog/${newProductId}`] = newProductData;
+    
+    // 删除旧的产品数据
+    updates[`product_catalog/${oldProductId}`] = null;
+    
+    return firebase.database().ref().update(updates)
+        .then(() => {
+            // 更新本地数据
+            catalogProducts[newProductId] = newProductData;
+            delete catalogProducts[oldProductId];
+            
+            // 如果类别改变且是新类别，更新类别集合
+            if (category && !categories.has(category)) {
                 categories.add(category);
                 populateCategoryFilters();
             }

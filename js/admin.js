@@ -71,6 +71,7 @@ const addStoreForm = document.getElementById('addStoreForm');
 // 商品管理DOM元素
 const addProductBtn = document.getElementById('addProductBtn');
 const productStoreFilter = document.getElementById('productStoreFilter');
+const productCategoryFilter = document.getElementById('productCategoryFilter');
 const productSearch = document.getElementById('productSearch');
 const productsTableBody = document.getElementById('productsTableBody');
 const addProductModal = document.getElementById('addProductModal');
@@ -334,6 +335,11 @@ function initEventListeners() {
     
     // 商品店铺过滤器变化
     productStoreFilter.addEventListener('change', loadProducts);
+    
+    // 商品类别过滤器变化
+    if (productCategoryFilter) {
+        productCategoryFilter.addEventListener('change', loadProducts);
+    }
     
     // 商品搜索框输入变化
     if (productSearch) {
@@ -1353,6 +1359,7 @@ function deleteStore(storeId) {
 // 加载商品
 function loadProducts() {
     const storeId = productStoreFilter.value;
+    const categoryFilter = productCategoryFilter ? productCategoryFilter.value : 'all';
     const searchQuery = productSearch ? productSearch.value.trim().toLowerCase() : '';
     
     // 显示加载状态
@@ -1363,7 +1370,8 @@ function loadProducts() {
         getAllProducts()
             .then(productData => {
                 products = productData;
-                renderProducts(searchQuery);
+                populateProductCategories(productData);
+                renderProducts(searchQuery, categoryFilter);
             })
             .catch(error => {
                 console.error('Failed to load products:', error);
@@ -1374,7 +1382,8 @@ function loadProducts() {
         getStoreProducts(storeId)
             .then(productData => {
                 products = productData;
-                renderProducts(searchQuery);
+                populateProductCategories(productData);
+                renderProducts(searchQuery, categoryFilter);
             })
             .catch(error => {
                 console.error('Failed to load products:', error);
@@ -1384,7 +1393,7 @@ function loadProducts() {
 }
 
 // 渲染商品列表
-function renderProducts(searchQuery = '') {
+function renderProducts(searchQuery = '', categoryFilter = 'all') {
     productsTableBody.innerHTML = '';
     
     if (Object.keys(products).length === 0) {
@@ -1397,13 +1406,21 @@ function renderProducts(searchQuery = '') {
         const product = products[productId];
         const storeName = stores[product.store_id]?.name || product.store_id;
         
-        if (!searchQuery) return true;
+        // 类别过滤
+        if (categoryFilter !== 'all' && product.category !== categoryFilter) {
+            return false;
+        }
         
+        // 搜索过滤
+        if (searchQuery) {
         // 搜索匹配（商品ID、名称、类别或店铺名）
         return productId.toLowerCase().includes(searchQuery) || 
                product.name.toLowerCase().includes(searchQuery) || 
                (product.category || '').toLowerCase().includes(searchQuery) ||
                storeName.toLowerCase().includes(searchQuery);
+        }
+        
+        return true;
     });
     
     if (filteredProducts.length === 0) {
@@ -1444,6 +1461,43 @@ function renderProducts(searchQuery = '') {
     document.querySelectorAll('#productsTableBody .delete-btn').forEach(btn => {
         btn.addEventListener('click', () => deleteProduct(btn.dataset.id));
     });
+}
+
+// 填充商品类别过滤器
+function populateProductCategories(products) {
+    if (!productCategoryFilter) return;
+    
+    // 获取所有唯一的类别
+    const categories = ['all'];
+    
+    Object.values(products).forEach(product => {
+        if (product.category && !categories.includes(product.category)) {
+            categories.push(product.category);
+        }
+    });
+    
+    // 保存当前选择的值
+    const selectedValue = productCategoryFilter.value;
+    
+    // 清空除了第一个选项外的所有选项
+    while (productCategoryFilter.options.length > 1) {
+        productCategoryFilter.remove(1);
+    }
+    
+    // 添加类别选项
+    categories.forEach(category => {
+        if (category !== 'all') {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            productCategoryFilter.appendChild(option);
+        }
+    });
+    
+    // 恢复之前选择的值
+    if (selectedValue && selectedValue !== 'all' && categories.includes(selectedValue)) {
+        productCategoryFilter.value = selectedValue;
+    }
 }
 
 // 处理添加商品表单提交
@@ -1499,7 +1553,8 @@ function editProduct(productId) {
             <form id="editProductForm">
                 <div class="form-group">
                     <label for="editProductId"><i class="material-icons">tag</i> Product ID:</label>
-                    <input type="text" id="editProductId" value="${productId}" readonly>
+                    <input type="text" id="editProductId" value="${productId}" required>
+                    <small style="color: #666; font-size: 12px;">⚠️ Changing Product ID will create a new product entry</small>
                 </div>
                 <div class="form-group">
                     <label for="editProductName"><i class="material-icons">inventory</i> Product Name:</label>
@@ -1560,32 +1615,62 @@ function editProduct(productId) {
     editForm.addEventListener('submit', (e) => {
         e.preventDefault();
         
+        const newProductId = document.getElementById('editProductId').value.trim();
         const newName = document.getElementById('editProductName').value.trim();
         const newPrice = parseFloat(document.getElementById('editProductPrice').value);
         const newStock = parseFloat(document.getElementById('editProductStock').value) || 0;
         const newCategory = document.getElementById('editProductCategory').value.trim();
         const newStoreId = document.getElementById('editProductStoreId').value;
         
-        if (!newName || isNaN(newPrice) || !newStoreId) {
+        if (!newProductId || !newName || isNaN(newPrice) || !newStoreId) {
             alert('Please fill in all required fields');
             return;
         }
         
-        // 更新商品
-        updateProduct(productId, newName, newPrice, newStock, newCategory, newStoreId, product.store_id)
-            .then(() => {
-                hideModal(editModal);
-                // 移除模态框
-                setTimeout(() => {
-                    document.body.removeChild(editModal);
-                }, 300);
-                loadProducts();
-                alert('Product updated successfully!');
-            })
-            .catch(error => {
-                console.error('Failed to update product:', error);
-                alert('Failed to update product. Please try again.');
-            });
+        // 检查Product ID是否改变
+        if (newProductId !== productId) {
+            // 如果Product ID改变，需要创建新产品并删除旧产品
+            if (!confirm(`Changing Product ID from "${productId}" to "${newProductId}" will create a new product entry and delete the old one. Continue?`)) {
+                return;
+            }
+            
+            // 检查新Product ID是否已存在
+            if (products[newProductId]) {
+                alert(`Product ID "${newProductId}" already exists. Please choose a different ID.`);
+                return;
+            }
+            
+            updateProductWithNewId(productId, newProductId, newName, newPrice, newStock, newCategory, newStoreId, product.store_id)
+                .then(() => {
+                    hideModal(editModal);
+                    // 移除模态框
+                    setTimeout(() => {
+                        document.body.removeChild(editModal);
+                    }, 300);
+                    loadProducts();
+                    alert('Product updated successfully with new ID!');
+                })
+                .catch(error => {
+                    console.error('Failed to update product with new ID:', error);
+                    alert('Failed to update product. Please try again.');
+                });
+        } else {
+            // Product ID没有改变，正常更新
+            updateProduct(productId, newName, newPrice, newStock, newCategory, newStoreId, product.store_id)
+                .then(() => {
+                    hideModal(editModal);
+                    // 移除模态框
+                    setTimeout(() => {
+                        document.body.removeChild(editModal);
+                    }, 300);
+                    loadProducts();
+                    alert('Product updated successfully!');
+                })
+                .catch(error => {
+                    console.error('Failed to update product:', error);
+                    alert('Failed to update product. Please try again.');
+                });
+        }
     });
 }
 
@@ -1608,6 +1693,35 @@ function updateProduct(productId, name, price, stock, category, newStoreId, oldS
     
     // 否则直接更新
     return database.ref(`store_products/${newStoreId}/${productId}`).update(productData);
+}
+
+// 更新商品并更改Product ID
+function updateProductWithNewId(oldProductId, newProductId, name, price, stock, category, newStoreId, oldStoreId) {
+    const productData = {
+        name,
+        price,
+        quantity: stock,
+        category: category || '',
+        store_id: newStoreId,
+        stock: stock // 确保更新stock字段
+    };
+    
+    // 创建批量更新对象
+    const updates = {};
+    
+    // 添加新的产品数据
+    updates[`store_products/${newStoreId}/${newProductId}`] = productData;
+    
+    // 删除旧的产品数据
+    updates[`store_products/${oldStoreId}/${oldProductId}`] = null;
+    
+    // 如果店铺不同，确保从旧店铺删除
+    if (newStoreId !== oldStoreId) {
+        updates[`store_products/${oldStoreId}/${oldProductId}`] = null;
+    }
+    
+    // 执行批量更新
+    return database.ref().update(updates);
 }
 
 // 删除商品
@@ -2316,6 +2430,23 @@ function renderInventory(productsEntries) {
         }
     });
 
+    // 绑定表格中的action按钮事件监听器
+    document.querySelectorAll('#inventoryTableBody .update-stock-btn').forEach(btn => {
+        btn.addEventListener('click', () => showUpdateStockModal(btn.dataset.id));
+    });
+    
+    document.querySelectorAll('#inventoryTableBody .view-history-btn').forEach(btn => {
+        btn.addEventListener('click', () => showStockHistory(btn.dataset.id));
+    });
+    
+    document.querySelectorAll('#inventoryTableBody .add-stock-btn').forEach(btn => {
+        btn.addEventListener('click', () => quickAddStock(btn.dataset.id));
+    });
+    
+    document.querySelectorAll('#inventoryTableBody .tester-btn').forEach(btn => {
+        btn.addEventListener('click', () => testerReduceStock(btn.dataset.id));
+    });
+
     // After appending cards, re-bind listeners for buttons inside cards as well
     if (cardGrid) {
         cardGrid.querySelectorAll('.update-stock-btn').forEach(btn => {
@@ -2347,6 +2478,153 @@ function showUpdateStockModal(productId) {
     
     // 显示模态框
     showModal(updateStockModal);
+}
+
+// 显示库存历史记录
+function showStockHistory(productId) {
+    const product = products[productId];
+    if (!product) return;
+    
+    // 创建历史记录模态框
+    const historyModal = document.createElement('div');
+    historyModal.className = 'modal';
+    historyModal.id = 'stockHistoryModal';
+    
+    historyModal.innerHTML = `
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">history</i> Stock History - ${product.name}</h2>
+            <div class="stock-history-container">
+                <div class="loading"><i class="material-icons">hourglass_empty</i> Loading history...</div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(historyModal);
+    
+    // 显示模态框
+    showModal(historyModal);
+    
+    // 加载历史记录
+    getStockHistory(product.store_id, productId)
+        .then(history => {
+            const container = historyModal.querySelector('.stock-history-container');
+            if (Object.keys(history).length === 0) {
+                container.innerHTML = '<div class="no-data"><i class="material-icons">info</i> No history records found</div>';
+                return;
+            }
+            
+            // 转换为数组并按时间排序
+            const historyArray = Object.entries(history).map(([id, record]) => ({
+                id,
+                ...record
+            })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            let tableHTML = `
+                <table class="stock-history-table">
+                    <thead>
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Operation</th>
+                            <th>Previous Stock</th>
+                            <th>New Stock</th>
+                            <th>Change</th>
+                            <th>Reason</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            historyArray.forEach(record => {
+                const change = record.new_stock - record.previous_stock;
+                const changeText = change > 0 ? `+${change}` : change.toString();
+                const changeClass = change > 0 ? 'positive' : (change < 0 ? 'negative' : 'neutral');
+                
+                tableHTML += `
+                    <tr>
+                        <td>${record.timestamp}</td>
+                        <td>${record.operation}</td>
+                        <td>${record.previous_stock}</td>
+                        <td>${record.new_stock}</td>
+                        <td class="${changeClass}">${changeText}</td>
+                        <td>${record.reason || '-'}</td>
+                        <td>${record.notes || '-'}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += '</tbody></table>';
+            container.innerHTML = tableHTML;
+        })
+        .catch(error => {
+            console.error('Failed to load stock history:', error);
+            const container = historyModal.querySelector('.stock-history-container');
+            container.innerHTML = '<div class="error"><i class="material-icons">error</i> Failed to load history</div>';
+        });
+    
+    // 绑定关闭按钮
+    historyModal.querySelector('.close').addEventListener('click', () => {
+        hideModal(historyModal);
+        setTimeout(() => document.body.removeChild(historyModal), 300);
+    });
+}
+
+// 快速添加库存
+function quickAddStock(productId) {
+    const product = products[productId];
+    if (!product) return;
+    
+    const quantity = prompt(`Enter quantity to add to "${product.name}":`, '1');
+    if (quantity === null || quantity === '') return;
+    
+    const addQuantity = parseFloat(quantity);
+    if (isNaN(addQuantity) || addQuantity <= 0) {
+        alert('Please enter a valid positive number');
+        return;
+    }
+    
+    const currentStock = product.stock !== undefined ? product.stock : (product.quantity || 0);
+    const newStock = currentStock + addQuantity;
+    
+    updateProductStock(productId, newStock, 'add', addQuantity, 'Quick Add', `Quick add via action button`)
+        .then(() => {
+            loadInventory();
+            alert(`Successfully added ${addQuantity} to ${product.name}`);
+        })
+        .catch(error => {
+            console.error('Failed to add stock:', error);
+            alert('Failed to add stock. Please try again.');
+        });
+}
+
+// 测试减少库存（减1）
+function testerReduceStock(productId) {
+    const product = products[productId];
+    if (!product) return;
+    
+    const currentStock = product.stock !== undefined ? product.stock : (product.quantity || 0);
+    
+    if (currentStock <= 0) {
+        alert('No stock available to reduce');
+        return;
+    }
+    
+    if (!confirm(`Reduce stock of "${product.name}" by 1 for testing?`)) {
+        return;
+    }
+    
+    const newStock = Math.max(0, currentStock - 1);
+    
+    updateProductStock(productId, newStock, 'subtract', 1, 'Testing', 'Stock reduced for testing purposes')
+        .then(() => {
+            loadInventory();
+            alert(`Successfully reduced ${product.name} stock by 1`);
+        })
+        .catch(error => {
+            console.error('Failed to reduce stock:', error);
+            alert('Failed to reduce stock. Please try again.');
+        });
 }
 
 // 处理更新库存表单提交
@@ -3936,15 +4214,85 @@ function renderOnlineUsers() {
         stateCell.innerHTML = `<span class="user-status ${isOnline ? 'online' : 'offline'}">${isOnline ? 'Online' : 'Offline'}</span>`;
         row.appendChild(stateCell);
         
-        // 当前活动时间 - 显示最近状态变化时间
-        const lastChangedCell = document.createElement('td');
-        if (userStatus.last_changed) {
-            const lastChangeDate = new Date(userStatus.last_changed);
-            lastChangedCell.textContent = formatDateTime(lastChangeDate);
+        // 当前页面
+        const pageCell = document.createElement('td');
+        if (userStatus.page_info && userStatus.page_info.page) {
+            const pageMap = {
+                'admin.html': '🖥️ Admin Desktop',
+                'adminp.html': '📱 Admin Mobile', 
+                'pos.html': '💰 POS System',
+                'product_catalog.html': '📚 Product Catalog',
+                'index.html': '🏠 Login Page'
+            };
+            pageCell.innerHTML = pageMap[userStatus.page_info.page] || userStatus.page_info.page;
         } else {
-            lastChangedCell.textContent = 'Unknown';
+            pageCell.textContent = 'Unknown';
         }
-        row.appendChild(lastChangedCell);
+        row.appendChild(pageCell);
+        
+        // IP地址
+        const ipCell = document.createElement('td');
+        if (userStatus.location && userStatus.location.ip) {
+            ipCell.textContent = userStatus.location.ip;
+            if (userStatus.location.isp) {
+                ipCell.title = `ISP: ${userStatus.location.isp}`;
+            }
+        } else {
+            ipCell.textContent = 'Unknown';
+        }
+        row.appendChild(ipCell);
+        
+        // 位置信息
+        const locationCell = document.createElement('td');
+        if (userStatus.location) {
+            const location = userStatus.location;
+            let locationText = [];
+            if (location.city && location.city !== 'Unknown') locationText.push(location.city);
+            if (location.region && location.region !== 'Unknown') locationText.push(location.region);
+            if (location.country && location.country !== 'Unknown') locationText.push(location.country);
+            
+            locationCell.textContent = locationText.length > 0 ? locationText.join(', ') : 'Unknown';
+            if (location.timezone && location.timezone !== 'Unknown') {
+                locationCell.title = `Timezone: ${location.timezone}`;
+            }
+        } else {
+            locationCell.textContent = 'Unknown';
+        }
+        row.appendChild(locationCell);
+        
+        // 会话时间 - 显示在线时长
+        const sessionTimeCell = document.createElement('td');
+        if (userStatus.session_start && isOnline) {
+            const sessionStart = new Date(userStatus.session_start);
+            const sessionDuration = getSessionDuration(sessionStart);
+            sessionTimeCell.textContent = sessionDuration;
+            sessionTimeCell.title = `Session started: ${formatDateTime(sessionStart)}`;
+        } else if (userStatus.last_changed) {
+            const lastChangeDate = new Date(userStatus.last_changed);
+            sessionTimeCell.textContent = formatDateTime(lastChangeDate);
+        } else {
+            sessionTimeCell.textContent = 'Unknown';
+        }
+        row.appendChild(sessionTimeCell);
+        
+        // 最后活动时间
+        const lastActivityCell = document.createElement('td');
+        if (userStatus.last_activity) {
+            const lastActivityDate = new Date(userStatus.last_activity);
+            lastActivityCell.textContent = formatDateTime(lastActivityDate);
+            
+            // 计算离现在多久
+            const timeAgo = getTimeAgo(lastActivityDate);
+            if (timeAgo) {
+                lastActivityCell.innerHTML += `<br><span class="time-ago">(${timeAgo})</span>`;
+            }
+        } else if (userStatus.last_changed) {
+            const lastChangeDate = new Date(userStatus.last_changed);
+            lastActivityCell.textContent = formatDateTime(lastChangeDate);
+        } else {
+            lastActivityCell.textContent = 'Unknown';
+        }
+        row.appendChild(lastActivityCell);
         
         // 最后在线时间 - 显示用户最后一次在线的时间
         const lastOnlineCell = document.createElement('td');
@@ -4000,6 +4348,25 @@ function getTimeAgo(date) {
         return diffSec === 1 ? '1 second ago' : `${diffSec} seconds ago`;
     }
     return 'just now';
+}
+
+// 获取会话时长
+function getSessionDuration(sessionStart) {
+    const now = new Date();
+    const diffMs = now - sessionStart;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    
+    if (diffHour > 0) {
+        const remainingMin = diffMin % 60;
+        return `${diffHour}h ${remainingMin}m`;
+    }
+    if (diffMin > 0) {
+        const remainingSec = diffSec % 60;
+        return `${diffMin}m ${remainingSec}s`;
+    }
+    return `${diffSec}s`;
 }
 
 // 检查用户是否是超级管理员
