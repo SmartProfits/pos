@@ -316,6 +316,22 @@ function getCurrentDate() {
     return `${year}-${month}-${day}`;
 }
 
+// 获取分层的日期路径，格式为 year/month/day
+function getDatePath(dateString = null) {
+    const date = dateString ? new Date(dateString) : new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return { year, month, day, path: `${year}/${month}/${day}` };
+}
+
+// 从日期字符串获取分层路径
+function getDatePathFromString(dateString) {
+    if (!dateString) return getDatePath();
+    const [year, month, day] = dateString.split('-');
+    return { year, month, day, path: `${year}/${month}/${day}` };
+}
+
 // Update dashboard statistics with real data for specific date
 function updateDashboardStatsForDate(date) {
     let totalRevenue = 0;
@@ -325,11 +341,16 @@ function updateDashboardStatsForDate(date) {
     console.log('Updating dashboard stats for date:', date);
     console.log('Available daily sales data:', dailySalesData);
 
+    const datePath = getDatePathFromString(date);
+
     // Calculate statistics for the selected date
     Object.keys(dailySalesData).forEach(storeId => {
         const storeData = dailySalesData[storeId];
-        if (storeData && storeData[date]) {
-            const dateSales = storeData[date];
+        // 使用新的分层路径访问数据
+        if (storeData && storeData[datePath.year] && 
+            storeData[datePath.year][datePath.month] && 
+            storeData[datePath.year][datePath.month][datePath.day]) {
+            const dateSales = storeData[datePath.year][datePath.month][datePath.day];
             const storeTotalSales = parseFloat(dateSales.total_sales || 0);
             const storeTransactions = parseInt(dateSales.transaction_count || 0);
             
@@ -345,12 +366,15 @@ function updateDashboardStatsForDate(date) {
 
     // Calculate growth rate (compare with previous day)
     const previousDate = getPreviousDate(date);
+    const previousDatePath = getDatePathFromString(previousDate);
     let previousRevenue = 0;
     
     Object.keys(dailySalesData).forEach(storeId => {
         const storeData = dailySalesData[storeId];
-        if (storeData && storeData[previousDate]) {
-            previousRevenue += parseFloat(storeData[previousDate].total_sales || 0);
+        if (storeData && storeData[previousDatePath.year] && 
+            storeData[previousDatePath.year][previousDatePath.month] && 
+            storeData[previousDatePath.year][previousDatePath.month][previousDatePath.day]) {
+            previousRevenue += parseFloat(storeData[previousDatePath.year][previousDatePath.month][previousDatePath.day].total_sales || 0);
         }
     });
 
@@ -510,21 +534,29 @@ function renderStoreCards() {
 
 // Calculate real store revenue from Firebase data
 function calculateRealStoreRevenue(storeId, date) {
-    if (!dailySalesData[storeId] || !dailySalesData[storeId][date]) {
+    const datePath = getDatePathFromString(date);
+    if (!dailySalesData[storeId] || 
+        !dailySalesData[storeId][datePath.year] || 
+        !dailySalesData[storeId][datePath.year][datePath.month] || 
+        !dailySalesData[storeId][datePath.year][datePath.month][datePath.day]) {
         return 0;
     }
     
-    const storeDailySales = dailySalesData[storeId][date];
+    const storeDailySales = dailySalesData[storeId][datePath.year][datePath.month][datePath.day];
     return parseFloat(storeDailySales.total_sales || 0);
 }
 
 // Calculate real store sales count from Firebase data
 function calculateRealStoreSales(storeId, date) {
-    if (!dailySalesData[storeId] || !dailySalesData[storeId][date]) {
+    const datePath = getDatePathFromString(date);
+    if (!dailySalesData[storeId] || 
+        !dailySalesData[storeId][datePath.year] || 
+        !dailySalesData[storeId][datePath.year][datePath.month] || 
+        !dailySalesData[storeId][datePath.year][datePath.month][datePath.day]) {
         return 0;
     }
     
-    const storeDailySales = dailySalesData[storeId][date];
+    const storeDailySales = dailySalesData[storeId][datePath.year][datePath.month][datePath.day];
     return parseInt(storeDailySales.transaction_count || 0);
 }
 
@@ -638,7 +670,8 @@ async function loadStoreDetailData(storeId, date) {
         document.getElementById('storeDetailLocation').textContent = store.location || 'Location not specified';
         
         // Get sales data for this store and date
-        const salesRef = firebase.database().ref(`sales/${storeId}/${date}`);
+        const datePath = getDatePathFromString(date);
+        const salesRef = firebase.database().ref(`sales/${storeId}/${datePath.path}`);
         const salesSnapshot = await salesRef.once('value');
         const salesData = salesSnapshot.val() || {};
         
@@ -838,9 +871,13 @@ async function calculateWeekData(storeId) {
         const date = new Date();
         date.setDate(date.getDate() - i);
         const dateStr = date.toISOString().split('T')[0];
+        const datePath = getDatePathFromString(dateStr);
         
-        if (dailySalesData[storeId] && dailySalesData[storeId][dateStr]) {
-            const dayData = dailySalesData[storeId][dateStr];
+        if (dailySalesData[storeId] && 
+            dailySalesData[storeId][datePath.year] && 
+            dailySalesData[storeId][datePath.year][datePath.month] && 
+            dailySalesData[storeId][datePath.year][datePath.month][datePath.day]) {
+            const dayData = dailySalesData[storeId][datePath.year][datePath.month][datePath.day];
             weekRevenue += parseFloat(dayData.total_sales || 0);
             weekTransactions += parseInt(dayData.transaction_count || 0);
         }
@@ -880,9 +917,10 @@ async function renderStoreDetailSales(storeId, date = null) {
     
     try {
         const targetDate = date || selectedDate || getCurrentDate();
+        const datePath = getDatePathFromString(targetDate);
         
         // Get detailed sales for the selected date
-        const salesRef = firebase.database().ref(`sales/${storeId}/${targetDate}`);
+        const salesRef = firebase.database().ref(`sales/${storeId}/${datePath.path}`);
         const salesSnapshot = await salesRef.once('value');
         const salesData = salesSnapshot.val() || {};
         

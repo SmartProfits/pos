@@ -629,7 +629,7 @@ function editCatalogProduct(productId) {
             <form id="editCatalogProductForm">
                 <div class="form-group">
                     <label for="editCatalogProductId"><i class="material-icons">tag</i> Product ID:</label>
-                    <input type="text" id="editCatalogProductId" value="${productId}" readonly>
+                    <input type="text" id="editCatalogProductId" value="${productId}" required>
                 </div>
                 <div class="form-group">
                     <label for="editCatalogProductName"><i class="material-icons">inventory</i> Product Name:</label>
@@ -680,17 +680,24 @@ function editCatalogProduct(productId) {
     editForm.addEventListener('submit', (e) => {
         e.preventDefault();
         
+        const newProductId = document.getElementById('editCatalogProductId').value.trim();
         const newName = document.getElementById('editCatalogProductName').value.trim();
         const newPrice = parseFloat(document.getElementById('editCatalogProductPrice').value);
         const newCategory = document.getElementById('editCatalogProductCategory').value.trim();
         
-        if (!newName || isNaN(newPrice)) {
+        if (!newProductId || !newName || isNaN(newPrice)) {
             alert('Please fill in all required fields');
             return;
         }
         
+        // 检查新产品ID是否已存在（如果ID有变化）
+        if (newProductId !== productId && catalogProducts[newProductId]) {
+            alert('Product ID already exists. Please choose a different ID.');
+            return;
+        }
+        
         // 更新商品
-        updateCatalogProduct(productId, newName, newPrice, newCategory)
+        updateCatalogProduct(productId, newProductId, newName, newPrice, newCategory)
             .then(() => {
                 hideModal(editModal);
                 // 移除模态框
@@ -708,8 +715,8 @@ function editCatalogProduct(productId) {
 }
 
 // 更新目录商品
-function updateCatalogProduct(productId, name, price, category) {
-    const oldCategory = catalogProducts[productId].category;
+function updateCatalogProduct(oldProductId, newProductId, name, price, category) {
+    const oldCategory = catalogProducts[oldProductId].category;
     
     // 更新数据
     const updates = {
@@ -719,11 +726,33 @@ function updateCatalogProduct(productId, name, price, category) {
         updated_at: firebase.database.ServerValue.TIMESTAMP
     };
     
-    return firebase.database().ref(`product_catalog/${productId}`).update(updates)
+    // 如果产品ID发生变化
+    if (newProductId !== oldProductId) {
+        // 删除旧产品，创建新产品
+        return firebase.database().ref(`product_catalog/${oldProductId}`).remove()
+            .then(() => firebase.database().ref(`product_catalog/${newProductId}`).set(updates))
         .then(() => {
             // 更新本地数据
-            catalogProducts[productId] = {
-                ...catalogProducts[productId],
+                delete catalogProducts[oldProductId];
+                catalogProducts[newProductId] = updates;
+                
+                // 如果类别改变且是新类别，更新类别集合
+                if (category && category !== oldCategory && !categories.has(category)) {
+                    categories.add(category);
+                    populateCategoryFilters();
+                }
+                
+                // 重新渲染商品
+                renderCatalogProducts();
+            });
+    }
+    
+    // 如果产品ID没有变化，直接更新
+    return firebase.database().ref(`product_catalog/${newProductId}`).update(updates)
+        .then(() => {
+            // 更新本地数据
+            catalogProducts[newProductId] = {
+                ...catalogProducts[newProductId],
                 ...updates
             };
             

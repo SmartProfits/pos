@@ -7,6 +7,22 @@ function getCurrentDate() {
     return `${year}-${month}-${day}`;
 }
 
+// 获取分层的日期路径，格式为 year/month/day
+function getDatePath(dateString = null) {
+    const date = dateString ? new Date(dateString) : new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return { year, month, day, path: `${year}/${month}/${day}` };
+}
+
+// 从日期字符串获取分层路径
+function getDatePathFromString(dateString) {
+    if (!dateString) return getDatePath();
+    const [year, month, day] = dateString.split('-');
+    return { year, month, day, path: `${year}/${month}/${day}` };
+}
+
 // 获取当前时间的字符串，格式为YYYY-MM-DD HH:MM:SS
 function getCurrentDateTime() {
     const now = new Date();
@@ -53,6 +69,7 @@ function addSaleRecord(saleData) {
             // 创建销售记录对象
             const currentDate = getCurrentDate();
             const currentDateTime = getCurrentDateTime();
+            const datePath = getDatePath();
             const saleRecord = {
                 billNumber: saleDataCopy.billNumber,
                 store_id: storeId,
@@ -77,13 +94,13 @@ function addSaleRecord(saleData) {
             console.log("准备添加的销售记录对象:", saleRecord);
 
             // 生成唯一的销售记录ID
-            const saleId = database.ref().child(`sales/${storeId}/${currentDate}`).push().key;
+            const saleId = database.ref().child(`sales/${storeId}/${datePath.path}`).push().key;
             
             // 创建一个批量更新对象
             const updates = {};
             
-            // 更新销售记录 - 按日期存储
-            updates[`sales/${storeId}/${currentDate}/${saleId}`] = saleRecord;
+            // 更新销售记录 - 按新的分层日期存储
+            updates[`sales/${storeId}/${datePath.path}/${saleId}`] = saleRecord;
             
             // 确保使用correct的total_amount值更新统计
             const totalAmount = saleDataCopy.total_amount;
@@ -102,7 +119,7 @@ function addSaleRecord(saleData) {
                     console.log("销售记录添加成功，ID:", saleId);
                     
                     // 获取当前的每日销售统计
-                    return database.ref(`daily_sales/${storeId}/${currentDate}`).once('value');
+                    return database.ref(`daily_sales/${storeId}/${datePath.path}`).once('value');
                 })
                 .then(snapshot => {
                     const dailyData = snapshot.val() || { 
@@ -140,7 +157,7 @@ function addSaleRecord(saleData) {
                         }
                     };
                     
-                    return database.ref(`daily_sales/${storeId}/${currentDate}`).set(dailySalesUpdate);
+                    return database.ref(`daily_sales/${storeId}/${datePath.path}`).set(dailySalesUpdate);
                 })
                 .then(() => {
                     console.log("每日销售统计更新成功", dailySalesUpdate);
@@ -184,7 +201,8 @@ function getStoreProducts(storeId) {
 // 获取特定日期的店铺销售数据
 function getStoreDailySales(storeId, date) {
     return new Promise((resolve, reject) => {
-        database.ref(`daily_sales/${storeId}/${date}`).once('value')
+        const datePath = getDatePathFromString(date);
+        database.ref(`daily_sales/${storeId}/${datePath.path}`).once('value')
             .then(snapshot => {
                 const dailySales = snapshot.val() || { total_sales: 0, transaction_count: 0 };
                 resolve(dailySales);
@@ -196,6 +214,7 @@ function getStoreDailySales(storeId, date) {
 // 获取所有店铺的特定日期销售数据
 function getAllStoresDailySales(date) {
     return new Promise((resolve, reject) => {
+        const datePath = getDatePathFromString(date);
         database.ref(`daily_sales`).once('value')
             .then(snapshot => {
                 const allStoreSales = snapshot.val() || {};
@@ -203,8 +222,12 @@ function getAllStoresDailySales(date) {
                 
                 // 处理每个店铺的数据
                 Object.keys(allStoreSales).forEach(storeId => {
-                    if (allStoreSales[storeId][date]) {
-                        result[storeId] = allStoreSales[storeId][date];
+                    const storeData = allStoreSales[storeId];
+                    // 按新的路径结构查找数据：year -> month -> day
+                    if (storeData && storeData[datePath.year] && 
+                        storeData[datePath.year][datePath.month] && 
+                        storeData[datePath.year][datePath.month][datePath.day]) {
+                        result[storeId] = storeData[datePath.year][datePath.month][datePath.day];
                     } else {
                         result[storeId] = { total_sales: 0, transaction_count: 0 };
                     }
@@ -219,8 +242,9 @@ function getAllStoresDailySales(date) {
 // 获取特定日期的店铺销售详情
 function getStoreSaleDetails(storeId, date) {
     return new Promise((resolve, reject) => {
+        const datePath = getDatePathFromString(date);
         // 直接从特定日期的节点获取销售记录
-        database.ref(`sales/${storeId}/${date}`).once('value')
+        database.ref(`sales/${storeId}/${datePath.path}`).once('value')
             .then(snapshot => {
                 const sales = snapshot.val() || {};
                 resolve(sales);
@@ -362,8 +386,10 @@ function getProductsByCategory(storeId, category) {
  */
 function getSalesByDateOptimized(storeId, date, shift = null) {
     return new Promise((resolve, reject) => {
+        // 使用新的分层路径结构
+        const datePath = getDatePathFromString(date);
         // 直接从特定日期的节点获取销售记录，减少数据传输
-        database.ref(`sales/${storeId}/${date}`)
+        database.ref(`sales/${storeId}/${datePath.path}`)
             .once('value')
             .then(snapshot => {
                 const sales = snapshot.val() || {};
@@ -433,7 +459,8 @@ function getProductSummary(storeId, productId) {
  */
 function getDailySalesSummary(storeId, date) {
     return new Promise((resolve, reject) => {
-        database.ref(`daily_sales/${storeId}/${date}`)
+        const datePath = getDatePathFromString(date);
+        database.ref(`daily_sales/${storeId}/${datePath.path}`)
             .once('value')
             .then(snapshot => {
                 const summary = snapshot.val() || {

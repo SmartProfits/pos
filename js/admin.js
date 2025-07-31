@@ -782,8 +782,9 @@ function loadAllStoresData(date) {
                     }));
                 } else {
                     // 没有缓存，需要从数据库获取
+                    const datePath = getDatePathFromString(date);
                     promises.push(
-                        database.ref(`sales/${storeId}/${date}`).once('value')
+                        database.ref(`sales/${storeId}/${datePath.path}`).once('value')
                             .then(snapshot => {
                                 const sales = snapshot.val() || {};
                                 
@@ -861,7 +862,8 @@ function loadSingleStoreData(storeId, date) {
     }
     
     // 没有缓存，需要从数据库获取
-    database.ref(`sales/${storeId}/${date}`).once('value')
+    const datePath = getDatePathFromString(date);
+    database.ref(`sales/${storeId}/${datePath.path}`).once('value')
         .then(snapshot => {
             const sales = snapshot.val() || {};
             
@@ -1078,11 +1080,12 @@ function loadAllStoresSaleDetails(date) {
         .then(storeList => {
             const storeIds = Object.keys(storeList);
             const promises = [];
+            const datePath = getDatePathFromString(date);
             
             // 对每个店铺获取销售记录 - 只获取特定日期的数据
             storeIds.forEach(storeId => {
                 promises.push(
-                    database.ref(`sales/${storeId}/${date}`).once('value')
+                    database.ref(`sales/${storeId}/${datePath.path}`).once('value')
                         .then(snapshot => {
                             const sales = snapshot.val() || {};
                             // 将店铺ID添加到每个销售记录中
@@ -1553,7 +1556,7 @@ function editProduct(productId) {
             <form id="editProductForm">
                 <div class="form-group">
                     <label for="editProductId"><i class="material-icons">tag</i> Product ID:</label>
-                    <input type="text" id="editProductId" value="${productId}" readonly>
+                    <input type="text" id="editProductId" value="${productId}" required>
                 </div>
                 <div class="form-group">
                     <label for="editProductName"><i class="material-icons">inventory</i> Product Name:</label>
@@ -1614,19 +1617,26 @@ function editProduct(productId) {
     editForm.addEventListener('submit', (e) => {
         e.preventDefault();
         
+        const newProductId = document.getElementById('editProductId').value.trim();
         const newName = document.getElementById('editProductName').value.trim();
         const newPrice = parseFloat(document.getElementById('editProductPrice').value);
         const newStock = parseFloat(document.getElementById('editProductStock').value) || 0;
         const newCategory = document.getElementById('editProductCategory').value.trim();
         const newStoreId = document.getElementById('editProductStoreId').value;
         
-        if (!newName || isNaN(newPrice) || !newStoreId) {
+        if (!newProductId || !newName || isNaN(newPrice) || !newStoreId) {
             alert('Please fill in all required fields');
             return;
         }
         
+        // 检查新产品ID是否已存在（如果ID有变化）
+        if (newProductId !== productId && products[newProductId]) {
+            alert('Product ID already exists. Please choose a different ID.');
+            return;
+        }
+        
         // 更新商品
-        updateProduct(productId, newName, newPrice, newStock, newCategory, newStoreId, product.store_id)
+        updateProduct(productId, newProductId, newName, newPrice, newStock, newCategory, newStoreId, product.store_id)
             .then(() => {
                 hideModal(editModal);
                 // 移除模态框
@@ -1644,7 +1654,7 @@ function editProduct(productId) {
 }
 
 // 更新商品
-function updateProduct(productId, name, price, stock, category, newStoreId, oldStoreId) {
+function updateProduct(oldProductId, newProductId, name, price, stock, category, newStoreId, oldStoreId) {
     const productData = {
         name,
         price,
@@ -1654,14 +1664,21 @@ function updateProduct(productId, name, price, stock, category, newStoreId, oldS
         stock: stock // 确保更新stock字段
     };
     
-    // 如果店铺改变，需要删除旧店铺中的商品并在新店铺中添加
+    // 如果产品ID发生变化
+    if (newProductId !== oldProductId) {
+        // 删除旧产品，创建新产品
+        return database.ref(`store_products/${oldStoreId}/${oldProductId}`).remove()
+            .then(() => database.ref(`store_products/${newStoreId}/${newProductId}`).set(productData));
+    }
+    
+    // 如果店铺改变但产品ID没变，需要删除旧店铺中的商品并在新店铺中添加
     if (newStoreId !== oldStoreId) {
-        return database.ref(`store_products/${oldStoreId}/${productId}`).remove()
-            .then(() => database.ref(`store_products/${newStoreId}/${productId}`).set(productData));
+        return database.ref(`store_products/${oldStoreId}/${oldProductId}`).remove()
+            .then(() => database.ref(`store_products/${newStoreId}/${newProductId}`).set(productData));
     }
     
     // 否则直接更新
-    return database.ref(`store_products/${newStoreId}/${productId}`).update(productData);
+    return database.ref(`store_products/${newStoreId}/${newProductId}`).update(productData);
 }
 
 // 删除商品
@@ -2021,6 +2038,22 @@ function getCurrentDate() {
     return `${year}-${month}-${day}`;
 }
 
+// 获取分层的日期路径，格式为 year/month/day
+function getDatePath(dateString = null) {
+    const date = dateString ? new Date(dateString) : new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return { year, month, day, path: `${year}/${month}/${day}` };
+}
+
+// 从日期字符串获取分层路径
+function getDatePathFromString(dateString) {
+    if (!dateString) return getDatePath();
+    const [year, month, day] = dateString.split('-');
+    return { year, month, day, path: `${year}/${month}/${day}` };
+}
+
 // 获取特定店铺的特定日期销售统计
 function getStoreDailySales(storeId, date) {
     console.log(`Getting daily sales for store ${storeId} on date ${date}`);
@@ -2045,8 +2078,9 @@ function getStoreDailySales(storeId, date) {
 // 从transactions表计算特定店铺的销售统计
 function loadStoreSalesFromTransactions(storeId, date) {
     console.log(`Getting sales from transactions for store ${storeId} on date ${date}`);
+    const datePath = getDatePathFromString(date);
     
-    return database.ref(`sales/${storeId}/${date}`).once('value')
+    return database.ref(`sales/${storeId}/${datePath.path}`).once('value')
         .then(snapshot => {
             const sales = snapshot.val() || {};
             let totalSales = 0;
@@ -2097,11 +2131,12 @@ function loadSalesFromTransactions(date) {
         .then(storeList => {
             const storeIds = Object.keys(storeList);
             const promises = [];
+            const datePath = getDatePathFromString(date);
             
             // 对每个店铺获取销售记录 - 只获取特定日期的数据
             storeIds.forEach(storeId => {
                 promises.push(
-                    database.ref(`sales/${storeId}/${date}`).once('value')
+                    database.ref(`sales/${storeId}/${datePath.path}`).once('value')
                         .then(snapshot => {
                             const sales = snapshot.val() || {};
                             let totalSales = 0;
@@ -2142,7 +2177,8 @@ function loadSalesFromTransactions(date) {
 
 // 获取特定店铺的特定日期销售详情
 function getStoreSaleDetails(storeId, date) {
-    return database.ref(`sales/${storeId}/${date}`)
+    const datePath = getDatePathFromString(date);
+    return database.ref(`sales/${storeId}/${datePath.path}`)
         .once('value')
         .then(snapshot => {
             const sales = snapshot.val() || {};
@@ -4304,11 +4340,12 @@ function loadAllStoresSalesForSummary(date) {
             .then(storeList => {
                 const storeIds = Object.keys(storeList);
                 const promises = [];
+                const datePath = getDatePathFromString(date);
                 
                 // 对每个店铺获取销售记录
                 storeIds.forEach(storeId => {
                     promises.push(
-                        database.ref(`sales/${storeId}/${date}`).once('value')
+                        database.ref(`sales/${storeId}/${datePath.path}`).once('value')
                             .then(snapshot => {
                                 const sales = snapshot.val() || {};
                                 // 将店铺ID添加到每个销售记录中
