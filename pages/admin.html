@@ -200,6 +200,7 @@
                 <div class="nav-item" onclick="location.href='./product_catalog.html'"><i class="material-icons">menu_book</i> Product Catalog</div>
                 <div class="nav-item" data-view="users"><i class="material-icons">people</i> Users</div>
                 <div class="nav-item sadmin-only" data-view="online-users"><i class="material-icons">online_prediction</i> Online Users</div>
+                <div class="nav-item sadmin-only" data-view="announcement"><i class="material-icons">campaign</i> Announce</div>
                 <div class="nav-item" onclick="logout()"><i class="material-icons">logout</i> Logout</div>
             </div>
         </div>
@@ -512,6 +513,60 @@
                         </thead>
                         <tbody id="onlineUsersTableBody">
                             <!-- Online user list will be dynamically generated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Announcement Management View -->
+            <div id="announcementView" class="view">
+                <h2>Announcement Management</h2>
+                
+                <div class="page-header">
+                    <div class="header-title">
+                        <span>Manage announcements displayed on POS screens</span>
+                    </div>
+                    <div class="header-actions">
+                        <button id="addAnnouncementBtn" class="action-button">
+                            <i class="material-icons">add</i>
+                            <span>Create Announcement</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="announcement-status-card">
+                    <div class="status-card-header">
+                        <h3><i class="material-icons">info</i> Current Status</h3>
+                        <div class="status-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="announcementGlobalToggle">
+                                <span class="slider round"></span>
+                            </label>
+                            <span id="announcementStatus">Disabled</span>
+                        </div>
+                    </div>
+                    <div class="current-announcement-preview" id="currentAnnouncementPreview">
+                        <div class="preview-label">Current Announcement:</div>
+                        <div class="preview-content" id="previewContent">
+                            <span class="no-announcement">No active announcement</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="data-table-container">
+                    <table id="announcementsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Text</th>
+                                <th>Font Style</th>
+                                <th>Created</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="announcementsTableBody">
+                            <!-- Announcement list will be loaded dynamically -->
                         </tbody>
                     </table>
                 </div>
@@ -959,6 +1014,123 @@
                     </select>
                 </div>
                 <button type="submit"><i class="material-icons">save</i> Update</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Announcement Modal -->
+    <div id="announcementModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="announcementModalTitle"><i class="material-icons">campaign</i> Create Announcement</h2>
+            <form id="announcementForm">
+                <input type="hidden" id="announcementId">
+                
+                <div class="form-group">
+                    <label for="announcementText"><i class="material-icons">message</i> Announcement Text:</label>
+                    <textarea id="announcementText" rows="3" placeholder="Enter your announcement message..." maxlength="200" required></textarea>
+                    <div class="char-counter">
+                        <span id="charCount">0</span>/200 characters
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="announcementFont"><i class="material-icons">font_download</i> Font Family:</label>
+                    <select id="announcementFont">
+                        <option value="Arial">Arial</option>
+                        <option value="Helvetica">Helvetica</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Georgia">Georgia</option>
+                        <option value="Verdana">Verdana</option>
+                        <option value="Courier New">Courier New</option>
+                        <option value="Trebuchet MS">Trebuchet MS</option>
+                        <option value="Poppins" selected>Poppins</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="announcementSize"><i class="material-icons">format_size</i> Font Size:</label>
+                    <select id="announcementSize">
+                        <option value="12">12px</option>
+                        <option value="14" selected>14px</option>
+                        <option value="16">16px</option>
+                        <option value="18">18px</option>
+                        <option value="20">20px</option>
+                        <option value="22">22px</option>
+                        <option value="24">24px</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="announcementWeight"><i class="material-icons">format_bold</i> Font Weight:</label>
+                    <select id="announcementWeight">
+                        <option value="normal" selected>Normal</option>
+                        <option value="bold">Bold</option>
+                        <option value="lighter">Light</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="announcementColor"><i class="material-icons">palette</i> Text Color:</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="announcementColor" value="#ffffff">
+                        <input type="text" id="announcementColorText" value="#ffffff" maxlength="7">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="announcementBackground"><i class="material-icons">format_color_fill</i> Background Color:</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="announcementBackground" value="#2196F3">
+                        <input type="text" id="announcementBackgroundText" value="#2196F3" maxlength="7">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="announcementSpeed"><i class="material-icons">speed</i> Scroll Speed:</label>
+                    <select id="announcementSpeed">
+                        <option value="slow">Slow</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="fast">Fast</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="announcementAnimation"><i class="material-icons">animation</i> Background Animation:</label>
+                    <select id="announcementAnimation">
+                        <option value="none" selected>None (Solid Color)</option>
+                        <option value="gradient-wave">Gradient Wave</option>
+                        <option value="alert-pulse">Alert Pulse</option>
+                        <option value="neon-glow">Neon Glow</option>
+                        <option value="rainbow-shift">Rainbow Shift</option>
+                        <option value="emergency-flash">Emergency Flash</option>
+                        <option value="ocean-wave">Ocean Wave</option>
+                        <option value="sunset-glow">Sunset Glow</option>
+                        <option value="matrix-green">Matrix Green</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <div class="announcement-preview">
+                        <label><i class="material-icons">preview</i> Preview:</label>
+                        <div class="preview-container" id="announcementPreviewContainer">
+                            <div class="scrolling-text" id="announcementScrollingPreview">
+                                Your announcement will appear here...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" id="previewAnnouncementBtn" class="action-button secondary">
+                        <i class="material-icons">visibility</i>
+                        <span>Preview</span>
+                    </button>
+                    <button type="submit" class="action-button">
+                        <i class="material-icons">save</i>
+                        <span>Save Announcement</span>
+                    </button>
+                </div>
             </form>
         </div>
     </div>

@@ -4904,3 +4904,553 @@ body.simple-mode .hot-item-price {
     border: 1px solid #e0e0e0;
     border-radius: 4px;
 }
+
+/* Announcement Management Styles */
+.announcement-status-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.status-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.status-card-header h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 18px;
+}
+
+.status-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-toggle span {
+    font-weight: 500;
+    min-width: 70px;
+}
+
+/* Toggle Switch Styles */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255,255,255,0.3);
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #4CAF50;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+.current-announcement-preview {
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.preview-label {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 8px;
+}
+
+.preview-content {
+    background: rgba(255,255,255,0.2);
+    border-radius: 6px;
+    padding: 10px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+.no-announcement {
+    color: rgba(255,255,255,0.7);
+    font-style: italic;
+}
+
+/* Announcement Modal Styles */
+.char-counter {
+    text-align: right;
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+}
+
+.color-picker-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.color-picker-container input[type="color"] {
+    width: 50px;
+    height: 40px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.color-picker-container input[type="text"] {
+    width: 100px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: monospace;
+    text-transform: uppercase;
+}
+
+.announcement-preview {
+    margin-top: 15px;
+}
+
+.preview-container {
+    background: #f5f5f5;
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 10px;
+    min-height: 60px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Preview Container Animation Support - Match Banner Animations */
+.preview-container.gradient-wave {
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab, #ee7752);
+    background-size: 400% 400%;
+    animation: gradientWave 4s linear infinite;
+    border: 2px solid #333;
+}
+
+.preview-container.alert-pulse {
+    background: linear-gradient(90deg, #ff4757, #ff6b7a, #ff4757);
+    background-size: 200% 200%;
+    animation: alertPulse 1.2s linear infinite;
+    border: 2px solid #ff4757;
+}
+
+.preview-container.neon-glow {
+    background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+    background-size: 200% 200%;
+    animation: neonGlow 2s linear infinite;
+    border: 2px solid #667eea;
+}
+
+.preview-container.rainbow-shift {
+    background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3, #ff6b6b);
+    background-size: 600% 600%;
+    animation: rainbowShift 5s linear infinite;
+    border: 2px solid #ff6b6b;
+}
+
+.preview-container.emergency-flash {
+    background: linear-gradient(90deg, #ff3838, #ffffff, #ff3838, #ffffff, #ff3838);
+    background-size: 400% 400%;
+    animation: emergencyFlash 1s linear infinite;
+    border: 2px solid #ff3838;
+}
+
+.preview-container.ocean-wave {
+    background: linear-gradient(45deg, #1e3c72, #2a5298, #00c6ff, #0072ff, #1e3c72);
+    background-size: 400% 400%;
+    animation: oceanWave 6s linear infinite;
+    border: 2px solid #1e3c72;
+}
+
+.preview-container.sunset-glow {
+    background: linear-gradient(45deg, #ff7e5f, #feb47b, #ff6b6b, #feca57, #ff7e5f);
+    background-size: 400% 400%;
+    animation: sunsetGlow 5s linear infinite;
+    border: 2px solid #ff7e5f;
+}
+
+.preview-container.matrix-green {
+    background: linear-gradient(90deg, #0f3460, #16537e, #239b56, #58d68d, #0f3460);
+    background-size: 400% 400%;
+    animation: matrixGreen 4s linear infinite;
+    border: 2px solid #0f3460;
+}
+
+.scrolling-text {
+    white-space: nowrap;
+    display: inline-block;
+    animation: scroll-left 10s linear infinite;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    color: #ffffff;
+    background-color: #2196F3;
+    padding: 8px 16px;
+    border-radius: 4px;
+}
+
+@keyframes scroll-left {
+    0% {
+        transform: translateX(100%);
+    }
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
+.scrolling-text.slow {
+    animation-duration: 20s;
+}
+
+.scrolling-text.normal {
+    animation-duration: 10s;
+}
+
+.scrolling-text.fast {
+    animation-duration: 5s;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.action-button.secondary {
+    background-color: #6c757d;
+}
+
+.action-button.secondary:hover {
+    background-color: #5a6268;
+}
+
+/* POS Announcement Banner Styles */
+.announcement-banner {
+    background: linear-gradient(90deg, #2196F3, #21CBF3);
+    color: white;
+    padding: 8px 0;
+    margin: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    overflow: hidden;
+    z-index: 10000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: none;
+}
+
+/* Background Animation Types */
+.announcement-banner.gradient-wave {
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab, #ee7752);
+    background-size: 400% 400%;
+    animation: gradientWave 4s linear infinite;
+}
+
+.announcement-banner.alert-pulse {
+    background: linear-gradient(90deg, #ff4757, #ff6b7a, #ff4757);
+    background-size: 200% 200%;
+    animation: alertPulse 1.2s linear infinite;
+}
+
+.announcement-banner.neon-glow {
+    background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+    background-size: 200% 200%;
+    animation: neonGlow 2s linear infinite;
+}
+
+.announcement-banner.rainbow-shift {
+    background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3, #ff6b6b);
+    background-size: 600% 600%;
+    animation: rainbowShift 5s linear infinite;
+}
+
+.announcement-banner.emergency-flash {
+    background: linear-gradient(90deg, #ff3838, #ffffff, #ff3838, #ffffff, #ff3838);
+    background-size: 400% 400%;
+    animation: emergencyFlash 1s linear infinite;
+}
+
+.announcement-banner.ocean-wave {
+    background: linear-gradient(45deg, #1e3c72, #2a5298, #00c6ff, #0072ff, #1e3c72);
+    background-size: 400% 400%;
+    animation: oceanWave 6s linear infinite;
+}
+
+.announcement-banner.sunset-glow {
+    background: linear-gradient(45deg, #ff7e5f, #feb47b, #ff6b6b, #feca57, #ff7e5f);
+    background-size: 400% 400%;
+    animation: sunsetGlow 5s linear infinite;
+}
+
+.announcement-banner.matrix-green {
+    background: linear-gradient(90deg, #0f3460, #16537e, #239b56, #58d68d, #0f3460);
+    background-size: 400% 400%;
+    animation: matrixGreen 4s linear infinite;
+}
+
+/* Keyframe Animations - Seamless and Continuous */
+@keyframes gradientWave {
+    0% {
+        background-position: 0% 50%;
+    }
+    25% {
+        background-position: 100% 25%;
+    }
+    50% {
+        background-position: 200% 50%;
+    }
+    75% {
+        background-position: 100% 75%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes alertPulse {
+    0% {
+        background-position: 0% 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    50% {
+        background-position: 100% 50%;
+        box-shadow: 0 4px 20px rgba(255, 71, 87, 0.4);
+    }
+    100% {
+        background-position: 200% 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+}
+
+@keyframes neonGlow {
+    0% {
+        background-position: 0% 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 0 20px rgba(102, 126, 234, 0.5);
+    }
+    50% {
+        background-position: 100% 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 0 30px rgba(118, 75, 162, 0.8);
+    }
+    100% {
+        background-position: 200% 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 0 20px rgba(102, 126, 234, 0.5);
+    }
+}
+
+@keyframes rainbowShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 600% 50%;
+    }
+}
+
+@keyframes emergencyFlash {
+    0% {
+        background-position: 0% 50%;
+    }
+    25% {
+        background-position: 100% 50%;
+    }
+    50% {
+        background-position: 200% 50%;
+    }
+    75% {
+        background-position: 300% 50%;
+    }
+    100% {
+        background-position: 400% 50%;
+    }
+}
+
+@keyframes oceanWave {
+    0% {
+        background-position: 0% 50%;
+    }
+    20% {
+        background-position: 80% 25%;
+    }
+    40% {
+        background-position: 160% 75%;
+    }
+    60% {
+        background-position: 240% 25%;
+    }
+    80% {
+        background-position: 320% 75%;
+    }
+    100% {
+        background-position: 400% 50%;
+    }
+}
+
+@keyframes sunsetGlow {
+    0% {
+        background-position: 0% 50%;
+    }
+    33% {
+        background-position: 133% 25%;
+    }
+    66% {
+        background-position: 266% 75%;
+    }
+    100% {
+        background-position: 400% 50%;
+    }
+}
+
+@keyframes matrixGreen {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 400% 50%;
+    }
+}
+
+.announcement-banner.hidden {
+    display: none !important;
+}
+
+.announcement-scrolling-text {
+    white-space: nowrap;
+    display: inline-block;
+    animation: scroll-left 10s linear infinite;
+    padding: 0 20px;
+    margin: 0;
+    border: none;
+}
+
+.announcement-scrolling-text.slow {
+    animation-duration: 20s;
+}
+
+.announcement-scrolling-text.normal {
+    animation-duration: 10s;
+}
+
+.announcement-scrolling-text.fast {
+    animation-duration: 5s;
+}
+
+/* Status Badge Styles */
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.status-active {
+    background-color: #e8f5e8;
+    color: #2e7d2e;
+}
+
+.status-inactive {
+    background-color: #ffeaa7;
+    color: #d63031;
+}
+
+.announcement-text-cell {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Admin Action Icons - Make all icons black */
+.action-button .material-icons,
+.icon-button .material-icons,
+.header-actions .material-icons,
+.edit-announcement-btn .material-icons,
+.activate-announcement-btn .material-icons,
+.delete-announcement-btn .material-icons {
+    color: #000000 !important;
+}
+
+/* POS Page Body Reset - Remove default margins and padding */
+body {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* POS Container adjustment for fixed announcement banner */
+.pos-container {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Responsive Design for Announcement */
+@media (max-width: 768px) {
+    .announcement-banner {
+        padding: 6px 0;
+    }
+    
+    .announcement-scrolling-text {
+        font-size: 12px;
+    }
+    
+    .status-card-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+    
+    .color-picker-container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

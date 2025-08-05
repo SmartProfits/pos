@@ -8,6 +8,8 @@ let stores = {}; // 存储店铺数据
 let products = {}; // 存储商品数据
 let users = {}; // 存储用户数据
 let onlineUsers = {}; // 存储在线用户数据
+let announcements = {}; // 存储公告数据
+let currentAnnouncement = null; // 当前活跃的公告
 let selectedDate = getCurrentDate(); // 默认选择当前日期
 let selectedStoreId = 'all'; // 默认选择所有店铺
 let selectedStoreInDashboard = null; // 仪表盘中当前选择的店铺
@@ -86,6 +88,24 @@ const addUserForm = document.getElementById('addUserForm');
 const userRole = document.getElementById('userRole');
 const userStoreContainer = document.getElementById('userStoreContainer');
 const userStoreId = document.getElementById('userStoreId');
+
+// 公告管理DOM元素
+const addAnnouncementBtn = document.getElementById('addAnnouncementBtn');
+const announcementGlobalToggle = document.getElementById('announcementGlobalToggle');
+const announcementStatus = document.getElementById('announcementStatus');
+const previewContent = document.getElementById('previewContent');
+const announcementsTableBody = document.getElementById('announcementsTableBody');
+const announcementModal = document.getElementById('announcementModal');
+const announcementForm = document.getElementById('announcementForm');
+const announcementText = document.getElementById('announcementText');
+const charCount = document.getElementById('charCount');
+const announcementColor = document.getElementById('announcementColor');
+const announcementColorText = document.getElementById('announcementColorText');
+const announcementBackground = document.getElementById('announcementBackground');
+const announcementBackgroundText = document.getElementById('announcementBackgroundText');
+const announcementAnimation = document.getElementById('announcementAnimation');
+const announcementScrollingPreview = document.getElementById('announcementScrollingPreview');
+const previewAnnouncementBtn = document.getElementById('previewAnnouncementBtn');
 
 // 模态框关闭按钮
 const closeButtons = document.querySelectorAll('.close');
@@ -352,6 +372,60 @@ function initEventListeners() {
     // 用户角色变化
     userRole.addEventListener('change', toggleStoreSelection);
     
+    // 公告管理事件监听器
+    if (addAnnouncementBtn) {
+        addAnnouncementBtn.addEventListener('click', () => showAnnouncementModal());
+    }
+    
+    if (announcementGlobalToggle) {
+        announcementGlobalToggle.addEventListener('change', toggleAnnouncementGlobal);
+    }
+    
+    if (announcementText) {
+        announcementText.addEventListener('input', updateCharCount);
+        announcementText.addEventListener('input', updateAnnouncementPreview);
+    }
+    
+    if (announcementColor) {
+        announcementColor.addEventListener('change', syncColorInputs);
+        announcementColor.addEventListener('change', updateAnnouncementPreview);
+    }
+    
+    if (announcementColorText) {
+        announcementColorText.addEventListener('input', syncColorInputs);
+        announcementColorText.addEventListener('input', updateAnnouncementPreview);
+    }
+    
+    if (announcementBackground) {
+        announcementBackground.addEventListener('change', syncBackgroundInputs);
+        announcementBackground.addEventListener('change', updateAnnouncementPreview);
+    }
+    
+    if (announcementBackgroundText) {
+        announcementBackgroundText.addEventListener('input', syncBackgroundInputs);
+        announcementBackgroundText.addEventListener('input', updateAnnouncementPreview);
+    }
+    
+    if (previewAnnouncementBtn) {
+        previewAnnouncementBtn.addEventListener('click', updateAnnouncementPreview);
+    }
+    
+    if (announcementAnimation) {
+        announcementAnimation.addEventListener('change', updateAnnouncementPreview);
+    }
+    
+    // 监听所有影响预览的字段
+    ['announcementFont', 'announcementSize', 'announcementWeight', 'announcementSpeed'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', updateAnnouncementPreview);
+        }
+    });
+    
+    if (announcementForm) {
+        announcementForm.addEventListener('submit', handleAnnouncementSubmit);
+    }
+    
     // 添加店铺表单提交
     addStoreForm.addEventListener('submit', handleAddStore);
     
@@ -569,6 +643,8 @@ function performViewSwitch(viewName) {
                 loadInventory();
             } else if (viewName === 'users') {
                 loadUsers();
+            } else if (viewName === 'announcement') {
+                loadAnnouncements();
             }
         } else {
             view.classList.remove('active');
@@ -4659,4 +4735,422 @@ function handleEditUser(e) {
                 alert(`Failed to update user: ${error.message}`);
             });
     });
+}
+
+// 公告管理功能
+// 加载公告数据
+function loadAnnouncements() {
+    console.log("开始加载公告数据");
+    
+    database.ref('announcements').once('value')
+        .then(snapshot => {
+            announcements = snapshot.val() || {};
+            console.log("公告数据加载完成:", announcements);
+            displayAnnouncements();
+            loadCurrentAnnouncement();
+        })
+        .catch(error => {
+            console.error("加载公告数据失败:", error);
+            alert("Failed to load announcements");
+        });
+}
+
+// 加载当前活跃的公告
+function loadCurrentAnnouncement() {
+    database.ref('system/current_announcement').once('value')
+        .then(snapshot => {
+            const currentAnnouncementData = snapshot.val();
+            currentAnnouncement = currentAnnouncementData;
+            updateAnnouncementStatus();
+            updateCurrentAnnouncementPreview();
+        })
+        .catch(error => {
+            console.error("加载当前公告失败:", error);
+        });
+}
+
+// 显示公告列表
+function displayAnnouncements() {
+    if (!announcementsTableBody) return;
+    
+    announcementsTableBody.innerHTML = '';
+    
+    if (Object.keys(announcements).length === 0) {
+        announcementsTableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center">No announcements found</td>
+            </tr>
+        `;
+        return;
+    }
+    
+    Object.keys(announcements).forEach(announcementId => {
+        const announcement = announcements[announcementId];
+        const row = document.createElement('tr');
+        
+        const isActive = currentAnnouncement && currentAnnouncement.id === announcementId;
+        const statusText = isActive ? 'Active' : 'Inactive';
+        const statusClass = isActive ? 'status-active' : 'status-inactive';
+        
+        row.innerHTML = `
+            <td>${announcementId}</td>
+            <td class="announcement-text-cell">${announcement.text || ''}</td>
+            <td>
+                <span style="font-family: ${announcement.fontFamily || 'Arial'}; 
+                            font-size: ${announcement.fontSize || '14'}px; 
+                            font-weight: ${announcement.fontWeight || 'normal'}; 
+                            color: ${announcement.textColor || '#000'};">
+                    ${announcement.fontFamily || 'Arial'} ${announcement.fontSize || '14'}px ${announcement.fontWeight || 'normal'}
+                </span>
+            </td>
+            <td>${new Date(announcement.createdAt).toLocaleDateString()}</td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            <td>
+                <button class="icon-button edit-announcement-btn" data-id="${announcementId}" title="Edit">
+                    <i class="material-icons">edit</i>
+                </button>
+                <button class="icon-button activate-announcement-btn" data-id="${announcementId}" title="Activate">
+                    <i class="material-icons">play_arrow</i>
+                </button>
+                <button class="icon-button delete-announcement-btn" data-id="${announcementId}" title="Delete">
+                    <i class="material-icons">delete</i>
+                </button>
+            </td>
+        `;
+        
+        announcementsTableBody.appendChild(row);
+    });
+    
+    // 添加事件监听器
+    document.querySelectorAll('.edit-announcement-btn').forEach(btn => {
+        btn.addEventListener('click', () => editAnnouncement(btn.dataset.id));
+    });
+    
+    document.querySelectorAll('.activate-announcement-btn').forEach(btn => {
+        btn.addEventListener('click', () => activateAnnouncement(btn.dataset.id));
+    });
+    
+    document.querySelectorAll('.delete-announcement-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteAnnouncement(btn.dataset.id));
+    });
+}
+
+// 显示公告模态框
+function showAnnouncementModal(announcementId = null) {
+    const modal = announcementModal;
+    const title = document.getElementById('announcementModalTitle');
+    
+    if (announcementId) {
+        // 编辑模式
+        title.innerHTML = '<i class="material-icons">edit</i> Edit Announcement';
+        populateAnnouncementForm(announcementId);
+    } else {
+        // 创建模式
+        title.innerHTML = '<i class="material-icons">campaign</i> Create Announcement';
+        resetAnnouncementForm();
+    }
+    
+    showModal(modal);
+    updateAnnouncementPreview();
+}
+
+// 填充公告表单
+function populateAnnouncementForm(announcementId) {
+    const announcement = announcements[announcementId];
+    if (!announcement) return;
+    
+    document.getElementById('announcementId').value = announcementId;
+    document.getElementById('announcementText').value = announcement.text || '';
+    document.getElementById('announcementFont').value = announcement.fontFamily || 'Poppins';
+    document.getElementById('announcementSize').value = announcement.fontSize || '14';
+    document.getElementById('announcementWeight').value = announcement.fontWeight || 'normal';
+    document.getElementById('announcementColor').value = announcement.textColor || '#ffffff';
+    document.getElementById('announcementColorText').value = announcement.textColor || '#ffffff';
+    document.getElementById('announcementBackground').value = announcement.backgroundColor || '#2196F3';
+    document.getElementById('announcementBackgroundText').value = announcement.backgroundColor || '#2196F3';
+    document.getElementById('announcementSpeed').value = announcement.speed || 'normal';
+    document.getElementById('announcementAnimation').value = announcement.backgroundAnimation || 'none';
+    
+    updateCharCount();
+}
+
+// 重置公告表单
+function resetAnnouncementForm() {
+    document.getElementById('announcementId').value = '';
+    document.getElementById('announcementText').value = '';
+    document.getElementById('announcementFont').value = 'Poppins';
+    document.getElementById('announcementSize').value = '14';
+    document.getElementById('announcementWeight').value = 'normal';
+    document.getElementById('announcementColor').value = '#ffffff';
+    document.getElementById('announcementColorText').value = '#ffffff';
+    document.getElementById('announcementBackground').value = '#2196F3';
+    document.getElementById('announcementBackgroundText').value = '#2196F3';
+    document.getElementById('announcementSpeed').value = 'normal';
+    document.getElementById('announcementAnimation').value = 'none';
+    
+    updateCharCount();
+}
+
+// 更新字符计数
+function updateCharCount() {
+    if (!announcementText || !charCount) return;
+    
+    const count = announcementText.value.length;
+    charCount.textContent = count;
+    
+    if (count > 180) {
+        charCount.style.color = '#f44336';
+    } else if (count > 150) {
+        charCount.style.color = '#ff9800';
+    } else {
+        charCount.style.color = '#666';
+    }
+}
+
+// 同步颜色输入框
+function syncColorInputs(event) {
+    if (event.target.id === 'announcementColor') {
+        announcementColorText.value = event.target.value.toUpperCase();
+    } else if (event.target.id === 'announcementColorText') {
+        if (/^#[0-9A-F]{6}$/i.test(event.target.value)) {
+            announcementColor.value = event.target.value;
+        }
+    }
+}
+
+// 同步背景颜色输入框
+function syncBackgroundInputs(event) {
+    if (event.target.id === 'announcementBackground') {
+        announcementBackgroundText.value = event.target.value.toUpperCase();
+    } else if (event.target.id === 'announcementBackgroundText') {
+        if (/^#[0-9A-F]{6}$/i.test(event.target.value)) {
+            announcementBackground.value = event.target.value;
+        }
+    }
+}
+
+// 更新公告预览
+function updateAnnouncementPreview() {
+    if (!announcementScrollingPreview) return;
+    
+    const text = document.getElementById('announcementText').value || 'Your announcement will appear here...';
+    const fontFamily = document.getElementById('announcementFont').value;
+    const fontSize = document.getElementById('announcementSize').value;
+    const fontWeight = document.getElementById('announcementWeight').value;
+    const textColor = document.getElementById('announcementColor').value;
+    const backgroundColor = document.getElementById('announcementBackground').value;
+    const speed = document.getElementById('announcementSpeed').value;
+    const backgroundAnimation = document.getElementById('announcementAnimation').value;
+    
+    announcementScrollingPreview.textContent = text;
+    announcementScrollingPreview.style.fontFamily = fontFamily;
+    announcementScrollingPreview.style.fontSize = fontSize + 'px';
+    announcementScrollingPreview.style.fontWeight = fontWeight;
+    announcementScrollingPreview.style.color = textColor;
+    
+    // 应用背景颜色或动画
+    const previewContainer = document.getElementById('announcementPreviewContainer');
+    if (previewContainer) {
+        // 移除所有动画类
+        previewContainer.classList.remove('gradient-wave', 'alert-pulse', 'neon-glow', 'rainbow-shift', 
+                                         'emergency-flash', 'ocean-wave', 'sunset-glow', 'matrix-green');
+        
+        // 清除容器的内联样式
+        previewContainer.style.background = '';
+        previewContainer.style.animation = '';
+        
+        if (backgroundAnimation && backgroundAnimation !== 'none') {
+            // 添加动画类到容器
+            previewContainer.classList.add(backgroundAnimation);
+            // 将滚动文本背景设为透明，让容器背景显示
+            announcementScrollingPreview.style.backgroundColor = 'transparent';
+            console.log('预览应用动画:', backgroundAnimation);
+        } else {
+            // 使用纯色背景
+            previewContainer.style.background = '#f5f5f5';
+            announcementScrollingPreview.style.backgroundColor = backgroundColor;
+            console.log('预览应用纯色背景:', backgroundColor);
+        }
+    }
+    
+    // 移除旧的速度类
+    announcementScrollingPreview.classList.remove('slow', 'normal', 'fast');
+    announcementScrollingPreview.classList.add(speed);
+}
+
+// 处理公告表单提交
+function handleAnnouncementSubmit(event) {
+    event.preventDefault();
+    
+    const announcementId = document.getElementById('announcementId').value;
+    const text = document.getElementById('announcementText').value.trim();
+    
+    if (!text) {
+        alert('Please enter announcement text');
+        return;
+    }
+    
+    if (text.length > 200) {
+        alert('Announcement text cannot exceed 200 characters');
+        return;
+    }
+    
+    const announcementData = {
+        text: text,
+        fontFamily: document.getElementById('announcementFont').value,
+        fontSize: document.getElementById('announcementSize').value,
+        fontWeight: document.getElementById('announcementWeight').value,
+        textColor: document.getElementById('announcementColor').value,
+        backgroundColor: document.getElementById('announcementBackground').value,
+        backgroundAnimation: document.getElementById('announcementAnimation').value,
+        speed: document.getElementById('announcementSpeed').value,
+        updatedAt: getCurrentDateTime()
+    };
+    
+    if (announcementId) {
+        // 更新现有公告
+        announcementData.createdAt = announcements[announcementId].createdAt;
+        
+        database.ref(`announcements/${announcementId}`).update(announcementData)
+            .then(() => {
+                hideModal(announcementModal);
+                loadAnnouncements();
+                alert('Announcement updated successfully');
+            })
+            .catch(error => {
+                console.error('更新公告失败:', error);
+                alert('Failed to update announcement');
+            });
+    } else {
+        // 创建新公告
+        const newAnnouncementId = 'ann_' + Date.now();
+        announcementData.createdAt = getCurrentDateTime();
+        
+        database.ref(`announcements/${newAnnouncementId}`).set(announcementData)
+            .then(() => {
+                hideModal(announcementModal);
+                loadAnnouncements();
+                alert('Announcement created successfully');
+            })
+            .catch(error => {
+                console.error('创建公告失败:', error);
+                alert('Failed to create announcement');
+            });
+    }
+}
+
+// 编辑公告
+function editAnnouncement(announcementId) {
+    showAnnouncementModal(announcementId);
+}
+
+// 激活公告
+function activateAnnouncement(announcementId) {
+    if (!announcements[announcementId]) {
+        alert('Announcement not found');
+        return;
+    }
+    
+    const announcementData = {
+        id: announcementId,
+        ...announcements[announcementId],
+        enabled: true
+    };
+    
+    database.ref('system/current_announcement').set(announcementData)
+        .then(() => {
+            currentAnnouncement = announcementData;
+            updateAnnouncementStatus();
+            updateCurrentAnnouncementPreview();
+            displayAnnouncements();
+            alert('Announcement activated successfully');
+        })
+        .catch(error => {
+            console.error('激活公告失败:', error);
+            alert('Failed to activate announcement');
+        });
+}
+
+// 删除公告
+function deleteAnnouncement(announcementId) {
+    if (!confirm('Are you sure you want to delete this announcement?')) {
+        return;
+    }
+    
+    database.ref(`announcements/${announcementId}`).remove()
+        .then(() => {
+            // 如果删除的是当前活跃的公告，则清除当前公告
+            if (currentAnnouncement && currentAnnouncement.id === announcementId) {
+                database.ref('system/current_announcement').remove();
+                currentAnnouncement = null;
+                updateAnnouncementStatus();
+                updateCurrentAnnouncementPreview();
+            }
+            
+            loadAnnouncements();
+            alert('Announcement deleted successfully');
+        })
+        .catch(error => {
+            console.error('删除公告失败:', error);
+            alert('Failed to delete announcement');
+        });
+}
+
+// 切换全局公告开关
+function toggleAnnouncementGlobal() {
+    if (!currentAnnouncement) {
+        announcementGlobalToggle.checked = false;
+        alert('Please activate an announcement first');
+        return;
+    }
+    
+    const enabled = announcementGlobalToggle.checked;
+    
+    database.ref('system/current_announcement/enabled').set(enabled)
+        .then(() => {
+            currentAnnouncement.enabled = enabled;
+            updateAnnouncementStatus();
+            console.log(`公告全局开关已${enabled ? '开启' : '关闭'}`);
+        })
+        .catch(error => {
+            console.error('切换公告状态失败:', error);
+            // 恢复开关状态
+            announcementGlobalToggle.checked = !enabled;
+            alert('Failed to toggle announcement status');
+        });
+}
+
+// 更新公告状态显示
+function updateAnnouncementStatus() {
+    if (!announcementStatus || !announcementGlobalToggle) return;
+    
+    if (currentAnnouncement && currentAnnouncement.enabled) {
+        announcementStatus.textContent = 'Enabled';
+        announcementStatus.style.color = '#4CAF50';
+        announcementGlobalToggle.checked = true;
+    } else {
+        announcementStatus.textContent = 'Disabled';
+        announcementStatus.style.color = '#f44336';
+        announcementGlobalToggle.checked = false;
+    }
+}
+
+// 更新当前公告预览
+function updateCurrentAnnouncementPreview() {
+    if (!previewContent) return;
+    
+    if (currentAnnouncement && currentAnnouncement.enabled) {
+        previewContent.innerHTML = `
+            <div class="scrolling-text ${currentAnnouncement.speed || 'normal'}" 
+                 style="font-family: ${currentAnnouncement.fontFamily || 'Poppins'}; 
+                        font-size: ${currentAnnouncement.fontSize || '14'}px; 
+                        font-weight: ${currentAnnouncement.fontWeight || 'normal'}; 
+                        color: ${currentAnnouncement.textColor || '#ffffff'}; 
+                        background-color: ${currentAnnouncement.backgroundColor || '#2196F3'};">
+                ${currentAnnouncement.text || ''}
+            </div>
+        `;
+    } else {
+        previewContent.innerHTML = '<span class="no-announcement">No active announcement</span>';
+    }
 }
