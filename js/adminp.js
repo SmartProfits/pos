@@ -1217,7 +1217,7 @@ function showMaintenancePage() {
                 height: 100vh;
                 padding: 20px;
                 text-align: center;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #6d6e73 0%, #000000 100%);
                 color: white;
             ">
                 <div style="
