@@ -372,6 +372,12 @@ function initEventListeners() {
     // 用户角色变化
     userRole.addEventListener('change', toggleStoreSelection);
     
+    // 维护模式切换按钮（仅超级管理员可见）
+    const maintenanceToggle = document.getElementById('maintenanceToggle');
+    if (maintenanceToggle) {
+        maintenanceToggle.addEventListener('click', toggleMaintenanceMode);
+    }
+    
     // 公告管理事件监听器
     if (addAnnouncementBtn) {
         addAnnouncementBtn.addEventListener('click', () => showAnnouncementModal());
@@ -3305,6 +3311,9 @@ function init() {
     
     // 加载用户数据
     loadUsers();
+    
+    // 初始化维护状态显示
+    initializeMaintenanceStatus();
 }
 
 // 初始化Firebase
@@ -4742,16 +4751,34 @@ function handleEditUser(e) {
 function loadAnnouncements() {
     console.log("开始加载公告数据");
     
+    if (!database) {
+        console.error("数据库未初始化");
+        alert("Database not initialized. Please refresh the page.");
+        return;
+    }
+    
     database.ref('announcements').once('value')
         .then(snapshot => {
-            announcements = snapshot.val() || {};
-            console.log("公告数据加载完成:", announcements);
+            const data = snapshot.val();
+            announcements = data || {};
+            
+            console.log("公告数据加载完成:");
+            console.log("- 原始数据:", data);
+            console.log("- 处理后数据:", announcements);
+            console.log("- 公告数量:", Object.keys(announcements).length);
+            
             displayAnnouncements();
             loadCurrentAnnouncement();
         })
         .catch(error => {
             console.error("加载公告数据失败:", error);
-            alert("Failed to load announcements");
+            console.error("错误详情:", error.message);
+            
+            if (error.code === 'PERMISSION_DENIED') {
+                alert("Permission denied. Please check if you have Super Admin privileges and update Firebase rules.");
+            } else {
+                alert("Failed to load announcements: " + error.message);
+            }
         });
 }
 
@@ -4843,35 +4870,135 @@ function showAnnouncementModal(announcementId = null) {
     if (announcementId) {
         // 编辑模式
         title.innerHTML = '<i class="material-icons">edit</i> Edit Announcement';
-        populateAnnouncementForm(announcementId);
+        console.log('编辑模式 - 准备填充表单，公告ID:', announcementId);
+        console.log('当前公告数据存储:', announcements);
+        
+        // 延迟填充表单，确保模态框先显示
+        setTimeout(() => {
+            populateAnnouncementForm(announcementId);
+            // 填充完成后更新预览
+            setTimeout(() => {
+                updateAnnouncementPreview();
+            }, 100);
+        }, 100);
     } else {
         // 创建模式
         title.innerHTML = '<i class="material-icons">campaign</i> Create Announcement';
         resetAnnouncementForm();
+        setTimeout(() => {
+            updateAnnouncementPreview();
+        }, 100);
     }
     
     showModal(modal);
-    updateAnnouncementPreview();
 }
 
 // 填充公告表单
 function populateAnnouncementForm(announcementId) {
-    const announcement = announcements[announcementId];
-    if (!announcement) return;
+    console.log('开始填充公告表单，ID:', announcementId);
+    console.log('可用公告数据:', announcements);
     
-    document.getElementById('announcementId').value = announcementId;
-    document.getElementById('announcementText').value = announcement.text || '';
-    document.getElementById('announcementFont').value = announcement.fontFamily || 'Poppins';
-    document.getElementById('announcementSize').value = announcement.fontSize || '14';
-    document.getElementById('announcementWeight').value = announcement.fontWeight || 'normal';
-    document.getElementById('announcementColor').value = announcement.textColor || '#ffffff';
-    document.getElementById('announcementColorText').value = announcement.textColor || '#ffffff';
-    document.getElementById('announcementBackground').value = announcement.backgroundColor || '#2196F3';
-    document.getElementById('announcementBackgroundText').value = announcement.backgroundColor || '#2196F3';
-    document.getElementById('announcementSpeed').value = announcement.speed || 'normal';
-    document.getElementById('announcementAnimation').value = announcement.backgroundAnimation || 'none';
+    const announcement = announcements[announcementId];
+    if (!announcement) {
+        console.error('找不到公告数据，ID:', announcementId);
+        alert('Error: Announcement data not found');
+        return;
+    }
+    
+    console.log('找到公告数据:', announcement);
+    
+    // 详细打印公告数据的每个字段
+    console.log('公告详细字段:');
+    console.log('- text:', announcement.text);
+    console.log('- fontFamily:', announcement.fontFamily);
+    console.log('- fontSize:', announcement.fontSize);
+    console.log('- fontWeight:', announcement.fontWeight);
+    console.log('- textColor:', announcement.textColor);
+    console.log('- backgroundColor:', announcement.backgroundColor);
+    console.log('- backgroundAnimation:', announcement.backgroundAnimation);
+    console.log('- speed:', announcement.speed);
+    
+    // 填充表单字段
+    const fields = {
+        'announcementId': announcementId,
+        'announcementText': announcement.text || '',
+        'announcementFont': announcement.fontFamily || 'Poppins',
+        'announcementSize': announcement.fontSize || '14',
+        'announcementWeight': announcement.fontWeight || 'normal',
+        'announcementColor': announcement.textColor || '#ffffff',
+        'announcementColorText': announcement.textColor || '#ffffff',
+        'announcementBackground': announcement.backgroundColor || '#2196F3',
+        'announcementBackgroundText': announcement.backgroundColor || '#2196F3',
+        'announcementSpeed': announcement.speed || 'normal',
+        'announcementAnimation': announcement.backgroundAnimation || 'none'
+    };
+    
+    console.log('准备设置的字段值:');
+    
+    // 逐个设置字段并记录
+    Object.keys(fields).forEach(fieldId => {
+        const element = document.getElementById(fieldId);
+        if (element) {
+            const oldValue = element.value;
+            element.value = fields[fieldId];
+            console.log(`设置字段 ${fieldId}: "${oldValue}" → "${fields[fieldId]}"`);
+            
+            // 验证设置是否成功
+            if (element.value !== fields[fieldId]) {
+                console.warn(`字段 ${fieldId} 设置失败! 期望: "${fields[fieldId]}", 实际: "${element.value}"`);
+            }
+        } else {
+            console.error(`找不到表单元素:`, fieldId);
+        }
+    });
     
     updateCharCount();
+    
+    // 实时验证所有字段是否正确设置
+    console.log('=== 实时验证所有字段 ===');
+    const verificationResults = [];
+    Object.keys(fields).forEach(fieldId => {
+        const element = document.getElementById(fieldId);
+        if (element) {
+            const expected = fields[fieldId];
+            const actual = element.value;
+            const isCorrect = actual === expected;
+            
+            const fieldLabels = {
+                'announcementText': 'Announcement Text',
+                'announcementFont': 'Font Family', 
+                'announcementSize': 'Font Size',
+                'announcementWeight': 'Font Weight',
+                'announcementColor': 'Text Color',
+                'announcementBackground': 'Background Color',
+                'announcementAnimation': 'Background Animation',
+                'announcementSpeed': 'Scroll Speed'
+            };
+            
+            const label = fieldLabels[fieldId] || fieldId;
+            const status = isCorrect ? '✅' : '❌';
+            console.log(`${status} ${label}: "${actual}"`);
+            
+            verificationResults.push({
+                field: label,
+                correct: isCorrect,
+                expected: expected,
+                actual: actual
+            });
+        }
+    });
+    
+    const allCorrect = verificationResults.every(r => r.correct);
+    console.log(`=== 字段验证结果: ${allCorrect ? '✅ 全部正确' : '❌ 部分错误'} ===`);
+    
+    if (!allCorrect) {
+        console.warn('以下字段设置不正确:');
+        verificationResults.filter(r => !r.correct).forEach(r => {
+            console.warn(`- ${r.field}: 期望 "${r.expected}", 实际 "${r.actual}"`);
+        });
+    }
+    
+    console.log('公告表单填充完成');
 }
 
 // 重置公告表单
@@ -5041,6 +5168,32 @@ function handleAnnouncementSubmit(event) {
 
 // 编辑公告
 function editAnnouncement(announcementId) {
+    console.log('开始编辑公告，ID:', announcementId);
+    console.log('当前公告数据:', announcements);
+    
+    if (!announcements || Object.keys(announcements).length === 0) {
+        console.warn('公告数据为空，重新加载数据...');
+        loadAnnouncements();
+        
+        // 等待数据加载完成后再尝试编辑
+        setTimeout(() => {
+            if (announcements[announcementId]) {
+                editAnnouncement(announcementId);
+            } else {
+                alert('Error: Unable to load announcement data. Please refresh the page.');
+            }
+        }, 1000);
+        return;
+    }
+    
+    if (!announcements[announcementId]) {
+        console.error('无法编辑：公告不存在，ID:', announcementId);
+        console.error('可用的公告ID:', Object.keys(announcements));
+        alert('Error: Announcement not found! Available IDs: ' + Object.keys(announcements).join(', '));
+        return;
+    }
+    
+    console.log('找到公告数据，准备编辑:', announcements[announcementId]);
     showAnnouncementModal(announcementId);
 }
 
@@ -5153,4 +5306,163 @@ function updateCurrentAnnouncementPreview() {
     } else {
         previewContent.innerHTML = '<span class="no-announcement">No active announcement</span>';
     }
+}
+
+// 调试函数 - 手动测试公告编辑功能
+function debugAnnouncementEdit() {
+    console.log('=== 调试公告编辑功能 ===');
+    console.log('1. 当前公告数据:', announcements);
+    console.log('2. 公告数量:', Object.keys(announcements).length);
+    
+    if (Object.keys(announcements).length > 0) {
+        const firstAnnouncementId = Object.keys(announcements)[0];
+        console.log('3. 第一个公告ID:', firstAnnouncementId);
+        console.log('4. 第一个公告数据:', announcements[firstAnnouncementId]);
+        
+        console.log('5. 尝试编辑第一个公告...');
+        editAnnouncement(firstAnnouncementId);
+    } else {
+        console.log('3. 没有公告数据，尝试重新加载...');
+        loadAnnouncements();
+    }
+}
+
+// 完整字段验证测试
+function testAllAnnouncementFields() {
+    console.log('=== 完整字段验证测试 ===');
+    
+    const testData = {
+        text: 'Test announcement message',
+        fontFamily: 'Georgia',
+        fontSize: '18',
+        fontWeight: 'bold',
+        textColor: '#ff0000',
+        backgroundColor: '#00ff00',
+        backgroundAnimation: 'rainbow-shift',
+        speed: 'fast'
+    };
+    
+    console.log('测试数据:', testData);
+    
+    // 创建测试公告
+    const testId = 'test_' + Date.now();
+    announcements[testId] = {
+        ...testData,
+        createdAt: getCurrentDateTime(),
+        updatedAt: getCurrentDateTime()
+    };
+    
+    console.log('创建测试公告ID:', testId);
+    console.log('测试公告数据:', announcements[testId]);
+    
+    // 测试编辑功能
+    setTimeout(() => {
+        console.log('开始测试编辑功能...');
+        editAnnouncement(testId);
+        
+        // 验证表单字段
+        setTimeout(() => {
+            console.log('=== 验证表单字段 ===');
+            const fieldTests = [
+                { field: 'announcementText', expected: testData.text, label: 'Announcement Text' },
+                { field: 'announcementFont', expected: testData.fontFamily, label: 'Font Family' },
+                { field: 'announcementSize', expected: testData.fontSize, label: 'Font Size' },
+                { field: 'announcementWeight', expected: testData.fontWeight, label: 'Font Weight' },
+                { field: 'announcementColor', expected: testData.textColor, label: 'Text Color' },
+                { field: 'announcementBackground', expected: testData.backgroundColor, label: 'Background Color' },
+                { field: 'announcementAnimation', expected: testData.backgroundAnimation, label: 'Background Animation' },
+                { field: 'announcementSpeed', expected: testData.speed, label: 'Scroll Speed' }
+            ];
+            
+            let allPassed = true;
+            fieldTests.forEach(test => {
+                const element = document.getElementById(test.field);
+                if (element) {
+                    const actual = element.value;
+                    const passed = actual === test.expected;
+                    console.log(`${test.label}: ${passed ? '✅' : '❌'} 期望: "${test.expected}", 实际: "${actual}"`);
+                    if (!passed) allPassed = false;
+                } else {
+                    console.log(`${test.label}: ❌ 元素未找到`);
+                    allPassed = false;
+                }
+            });
+            
+            console.log(`=== 测试结果: ${allPassed ? '✅ 全部通过' : '❌ 部分失败'} ===`);
+            
+            // 清理测试数据
+            delete announcements[testId];
+        }, 500);
+    }, 100);
+}
+
+// 全局暴露调试函数
+window.debugAnnouncementEdit = debugAnnouncementEdit;
+window.testAllAnnouncementFields = testAllAnnouncementFields;
+
+// ====== 维护模式管理功能 ======
+
+// 检查当前维护状态
+function checkMaintenanceStatus() {
+    return database.ref('system/maintenance').once('value').then(snapshot => {
+        return snapshot.val() || { enabled: false };
+    });
+}
+
+// 切换维护模式
+function toggleMaintenanceMode() {
+    checkMaintenanceStatus().then(currentStatus => {
+        const newStatus = !currentStatus.enabled;
+        const updateData = {
+            enabled: newStatus,
+            lastUpdated: firebase.database.ServerValue.TIMESTAMP,
+            updatedBy: firebase.auth().currentUser.email
+        };
+        
+        // 更新Firebase中的维护状态
+        database.ref('system/maintenance').set(updateData)
+            .then(() => {
+                const statusText = newStatus ? '开启' : '关闭';
+                alert(`维护模式已${statusText}`);
+                updateMaintenanceButtonDisplay(newStatus);
+                console.log(`维护模式已${statusText}`);
+            })
+            .catch(error => {
+                console.error('更新维护状态失败:', error);
+                alert('更新维护状态失败，请重试');
+            });
+    }).catch(error => {
+        console.error('获取维护状态失败:', error);
+        alert('获取维护状态失败，请重试');
+    });
+}
+
+// 更新维护按钮显示状态
+function updateMaintenanceButtonDisplay(isEnabled) {
+    const maintenanceToggle = document.getElementById('maintenanceToggle');
+    if (maintenanceToggle) {
+        const icon = maintenanceToggle.querySelector('.material-icons');
+        const text = maintenanceToggle.childNodes[maintenanceToggle.childNodes.length - 1];
+        
+        if (isEnabled) {
+            maintenanceToggle.style.backgroundColor = '#ff5722';
+            maintenanceToggle.style.color = 'white';
+            icon.textContent = 'build_circle';
+            text.textContent = ' Maintenance ON';
+        } else {
+            maintenanceToggle.style.backgroundColor = '';
+            maintenanceToggle.style.color = '';
+            icon.textContent = 'build';
+            text.textContent = ' System Maintenance';
+        }
+    }
+}
+
+// 初始化维护状态显示
+function initializeMaintenanceStatus() {
+    checkMaintenanceStatus().then(status => {
+        updateMaintenanceButtonDisplay(status.enabled);
+    }).catch(error => {
+        console.error('初始化维护状态失败:', error);
+    });
 }

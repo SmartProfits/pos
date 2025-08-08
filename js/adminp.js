@@ -54,14 +54,32 @@ function initializeApp() {
             currentUser = user;
             console.log('User authenticated:', user.email);
             
-            // Initialize selected date
-            if (!selectedDate) {
-                selectedDate = getCurrentDate();
-            }
-            
-            loadUserProfile();
-            loadDashboardData();
-                    } else {
+            // 首先检查维护状态
+            checkMaintenanceStatus().then(maintenanceData => {
+                if (maintenanceData.enabled) {
+                    // 如果维护模式开启，显示维护页面
+                    showMaintenancePage();
+                    return;
+                }
+                
+                // 如果没有维护模式，继续正常流程
+                // Initialize selected date
+                if (!selectedDate) {
+                    selectedDate = getCurrentDate();
+                }
+                
+                loadUserProfile();
+                loadDashboardData();
+            }).catch(error => {
+                console.error('检查维护状态失败:', error);
+                // 如果检查失败，继续正常流程
+                if (!selectedDate) {
+                    selectedDate = getCurrentDate();
+                }
+                loadUserProfile();
+                loadDashboardData();
+            });
+        } else {
             console.log('User not authenticated, redirecting to login...');
             // Redirect to login page
             window.location.href = '../index.html';
@@ -1176,4 +1194,131 @@ document.addEventListener('DOMContentLoaded', function() {
         element.addEventListener('touchstart', hapticFeedback);
             });
     });
+
+// ====== 维护模式管理功能 ======
+
+// 检查维护状态
+function checkMaintenanceStatus() {
+    return firebase.database().ref('system/maintenance').once('value').then(snapshot => {
+        return snapshot.val() || { enabled: false };
+    });
+}
+
+// 显示维护页面
+function showMaintenancePage() {
+    const appContainer = document.querySelector('.app-container');
+    if (appContainer) {
+        appContainer.innerHTML = `
+            <div style="
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                padding: 20px;
+                text-align: center;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+            ">
+                <div style="
+                    background: rgba(255, 255, 255, 0.1);
+                    backdrop-filter: blur(20px);
+                    -webkit-backdrop-filter: blur(20px);
+                    border-radius: 20px;
+                    padding: 40px;
+                    max-width: 350px;
+                    width: 100%;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                ">
+                    <div style="font-size: 80px; margin-bottom: 20px;">🔧</div>
+                    <h1 style="
+                        font-size: 28px;
+                        font-weight: 700;
+                        margin-bottom: 16px;
+                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    ">系统维护中</h1>
+                    <h2 style="
+                        font-size: 24px;
+                        font-weight: 600;
+                        margin-bottom: 20px;
+                        opacity: 0.9;
+                    ">Server is Under Maintenance</h2>
+                    <p style="
+                        font-size: 16px;
+                        line-height: 1.6;
+                        opacity: 0.8;
+                        margin-bottom: 30px;
+                    ">我们正在进行系统升级和维护，请稍后再试。感谢您的理解与支持。</p>
+                    <p style="
+                        font-size: 14px;
+                        opacity: 0.7;
+                        margin-bottom: 20px;
+                    ">We are performing system maintenance. Please try again later.</p>
+                    <div style="
+                        display: flex;
+                        justify-content: center;
+                        gap: 15px;
+                        margin-top: 30px;
+                    ">
+                        <button onclick="checkMaintenanceAndRetry()" style="
+                            background: rgba(255, 255, 255, 0.2);
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                            color: white;
+                            padding: 12px 24px;
+                            border-radius: 12px;
+                            font-size: 16px;
+                            font-weight: 500;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                            backdrop-filter: blur(10px);
+                        " onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'" 
+                           onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'">
+                            重新检查 / Retry
+                        </button>
+                        <button onclick="logout()" style="
+                            background: rgba(255, 255, 255, 0.2);
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                            color: white;
+                            padding: 12px 24px;
+                            border-radius: 12px;
+                            font-size: 16px;
+                            font-weight: 500;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                            backdrop-filter: blur(10px);
+                        " onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'" 
+                           onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'">
+                            退出登录 / Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// 重新检查维护状态并尝试重新进入应用
+function checkMaintenanceAndRetry() {
+    showLoading('正在检查系统状态...');
+    
+    checkMaintenanceStatus().then(maintenanceData => {
+        hideLoading();
+        
+        if (!maintenanceData.enabled) {
+            // 维护模式已关闭，重新加载页面
+            location.reload();
+        } else {
+            // 维护模式仍然开启
+            showError('系统仍在维护中，请稍后再试');
+        }
+    }).catch(error => {
+        hideLoading();
+        console.error('检查维护状态失败:', error);
+        showError('检查失败，请检查网络连接');
+    });
+}
+
+// 全局暴露函数
+window.checkMaintenanceAndRetry = checkMaintenanceAndRetry;
 
