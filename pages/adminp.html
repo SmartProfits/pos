@@ -509,6 +509,41 @@
             justify-content: center;
             color: white;
             font-size: 20px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid var(--ios-gray-5);
+            position: relative;
+        }
+
+        .product-icon:hover {
+            transform: scale(1.05);
+            box-shadow: var(--ios-shadow-2);
+        }
+
+        .product-image-container {
+            background: var(--ios-gray-6) !important;
+            border: 1px solid var(--ios-gray-4);
+        }
+
+        .product-image {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover;
+            border-radius: var(--ios-corner-radius-small);
+            transition: all 0.2s ease;
+            display: block !important;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+        }
+
+        /* Ensure images load properly */
+        .product-image-container img {
+            background: white;
+            opacity: 1 !important;
+            visibility: visible !important;
         }
 
         .product-details {
@@ -1392,6 +1427,274 @@
                 opacity: 1;
             }
         }
+
+        /* Image Modal Styles - Enhanced iOS Design */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, 
+                rgba(0, 0, 0, 0.4) 0%, 
+                rgba(28, 28, 30, 0.6) 50%, 
+                rgba(0, 0, 0, 0.8) 100%);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: modalBackgroundFade 0.3s ease-out;
+        }
+
+        @keyframes modalBackgroundFade {
+            from {
+                opacity: 0;
+                backdrop-filter: blur(0px);
+                -webkit-backdrop-filter: blur(0px);
+            }
+            to {
+                opacity: 1;
+                backdrop-filter: blur(40px) saturate(180%);
+                -webkit-backdrop-filter: blur(40px) saturate(180%);
+            }
+        }
+
+        .image-modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px) saturate(200%);
+            -webkit-backdrop-filter: blur(20px) saturate(200%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 24px;
+            max-width: 85vw;
+            max-height: 85vh;
+            width: auto;
+            height: auto;
+            overflow: hidden;
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.25),
+                0 0 0 1px rgba(255, 255, 255, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            animation: imageModalSlideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .image-modal-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255, 255, 255, 0.6) 50%, 
+                transparent 100%);
+        }
+
+        @keyframes imageModalSlideUp {
+            from {
+                transform: translateY(100px) scale(0.85);
+                opacity: 0;
+                filter: blur(10px);
+            }
+            60% {
+                transform: translateY(-10px) scale(1.02);
+                opacity: 0.9;
+                filter: blur(2px);
+            }
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+                filter: blur(0px);
+            }
+        }
+
+        .image-modal-header {
+            padding: 18px 24px 16px;
+            background: rgba(248, 248, 248, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .image-modal-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 24px;
+            right: 24px;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(0, 0, 0, 0.1) 50%, 
+                transparent 100%);
+        }
+
+        .image-modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1d1d1f;
+            letter-spacing: -0.4px;
+            max-width: 280px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+        }
+
+        .image-modal .close-btn {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            width: 32px;
+            height: 32px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            color: #1d1d1f;
+            box-shadow: 
+                0 2px 8px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        }
+
+        .image-modal .close-btn:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: scale(1.05);
+            box-shadow: 
+                0 4px 12px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        }
+
+        .image-modal .close-btn:active {
+            transform: scale(0.95);
+            background: rgba(240, 240, 240, 1);
+        }
+
+        .image-modal-body {
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            max-height: calc(85vh - 80px);
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.9);
+            position: relative;
+        }
+
+        .image-modal-body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, 
+                rgba(255, 255, 255, 0.1) 0%, 
+                rgba(255, 255, 255, 0.05) 70%, 
+                transparent 100%);
+            pointer-events: none;
+        }
+
+        .image-modal-body img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 0 0 20px 20px;
+            filter: contrast(1.05) saturate(1.1);
+            transition: all 0.3s ease;
+        }
+
+        /* Responsive adjustments for image modal */
+        @media (max-width: 480px) {
+            .image-modal {
+                padding: 10px;
+            }
+            
+            .image-modal-content {
+                max-width: 95vw;
+                max-height: 95vh;
+                border-radius: 20px;
+            }
+            
+            .image-modal-header {
+                padding: 14px 18px 12px;
+            }
+            
+            .image-modal-title {
+                font-size: 16px;
+                max-width: 200px;
+                font-weight: 600;
+            }
+            
+            .image-modal .close-btn {
+                width: 28px;
+                height: 28px;
+                border-radius: 14px;
+            }
+            
+            .image-modal-body {
+                max-height: calc(95vh - 70px);
+            }
+            
+            .image-modal-body img {
+                border-radius: 0 0 16px 16px;
+            }
+        }
+
+        /* Dark mode support for image modal */
+        @media (prefers-color-scheme: dark) {
+            .image-modal {
+                background: linear-gradient(135deg, 
+                    rgba(0, 0, 0, 0.6) 0%, 
+                    rgba(28, 28, 30, 0.8) 50%, 
+                    rgba(0, 0, 0, 0.9) 100%);
+            }
+            
+            .image-modal-content {
+                background: rgba(28, 28, 30, 0.95);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .image-modal-header {
+                background: rgba(28, 28, 30, 0.9);
+            }
+            
+            .image-modal-title {
+                color: #f2f2f7;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+            }
+            
+            .image-modal .close-btn {
+                background: rgba(44, 44, 46, 0.9);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                color: #f2f2f7;
+            }
+            
+            .image-modal .close-btn:hover {
+                background: rgba(58, 58, 60, 1);
+            }
+            
+            .image-modal-body {
+                background: rgba(28, 28, 30, 0.9);
+            }
+        }
     </style>
 </head>
 <body>
@@ -1481,13 +1784,24 @@
                     <div class="search-bar">
                         <i class="material-icons">search</i>
                         <input type="text" placeholder="Search products" id="productSearch">
-                </div>
-                
+                    </div>
+                    
+                    <!-- Category Filter -->
+                    <div class="category-filter-section">
+                        <div class="category-selector">
+                            <i class="material-icons">category</i>
+                            <select id="categoryFilter" style="background: transparent; border: none; color: var(--ios-blue); font-size: var(--ios-subhead); font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px;">
+                                <option value="all">All Categories</option>
+                                <!-- Category options will be loaded dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    
                     <div class="filter-control">
                         <div class="filter-tab active" data-filter="all">All</div>
                         <div class="filter-tab" data-filter="low">Low Stock</div>
                         <div class="filter-tab" data-filter="out">Out of Stock</div>
-                </div>
+                    </div>
                 </div>
                 
                 <!-- Product List -->
@@ -1684,6 +1998,8 @@
     <script src="../js/firebase-config.js"></script>
     <script src="../js/database.js"></script>
     <script src="../js/network-monitor.js"></script>
+    <!-- Product Image Mapping - 产品图片映射配置 -->
+    <script src="../js/product-image-map.js"></script>
     <script src="../js/adminp.js"></script>
 </body>
 </html>

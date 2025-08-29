@@ -98,7 +98,6 @@ const announcementsTableBody = document.getElementById('announcementsTableBody')
 const announcementModal = document.getElementById('announcementModal');
 const announcementForm = document.getElementById('announcementForm');
 const announcementText = document.getElementById('announcementText');
-const charCount = document.getElementById('charCount');
 const announcementColor = document.getElementById('announcementColor');
 const announcementColorText = document.getElementById('announcementColorText');
 const announcementBackground = document.getElementById('announcementBackground');
@@ -106,6 +105,7 @@ const announcementBackgroundText = document.getElementById('announcementBackgrou
 const announcementAnimation = document.getElementById('announcementAnimation');
 const announcementScrollingPreview = document.getElementById('announcementScrollingPreview');
 const previewAnnouncementBtn = document.getElementById('previewAnnouncementBtn');
+const charCount = document.getElementById('charCount');
 
 // 模态框关闭按钮
 const closeButtons = document.querySelectorAll('.close');

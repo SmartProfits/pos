@@ -8,6 +8,9 @@ let salesData = {};
 let dailySalesData = {};
 let selectedDate = null;
 
+// DOM elements for category filter
+let categoryFilter = null;
+
 // Store image mapping - maps store IDs to images in shop folder
 const storeImageMap = {
     'dalam': '../shop/dalam.png',
@@ -31,6 +34,8 @@ const storeImageMap = {
     'store7': '../shop/Aa.png',
     'store8': '../shop/jkl.png'
 };
+
+// Product image mapping will be loaded from external file
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
@@ -115,7 +120,18 @@ function setupEventListeners() {
     // Store selector
     const storeSelector = document.getElementById('storeSelector');
     if (storeSelector) {
-        storeSelector.addEventListener('change', filterProducts);
+        storeSelector.addEventListener('change', function() {
+            // Repopulate category filter when store changes
+            populateCategoryFilter();
+            // Then filter products
+            filterProducts();
+        });
+    }
+
+    // Category filter
+    categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', filterProducts);
     }
 
     // Date picker
@@ -266,6 +282,9 @@ async function loadProducts() {
         
         console.log('Loaded products data:', productsData);
         console.log('Total products loaded:', Object.keys(productsData).length);
+        
+        // Populate category filter after loading products
+        populateCategoryFilter();
     } catch (error) {
         console.error('Failed to load products data:', error);
     }
@@ -499,6 +518,8 @@ function getStoreImage(storeId, storeName) {
     // Default fallback
     return '../icons/pos.png';
 }
+
+// Product image functions are now loaded from js/product-image-map.js
 
 // Render store cards for specific date
 function renderStoreCardsForDate(date) {
@@ -1014,7 +1035,17 @@ async function loadStockData() {
         const productList = document.getElementById('productList');
         productList.innerHTML = '<div class="loading"><div class="spinner"></div>Loading inventory data...</div>';
 
+        // Test image loading
+        testImageLoading();
+        
+        // Show available image mappings
+        showAvailableImageMappings();
+        
         await loadProducts();
+        
+        // Populate category filter after loading products
+        populateCategoryFilter();
+        
         filterProducts();
     } catch (error) {
         console.error('Failed to load stock data:', error);
@@ -1034,7 +1065,7 @@ function populateStoreSelector() {
     // Clear existing options
     storeSelector.innerHTML = '';
 
-    // Add store options
+    // Add individual store options
     let firstStore = true;
     Object.entries(storesData).forEach(([storeId, store]) => {
         const option = document.createElement('option');
@@ -1048,11 +1079,74 @@ function populateStoreSelector() {
     });
 }
 
+// Populate category filter
+function populateCategoryFilter() {
+    if (!categoryFilter) return;
+    
+    console.log('Populating category filter...');
+    console.log('Available products:', Object.keys(productsData).length);
+    
+    // Get selected store
+    const selectedStore = document.getElementById('storeSelector')?.value;
+    console.log('Selected store for category filter:', selectedStore);
+    
+    // Get categories from selected store only
+    const categories = ['all'];
+    
+    Object.values(productsData).forEach(product => {
+        if (product.store_id === selectedStore && product.category && !categories.includes(product.category)) {
+            categories.push(product.category);
+        }
+    });
+    
+    console.log('Found categories for store', selectedStore, ':', categories);
+    
+    // Save current selection
+    const selectedValue = categoryFilter.value;
+    
+    // Clear all options except the first one
+    while (categoryFilter.options.length > 1) {
+        categoryFilter.remove(1);
+    }
+    
+    // Add category options
+    categories.forEach(category => {
+        if (category !== 'all') {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            categoryFilter.appendChild(option);
+        }
+    });
+    
+    // Restore previous selection if it's still valid
+    if (selectedValue && selectedValue !== 'all' && categories.includes(selectedValue)) {
+        categoryFilter.value = selectedValue;
+    } else {
+        // Reset to "all" if previous selection is no longer valid
+        categoryFilter.value = 'all';
+    }
+    
+    console.log('Category filter populated with', categories.length, 'options');
+}
+
 // Filter products
 function filterProducts() {
     const searchTerm = document.getElementById('productSearch')?.value.toLowerCase() || '';
     const activeFilter = document.querySelector('.filter-tab.active')?.getAttribute('data-filter') || 'all';
     const selectedStore = document.getElementById('storeSelector')?.value || 'all';
+    const selectedCategory = categoryFilter ? categoryFilter.value : 'all';
+    
+    console.log('Filtering products with:', {
+        searchTerm,
+        activeFilter,
+        selectedStore,
+        selectedCategory
+    });
+    
+    console.log('Category filter element:', categoryFilter);
+    console.log('Category filter value:', selectedCategory);
+    console.log('Available products data:', Object.keys(productsData).length);
     
     const productList = document.getElementById('productList');
     if (!productList) return;
@@ -1067,6 +1161,9 @@ function filterProducts() {
         
         // Store filter
         const matchesStore = product.store_id === selectedStore;
+        
+        // Category filter
+        const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
         
         // Stock status filter - 使用 stock 字段或 quantity 字段
         const stock = product.stock !== undefined ? product.stock : (product.quantity || 0);
@@ -1084,7 +1181,22 @@ function filterProducts() {
                 matchesFilter = true;
         }
         
-        return matchesSearch && matchesStore && matchesFilter;
+        const matches = matchesSearch && matchesStore && matchesCategory && matchesFilter;
+        
+        // Enhanced debug logging
+        if (selectedCategory !== 'all') {
+            console.log(`Product ${product.name} (${product.id}) filtering details:`, {
+                productCategory: product.category,
+                selectedCategory: selectedCategory,
+                matchesSearch,
+                matchesStore,
+                matchesCategory,
+                matchesFilter,
+                finalMatches: matches
+            });
+        }
+        
+        return matches;
     });
 
     if (filteredProducts.length === 0) {
@@ -1094,6 +1206,7 @@ function filterProducts() {
     
     filteredProducts.forEach(([productId, product]) => {
         const stock = product.stock !== undefined ? product.stock : (product.quantity || 0);
+        const productImage = getProductImage(product.name);
 
         const productItem = document.createElement('div');
         productItem.className = 'product-item';
@@ -1106,19 +1219,52 @@ function filterProducts() {
             stockClass = 'stock low';
         }
         
-        productItem.innerHTML = `
-            <div class="product-icon">
-                <i class="material-icons">inventory_2</i>
-        </div>
-            <div class="product-details">
-                <div class="product-name">${product.name || 'Unnamed Product'}</div>
-                <div class="product-meta">
-                    <span class="price">RM ${parseFloat(product.price || 0).toFixed(2)}</span>
-                    <span class="${stockClass}">Stock: ${stock}</span>
-                    <span class="category">${product.category || 'Uncategorized'}</span>
+        const escapedProductName = (product.name || 'Product').replace(/'/g, "\\'");
+        const escapedImagePath = productImage.replace(/'/g, "\\'");
+        
+        // Test if this is actually a product image or fallback
+        const isProductImage = productImage !== '../icons/pos.png';
+        
+        // Log product matching status
+        if (isProductImage) {
+            console.log(`✅ Product "${product.name}" -> Image: ${productImage}`);
+        } else {
+            console.log(`❌ Product "${product.name}" -> No image match, using default icon`);
+        }
+        
+        if (isProductImage) {
+            productItem.innerHTML = `
+                <div class="product-icon product-image-container" onclick="showImageModal('${escapedImagePath}', '${escapedProductName}')">
+                    <img src="${productImage}" alt="${product.name || 'Product'}" 
+                         class="product-image"
+                         onload="console.log('✅ Image loaded: ${productImage}'); this.style.opacity='1';"
+                         onerror="console.log('❌ Image failed: ${productImage}'); this.parentElement.innerHTML='<i class=\\"material-icons\\" style=\\"font-size: 20px; color: var(--ios-blue);\\">inventory_2</i>'; this.parentElement.classList.remove('product-image-container');">
             </div>
+                <div class="product-details">
+                    <div class="product-name">${product.name || 'Unnamed Product'}</div>
+                    <div class="product-meta">
+                        <span class="price">RM ${parseFloat(product.price || 0).toFixed(2)}</span>
+                        <span class="${stockClass}">Stock: ${stock}</span>
+                        <span class="category">${product.category || 'Uncategorized'}</span>
+                </div>
+                </div>
+            `;
+        } else {
+            // Use default icon
+            productItem.innerHTML = `
+                <div class="product-icon" onclick="showImageModal('${escapedImagePath}', '${escapedProductName}')">
+                    <i class="material-icons">inventory_2</i>
             </div>
-        `;
+                <div class="product-details">
+                    <div class="product-name">${product.name || 'Unnamed Product'}</div>
+                    <div class="product-meta">
+                        <span class="price">RM ${parseFloat(product.price || 0).toFixed(2)}</span>
+                        <span class="${stockClass}">Stock: ${stock}</span>
+                        <span class="category">${product.category || 'Uncategorized'}</span>
+                </div>
+                </div>
+            `;
+        }
         
         productList.appendChild(productItem);
     });
@@ -1310,6 +1456,101 @@ function checkMaintenanceAndRetry() {
     });
 }
 
+// Show image modal for product images
+function showImageModal(imageSrc, productName) {
+    hapticFeedback();
+    
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('imageModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'imageModal';
+        modal.className = 'image-modal';
+        modal.innerHTML = `
+            <div class="image-modal-content">
+                <div class="image-modal-header">
+                    <div class="image-modal-title" id="imageModalTitle"></div>
+                    <button class="close-btn" onclick="closeImageModal()">
+                        <i class="material-icons" style="font-size: 18px;">close</i>
+                    </button>
+                </div>
+                <div class="image-modal-body">
+                    <img id="imageModalImg" src="" alt="" />
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeImageModal();
+            }
+        });
+    }
+    
+    // Update modal content
+    document.getElementById('imageModalTitle').textContent = productName || 'Product Image';
+    const modalImg = document.getElementById('imageModalImg');
+    modalImg.src = imageSrc;
+    modalImg.alt = productName || 'Product Image';
+    
+    // Show modal
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+// Close image modal
+function closeImageModal() {
+    hapticFeedback();
+    
+    const modal = document.getElementById('imageModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
 // 全局暴露函数
 window.checkMaintenanceAndRetry = checkMaintenanceAndRetry;
+window.showImageModal = showImageModal;
+window.closeImageModal = closeImageModal;
+
+// Debug function for category filter
+window.debugCategoryFilter = function() {
+    console.log('=== Category Filter Debug ===');
+    console.log('Category filter element:', categoryFilter);
+    console.log('Category filter value:', categoryFilter ? categoryFilter.value : 'undefined');
+    console.log('Available products:', Object.keys(productsData).length);
+    
+    // Get selected store
+    const selectedStore = document.getElementById('storeSelector')?.value;
+    console.log('Selected store:', selectedStore);
+    
+    // Show sample products with categories
+    const productsWithCategories = Object.values(productsData).filter(p => p.category);
+    console.log('Products with categories:', productsWithCategories.length);
+    console.log('Sample products:', productsWithCategories.slice(0, 3));
+    
+    // Show all unique categories
+    const allCategories = [...new Set(Object.values(productsData).map(p => p.category).filter(Boolean))];
+    console.log('All unique categories:', allCategories);
+    
+    // Show categories for selected store
+    if (selectedStore) {
+        const storeCategories = [...new Set(
+            Object.values(productsData)
+                .filter(p => p.store_id === selectedStore && p.category)
+                .map(p => p.category)
+        )];
+        console.log(`Categories for store "${selectedStore}":`, storeCategories);
+    }
+    
+    // Test filtering
+    if (categoryFilter && categoryFilter.value !== 'all') {
+        const testFilter = Object.values(productsData).filter(p => p.category === categoryFilter.value);
+        console.log(`Products matching category "${categoryFilter.value}":`, testFilter.length);
+        console.log('Sample matches:', testFilter.slice(0, 3));
+    }
+};
 

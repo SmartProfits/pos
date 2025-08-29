@@ -88,6 +88,46 @@ body {
   grid-gap: 16px;
 }
 
+/* -------------------- Category Filter Styles -------------------- */
+.category-filter-section {
+  margin: 8px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.category-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  padding: 8px 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 122, 255, 0.2);
+}
+
+.category-selector .material-icons {
+  color: var(--ios-primary);
+  font-size: 18px;
+}
+
+.category-selector select {
+  background: transparent;
+  border: none;
+  color: var(--ios-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  outline: none;
+  min-width: 120px;
+}
+
+.category-selector select:focus {
+  background: rgba(0, 122, 255, 0.1);
+}
+
 .stat-card,
 .card,
 .modal-content {
