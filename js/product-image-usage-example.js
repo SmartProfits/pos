@@ -171,3 +171,4 @@ window.searchProducts = searchProducts;
 window.checkProductImages = checkProductImages;
 window.updateAllProductImages = updateAllProductImages;
 
+

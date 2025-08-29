@@ -11,6 +11,10 @@ let selectedDate = null;
 // DOM elements for category filter
 let categoryFilter = null;
 
+// Image preloading system for better performance
+const imageCache = new Map();
+const preloadQueue = [];
+
 // Store image mapping - maps store IDs to images in shop folder
 const storeImageMap = {
     'dalam': '../shop/dalam.png',
@@ -1204,9 +1208,17 @@ function filterProducts() {
         return;
     }
     
+    // Collect all product images for preloading
+    const productImages = [];
+    
     filteredProducts.forEach(([productId, product]) => {
         const stock = product.stock !== undefined ? product.stock : (product.quantity || 0);
         const productImage = getProductImage(product.name);
+        
+        // Add to preload list if it's a real product image
+        if (productImage !== '../icons/pos.png') {
+            productImages.push(productImage);
+        }
 
         const productItem = document.createElement('div');
         productItem.className = 'product-item';
@@ -1268,6 +1280,11 @@ function filterProducts() {
         
         productList.appendChild(productItem);
     });
+    
+    // Batch preload images for better performance
+    if (productImages.length > 0) {
+        batchPreloadImages(productImages);
+    }
 }
 
 // Logout function
@@ -1456,58 +1473,152 @@ function checkMaintenanceAndRetry() {
     });
 }
 
-// Show image modal for product images
+// Show image modal for product images - Optimized version
 function showImageModal(imageSrc, productName) {
     hapticFeedback();
     
-    // Create modal if it doesn't exist
+    // Use cached modal if available
     let modal = document.getElementById('imageModal');
     if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'imageModal';
-        modal.className = 'image-modal';
-        modal.innerHTML = `
-            <div class="image-modal-content">
-                <div class="image-modal-header">
-                    <div class="image-modal-title" id="imageModalTitle"></div>
-                    <button class="close-btn" onclick="closeImageModal()">
-                        <i class="material-icons" style="font-size: 18px;">close</i>
-                    </button>
-                </div>
-                <div class="image-modal-body">
-                    <img id="imageModalImg" src="" alt="" />
-                </div>
-            </div>
-        `;
+        modal = createImageModal();
         document.body.appendChild(modal);
-        
-        // Close modal when clicking outside
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                closeImageModal();
-            }
-        });
     }
     
-    // Update modal content
-    document.getElementById('imageModalTitle').textContent = productName || 'Product Image';
-    const modalImg = document.getElementById('imageModalImg');
-    modalImg.src = imageSrc;
-    modalImg.alt = productName || 'Product Image';
+    // Check if this is the same image to avoid unnecessary updates
+    const currentImg = document.getElementById('imageModalImg');
+    if (currentImg && currentImg.src === imageSrc && modal.style.display === 'flex') {
+        return; // Already showing this image
+    }
     
-    // Show modal
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    // Preload image before showing modal
+    preloadImage(imageSrc).then(() => {
+        // Update modal content
+        document.getElementById('imageModalTitle').textContent = productName || 'Product Image';
+        const modalImg = document.getElementById('imageModalImg');
+        modalImg.src = imageSrc;
+        modalImg.alt = productName || 'Product Image';
+        
+        // Show modal with optimized animation
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        
+        // Add loading class for smooth transition
+        modal.classList.add('modal-loading');
+        setTimeout(() => {
+            modal.classList.remove('modal-loading');
+        }, 100);
+    }).catch(() => {
+        // If image fails to load, show modal anyway with fallback
+        document.getElementById('imageModalTitle').textContent = productName || 'Product Image';
+        const modalImg = document.getElementById('imageModalImg');
+        modalImg.src = '../icons/pos.png'; // Fallback image
+        modalImg.alt = productName || 'Product Image';
+        
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    });
 }
 
-// Close image modal
+// Create optimized image modal
+function createImageModal() {
+    const modal = document.createElement('div');
+    modal.id = 'imageModal';
+    modal.className = 'image-modal';
+    modal.innerHTML = `
+        <div class="image-modal-content">
+            <div class="image-modal-header">
+                <div class="image-modal-title" id="imageModalTitle"></div>
+                <button class="close-btn" onclick="closeImageModal()">
+                    <i class="material-icons" style="font-size: 18px;">close</i>
+                </button>
+            </div>
+            <div class="image-modal-body">
+                <img id="imageModalImg" src="" alt="" loading="lazy" />
+            </div>
+        </div>
+    `;
+    
+    // Close modal when clicking outside
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeImageModal();
+        }
+    });
+    
+    return modal;
+}
+
+// Preload image for better performance
+function preloadImage(src) {
+    return new Promise((resolve, reject) => {
+        if (!src || src === '../icons/pos.png') {
+            resolve(); // Skip preloading for fallback images
+            return;
+        }
+        
+        // Check if image is already cached
+        if (imageCache.has(src)) {
+            resolve();
+            return;
+        }
+        
+        const img = new Image();
+        img.onload = () => {
+            imageCache.set(src, true);
+            resolve();
+        };
+        img.onerror = () => {
+            imageCache.set(src, false);
+            reject();
+        };
+        img.src = src;
+    });
+}
+
+// Batch preload images for better performance
+function batchPreloadImages(imageUrls) {
+    if (!Array.isArray(imageUrls) || imageUrls.length === 0) return;
+    
+    // Filter out fallback images and already cached images
+    const urlsToPreload = imageUrls.filter(url => 
+        url && 
+        url !== '../icons/pos.png' && 
+        !imageCache.has(url)
+    );
+    
+    if (urlsToPreload.length === 0) return;
+    
+    console.log(`🔄 Preloading ${urlsToPreload.length} images...`);
+    
+    // Preload images in batches to avoid overwhelming the browser
+    const batchSize = 3;
+    for (let i = 0; i < urlsToPreload.length; i += batchSize) {
+        const batch = urlsToPreload.slice(i, i + batchSize);
+        setTimeout(() => {
+            batch.forEach(url => {
+                preloadImage(url).catch(() => {
+                    // Silently handle preload failures
+                });
+            });
+        }, i * 100); // Stagger preloading
+    }
+}
+
+// Close image modal - Optimized version
 function closeImageModal() {
     hapticFeedback();
     
     const modal = document.getElementById('imageModal');
     if (modal) {
-        modal.style.display = 'none';
-        document.body.style.overflow = '';
+        // Add closing animation class
+        modal.classList.add('modal-closing');
+        
+        // Hide modal after animation
+        setTimeout(() => {
+            modal.style.display = 'none';
+            modal.classList.remove('modal-closing');
+            document.body.style.overflow = '';
+        }, 150);
     }
 }
 
@@ -1552,5 +1663,23 @@ window.debugCategoryFilter = function() {
         console.log(`Products matching category "${categoryFilter.value}":`, testFilter.length);
         console.log('Sample matches:', testFilter.slice(0, 3));
     }
+};
+
+// Performance monitoring function for image loading
+window.debugImagePerformance = function() {
+    console.log('=== Image Performance Debug ===');
+    console.log('Image cache size:', imageCache.size);
+    console.log('Cached images:', Array.from(imageCache.entries()));
+    console.log('Preload queue length:', preloadQueue.length);
+    
+    // Show cache hit rate
+    const totalImages = Object.keys(productsData).length;
+    const cachedImages = Array.from(imageCache.values()).filter(Boolean).length;
+    const hitRate = totalImages > 0 ? (cachedImages / totalImages * 100).toFixed(1) : 0;
+    console.log(`Cache hit rate: ${hitRate}% (${cachedImages}/${totalImages})`);
+    
+    // Show memory usage estimate
+    const estimatedMemory = imageCache.size * 0.1; // Rough estimate in MB
+    console.log(`Estimated memory usage: ~${estimatedMemory.toFixed(2)} MB`);
 };
 

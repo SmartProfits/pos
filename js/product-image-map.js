@@ -288,3 +288,4 @@ window.showAvailableImageMappings = showAvailableImageMappings;
 window.testImageLoading = testImageLoading;
 window.productImageMap = productImageMap;
 
+

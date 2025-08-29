@@ -217,3 +217,4 @@ console.log('- clearCache(cacheName)');
 console.log('- clearAllCaches()');
 console.log('- preloadImages(imageUrls)');
 console.log('- getSWStatus()');
+
