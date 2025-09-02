@@ -226,4 +226,3 @@ const productImageMap = {
 4. 控制台是否有错误信息
 
 
-

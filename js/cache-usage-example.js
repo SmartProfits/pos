@@ -218,9 +218,3 @@ console.log('- clearAllCaches()');
 console.log('- preloadImages(imageUrls)');
 console.log('- getSWStatus()');
 
-
-
-
-
-
-

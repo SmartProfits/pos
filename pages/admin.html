@@ -168,40 +168,6 @@
             padding-left: 21px;
             font-style: italic;
         }
-        
-        /* 日期范围选择器样式 */
-        .date-selector {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
-        .date-selector label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-weight: 500;
-            color: #333;
-        }
-        
-        .date-selector input[type="date"] {
-            padding: 8px 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: border-color 0.3s ease;
-        }
-        
-        .date-selector input[type="date"]:focus {
-            outline: none;
-            border-color: #4a90e2;
-            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
-        }
-        
-        .date-selector input[type="date"]:hover {
-            border-color: #4a90e2;
-        }
     </style>
 </head>
 <body>
@@ -250,10 +216,8 @@
             <div id="dashboardView" class="view active">
                 <div class="dashboard-header">
                     <div class="date-selector">
-                        <label for="dateRangeStart"><i class="material-icons">event</i> From:</label>
-                        <input type="date" id="dateRangeStart" value="">
-                        <label for="dateRangeEnd">To:</label>
-                        <input type="date" id="dateRangeEnd" value="">
+                        <label for="dateFilter"><i class="material-icons">event</i></label>
+                    <input type="date" id="dateFilter" value="">
                     </div>
                     
                     <div class="dashboard-actions">

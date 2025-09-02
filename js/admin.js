@@ -10,8 +10,7 @@ let users = {}; // 存储用户数据
 let onlineUsers = {}; // 存储在线用户数据
 let announcements = {}; // 存储公告数据
 let currentAnnouncement = null; // 当前活跃的公告
-let selectedDateStart = getCurrentDate(); // 默认选择当前日期作为开始日期
-let selectedDateEnd = getCurrentDate(); // 默认选择当前日期作为结束日期
+let selectedDate = getCurrentDate(); // 默认选择当前日期
 let selectedStoreId = 'all'; // 默认选择所有店铺
 let selectedStoreInDashboard = null; // 仪表盘中当前选择的店铺
 
@@ -53,8 +52,7 @@ const navItems = document.querySelectorAll('.nav-item');
 const views = document.querySelectorAll('.view');
 
 // 统计面板DOM元素
-const dateRangeStart = document.getElementById('dateRangeStart');
-const dateRangeEnd = document.getElementById('dateRangeEnd');
+const dateFilter = document.getElementById('dateFilter');
 const storeButtons = document.getElementById('storeButtons');
 const refreshStatsBtn = document.getElementById('refreshStatsBtn');
 const viewSalesSummaryBtn = document.getElementById('viewSalesSummaryBtn');
@@ -323,26 +321,9 @@ function initEventListeners() {
     // 销售汇总相关事件监听器
     initSalesSummaryEventListeners();
     
-    // 日期范围过滤器变化
-    dateRangeStart.addEventListener('change', (e) => {
-        selectedDateStart = e.target.value;
-        // 如果开始日期晚于结束日期，自动调整结束日期
-        if (selectedDateStart > selectedDateEnd) {
-            selectedDateEnd = selectedDateStart;
-            dateRangeEnd.value = selectedDateStart;
-        }
-        // 更改日期时清除缓存
-        dataCache.clearCache();
-        loadStats();
-    });
-    
-    dateRangeEnd.addEventListener('change', (e) => {
-        selectedDateEnd = e.target.value;
-        // 如果结束日期早于开始日期，自动调整开始日期
-        if (selectedDateEnd < selectedDateStart) {
-            selectedDateStart = selectedDateEnd;
-            dateRangeStart.value = selectedDateEnd;
-        }
+    // 日期过滤器变化
+    dateFilter.addEventListener('change', (e) => {
+        selectedDate = e.target.value;
         // 更改日期时清除缓存
         dataCache.clearCache();
         loadStats();
@@ -836,8 +817,7 @@ function populateStoreButtons() {
 
 // 加载销售统计数据
 function loadStats() {
-    const dateStart = dateRangeStart.value || selectedDateStart;
-    const dateEnd = dateRangeEnd.value || selectedDateEnd;
+    const date = dateFilter.value || selectedDate;
     const storeId = selectedStoreId;
     
     // 显示加载状态
@@ -846,77 +826,65 @@ function loadStats() {
     
     if (storeId === 'all') {
         // 加载所有店铺的统计数据
-        loadAllStoresData(dateStart, dateEnd);
+        loadAllStoresData(date);
     } else {
         // 加载特定店铺的统计数据
-        loadSingleStoreData(storeId, dateStart, dateEnd);
+        loadSingleStoreData(storeId, date);
     }
 }
 
-// 获取指定店铺在日期范围内的销售详情
-function getStoreSaleDetailsForDateRange(storeId, dateStart, dateEnd) {
-    return getSalesDataForDateRange(storeId, dateStart, dateEnd);
-}
-
-// 获取指定日期范围内的销售数据
-function getSalesDataForDateRange(storeId, dateStart, dateEnd) {
-    return new Promise((resolve, reject) => {
-        const allSales = {};
-        const startDate = new Date(dateStart);
-        const endDate = new Date(dateEnd);
-        
-        // 生成日期范围内的所有日期
-        const dates = [];
-        const currentDate = new Date(startDate);
-        while (currentDate <= endDate) {
-            dates.push(getDatePathFromString(currentDate.toISOString().split('T')[0]));
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-        
-        // 获取每个日期的数据
-        const promises = dates.map(datePath => {
-            return database.ref(`sales/${storeId}/${datePath.path}`).once('value')
-                .then(snapshot => {
-                    const sales = snapshot.val() || {};
-                    return sales;
-                });
-        });
-        
-        Promise.all(promises)
-            .then(results => {
-                // 合并所有日期的销售数据
-                results.forEach(sales => {
-                    Object.assign(allSales, sales);
-                });
-                resolve(allSales);
-            })
-            .catch(reject);
-    });
-}
-
 // 加载所有店铺数据（统计和详情）
-function loadAllStoresData(dateStart, dateEnd) {
+function loadAllStoresData(date) {
+    // 先检查是否有所有所需店铺的缓存数据
+    const cachedAllStores = checkAllStoresCached(date);
+    if (cachedAllStores.allCached) {
+        // 如果所有店铺都有缓存，直接使用缓存数据
+        console.log("使用缓存的所有店铺数据");
+        renderStats(cachedAllStores.stats, true);
+        renderSaleDetails(cachedAllStores.sales);
+        return;
+    }
+    
     // 获取所有店铺列表
     getAllStores()
         .then(storeList => {
             const storeIds = Object.keys(storeList);
             const promises = [];
             
-            // 对每个店铺获取销售记录 - 获取日期范围内的数据
+            // 对每个店铺获取销售记录 - 只获取特定日期的数据
             storeIds.forEach(storeId => {
-                promises.push(
-                    getSalesDataForDateRange(storeId, dateStart, dateEnd)
-                        .then(sales => {
-                            // 计算统计数据
-                            const stats = calculateStatsFromSales(sales);
-                            
-                            return {
-                                storeId,
-                                sales: sales,
-                                stats: stats
-                            };
-                        })
-                );
+                // 检查缓存
+                const cachedSalesData = dataCache.getCachedSalesData(date, storeId);
+                if (cachedSalesData) {
+                    console.log(`使用缓存的 ${storeId} 店铺数据`);
+                    promises.push(Promise.resolve({
+                        storeId,
+                        sales: cachedSalesData,
+                        stats: calculateStatsFromSales(cachedSalesData)
+                    }));
+                } else {
+                    // 没有缓存，需要从数据库获取
+                    const datePath = getDatePathFromString(date);
+                    promises.push(
+                        database.ref(`sales/${storeId}/${datePath.path}`).once('value')
+                            .then(snapshot => {
+                                const sales = snapshot.val() || {};
+                                
+                                // 计算统计数据
+                                const stats = calculateStatsFromSales(sales);
+                                
+                                // 缓存数据
+                                dataCache.cacheSalesData(date, storeId, sales);
+                                dataCache.cacheStatsData(date, storeId, stats);
+                                
+                                return {
+                                    storeId,
+                                    sales: sales,
+                                    stats: stats
+                                };
+                            })
+                    );
+                }
             });
             
             // 合并所有店铺的销售记录和统计
@@ -960,12 +928,33 @@ function loadAllStoresData(dateStart, dateEnd) {
 }
 
 // 加载单个店铺数据
-function loadSingleStoreData(storeId, dateStart, dateEnd) {
-    // 获取日期范围内的销售数据
-    getSalesDataForDateRange(storeId, dateStart, dateEnd)
-        .then(sales => {
+function loadSingleStoreData(storeId, date) {
+    // 检查缓存
+    const cachedSalesData = dataCache.getCachedSalesData(date, storeId);
+    const cachedStatsData = dataCache.getCachedStatsData(date, storeId);
+    
+    if (cachedSalesData && cachedStatsData) {
+        console.log(`使用缓存的 ${storeId} 店铺数据`);
+        // 使用缓存数据
+        const formattedStats = {};
+        formattedStats[storeId] = cachedStatsData;
+        renderStats(formattedStats, false);
+        renderSaleDetails(cachedSalesData);
+        return;
+    }
+    
+    // 没有缓存，需要从数据库获取
+    const datePath = getDatePathFromString(date);
+    database.ref(`sales/${storeId}/${datePath.path}`).once('value')
+        .then(snapshot => {
+            const sales = snapshot.val() || {};
+            
             // 计算统计数据
             const stats = calculateStatsFromSales(sales);
+            
+            // 缓存数据
+            dataCache.cacheSalesData(date, storeId, sales);
+            dataCache.cacheStatsData(date, storeId, stats);
             
             // 格式化统计数据
             const formattedStats = {};
@@ -3299,10 +3288,8 @@ function init() {
     initEventListeners();
     
     // 设置默认日期为今天
-    selectedDateStart = getCurrentDate();
-    selectedDateEnd = getCurrentDate();
-    document.getElementById('dateRangeStart').value = selectedDateStart;
-    document.getElementById('dateRangeEnd').value = selectedDateEnd;
+    selectedDate = getCurrentDate();
+    document.getElementById('dateFilter').value = selectedDate;
     
     // 加载数据
     loadStores().then(() => {
@@ -3349,8 +3336,7 @@ let currentViewMode = 'table'; // 当前视图模式
 
 // 显示销售汇总
 function showSalesSummary() {
-    const dateStart = dateRangeStart.value || selectedDateStart;
-    const dateEnd = dateRangeEnd.value || selectedDateEnd;
+    const date = dateFilter.value || selectedDate;
     const storeId = selectedStoreId;
     
     // 显示模态框
@@ -3363,9 +3349,9 @@ function showSalesSummary() {
     let salesPromise;
     if (storeId === 'all') {
         // 对于所有店铺，我们需要获取所有店铺的销售数据
-        salesPromise = loadAllStoresSalesForSummary(dateStart, dateEnd);
+        salesPromise = loadAllStoresSalesForSummary(date);
     } else {
-        salesPromise = getStoreSaleDetailsForDateRange(storeId, dateStart, dateEnd);
+        salesPromise = getStoreSaleDetails(storeId, date);
     }
     
     salesPromise
@@ -3918,8 +3904,7 @@ function printSalesSummary() {
     }
     
     // Create print content
-    const dateStart = dateRangeStart.value || selectedDateStart;
-    const dateEnd = dateRangeEnd.value || selectedDateEnd;
+    const date = dateFilter.value || selectedDate;
     const storeId = selectedStoreId;
     const storeName = storeId === 'all' ? 'All Stores' : (stores[storeId]?.name || storeId);
     
@@ -3946,7 +3931,7 @@ function printSalesSummary() {
         <body>
             <div class="header">
                 <h1>Sales Summary Report</h1>
-                <p>Date Range: ${dateStart} to ${dateEnd} | Store: ${storeName}</p>
+                <p>Date: ${date} | Store: ${storeName}</p>
             </div>
             
             <div class="stats">
@@ -4041,11 +4026,10 @@ function exportSalesSummary() {
     });
     
     // 创建下载链接
-    const dateStart = dateRangeStart.value || selectedDateStart;
-    const dateEnd = dateRangeEnd.value || selectedDateEnd;
+    const date = dateFilter.value || selectedDate;
     const storeId = selectedStoreId;
     const storeName = storeId === 'all' ? 'All_Stores' : (stores[storeId]?.name || storeId).replace(/\s+/g, '_');
-    const filename = `Sales_Summary_${storeName}_${dateStart}_to_${dateEnd}.csv`;
+    const filename = `Sales_Summary_${storeName}_${date}.csv`;
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -4090,8 +4074,7 @@ function screenshotSalesSummary() {
     screenshotContainer.style.boxSizing = 'border-box';
     screenshotContainer.style.overflow = 'auto';
     
-    const dateStart = dateRangeStart.value || selectedDateStart;
-    const dateEnd = dateRangeEnd.value || selectedDateEnd;
+    const date = dateFilter.value || selectedDate;
     const storeId = selectedStoreId;
     const storeName = storeId === 'all' ? 'All Stores' : (stores[storeId]?.name || storeId);
     
@@ -4103,7 +4086,7 @@ function screenshotSalesSummary() {
     screenshotContainer.innerHTML = `
         <div style="text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); color: white; border-radius: 10px;">
             <h1 style="margin: 0 0 10px 0; font-size: 28px;">Sales Summary Report</h1>
-            <p style="margin: 0; font-size: 16px;">Date Range: ${dateStart} to ${dateEnd} | Store: ${storeName}</p>
+            <p style="margin: 0; font-size: 16px;">Date: ${date} | Store: ${storeName}</p>
         </div>
         
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
@@ -4435,19 +4418,21 @@ function handleTesterAction(productId) {
 }
 
 // 为Sales Summary加载所有店铺的销售数据
-function loadAllStoresSalesForSummary(dateStart, dateEnd) {
+function loadAllStoresSalesForSummary(date) {
     return new Promise((resolve, reject) => {
         // 先获取所有店铺列表
         getAllStores()
             .then(storeList => {
                 const storeIds = Object.keys(storeList);
                 const promises = [];
+                const datePath = getDatePathFromString(date);
                 
-                // 对每个店铺获取日期范围内的销售记录
+                // 对每个店铺获取销售记录
                 storeIds.forEach(storeId => {
                     promises.push(
-                        getSalesDataForDateRange(storeId, dateStart, dateEnd)
-                            .then(sales => {
+                        database.ref(`sales/${storeId}/${datePath.path}`).once('value')
+                            .then(snapshot => {
+                                const sales = snapshot.val() || {};
                                 // 将店铺ID添加到每个销售记录中
                                 const salesWithStoreId = {};
                                 Object.keys(sales).forEach(saleId => {
