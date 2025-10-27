@@ -194,7 +194,7 @@ const productImageMap = {
 // Office
 'mango gummy': '../product/mango gummy.jpg',
 'dried mango (office)': '../product/dried mango office.jpg',
-'rempeyek': '../product/rempeyek.jpg',
+'rempeyek': '../product/Rempeyek.jpg',
 'kerepek pisang manis': '../product/KP Manis.jpg',
 'kerepek pisang masin': '../product/KP Masin.jpg',
 'kerepek ubi belado': '../product/kerepek ubi belado.jpg',
