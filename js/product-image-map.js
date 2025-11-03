@@ -143,8 +143,8 @@ const productImageMap = {
 'sabah tea pandan': '../product/sabah tea pandan.png',
 'sabah tea organic': '../product/sabah tea organic.png',
 'sabah tea ginger': '../product/sabah tea ginger.png',
-'sabah tea teh tarik (yellow)': '../product/sabah tea teh tarik yellow.png',
-'sabah tea teh tarik (green)': '../product/sabah tea teh tarik green.png',
+'sabah tea teh tarik (yellow)': '../product/Sabah Tea Teh Tarik Yellow.png',
+'sabah tea teh tarik (green)': '../product/Sabah Tea Teh Tarik Green.png',
 'sabah tea (sebuk) 400g': '../product/sabah tea sebuk 400g.png',
 'sabah tea misai kucing': '../product/sabah tea misai kucing.png',
 'sabah tea passionfruit': '../product/sabah tea passionfruit.png',
@@ -183,8 +183,8 @@ const productImageMap = {
 'udang kering': '../product/Udang Kering.png',
 'kerapu tikus': '../product/Kerapu Tikus.png',
 'telur ikan': '../product/Telur Ikan.png',
-'anchovy blue': '../product/Anchovy blue.png',
-'anchovy green': '../product/Anchovy green.png',
+'anchovy blue': '../product/anchovy blue.png',
+'anchovy green': '../product/anchovy green.png',
     
 // Spritzer
 'spritzer 250ml': '../product/spritzer 250ml.jpg',
@@ -194,16 +194,16 @@ const productImageMap = {
 // Office
 'mango gummy': '../product/mango gummy.jpg',
 'dried mango (office)': '../product/dried mango office.jpg',
-'rempeyek': '../product/rempeyek.jpg',
+'rempeyek': '../product/Rempeyek.jpg',
 'kerepek pisang manis': '../product/KP Manis.jpg',
 'kerepek pisang masin': '../product/KP Masin.jpg',
-'kerepek ubi belado': '../product/kerepek ubi belado.jpg',
+'kerepek ubi belado': '../product/Kerepek Ubi Belado.jpg',
 'kuih cacap (s)': '../product/Kuih Cacap (S).jpg',
 'kuih cacap (b)': '../product/Kuih Cacap (b).jpg',
 'kuih lidah chocolate': '../product/kuih lidah chocolate.jpg',
 'kuih lidah cheese': '../product/kuih lidah cheese.jpg',
 'kuih lidah durian': '../product/kuih lidah durian.jpg',
-'kuih cincin (b)': '../product/kuih cincin big.jpg',
+'kuih cincin (b)': '../product/Kuih cincin big.jpg',
 'kuih cincin (s)': '../product/kuih cincin small.jpg',
 
 
