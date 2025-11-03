@@ -1231,6 +1231,23 @@ function filterProducts() {
             stockClass = 'stock low';
         }
         
+        // 计算显示价格（如果启用促销价格则使用促销价格，否则使用正常价格）
+        const displayPrice = (product.promotionEnabled && product.promotionPrice !== null && product.promotionPrice !== undefined) 
+            ? product.promotionPrice 
+            : product.price;
+        const hasPromotion = product.promotionEnabled && product.promotionPrice !== null && product.promotionPrice !== undefined;
+        
+        // 构建价格显示HTML
+        let priceDisplayHTML = '';
+        if (hasPromotion) {
+            priceDisplayHTML = `<span class="product-price" style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center;">
+                <span style="text-decoration: line-through; color: #999; font-size: 0.85em;">RM${parseFloat(product.price || 0).toFixed(2)}</span>
+                <span style="color: #FF3B30; font-weight: bold;">RM${displayPrice.toFixed(2)}</span>
+            </span>`;
+        } else {
+            priceDisplayHTML = `<span class="product-price">RM ${displayPrice.toFixed(2)}</span>`;
+        }
+        
         const escapedProductName = (product.name || 'Product').replace(/'/g, "\\'");
         const escapedImagePath = productImage.replace(/'/g, "\\'");
         
@@ -1253,10 +1270,10 @@ function filterProducts() {
                          onerror="console.log('❌ Image failed: ${productImage}'); this.parentElement.innerHTML='<i class=\\"material-icons\\" style=\\"font-size: 20px; color: var(--ios-blue);\\">inventory_2</i>'; this.parentElement.classList.remove('product-image-container');">
                 </div>
                 <div class="product-details">
-                    <div class="product-name">${product.name || 'Unnamed Product'}</div>
+                    <div class="product-name">${product.name || 'Unnamed Product'}${hasPromotion ? ' <span style="color: #FF3B30; font-size: 0.85em;"><i class="material-icons" style="font-size: 12px; vertical-align: middle;">local_offer</i></span>' : ''}</div>
                     <div class="product-category">${product.category || 'Uncategorized'}</div>
                     <div class="product-price-stock">
-                        <span class="product-price">RM ${parseFloat(product.price || 0).toFixed(2)}</span>
+                        ${priceDisplayHTML}
                         <span class="price-stock-separator">|</span>
                         <span class="product-stock-badge ${stockClass}">Stock: ${stock}</span>
                     </div>
@@ -1269,10 +1286,10 @@ function filterProducts() {
                     <i class="material-icons">inventory_2</i>
                 </div>
                 <div class="product-details">
-                    <div class="product-name">${product.name || 'Unnamed Product'}</div>
+                    <div class="product-name">${product.name || 'Unnamed Product'}${hasPromotion ? ' <span style="color: #FF3B30; font-size: 0.85em;"><i class="material-icons" style="font-size: 12px; vertical-align: middle;">local_offer</i></span>' : ''}</div>
                     <div class="product-category">${product.category || 'Uncategorized'}</div>
                     <div class="product-price-stock">
-                        <span class="product-price">RM ${parseFloat(product.price || 0).toFixed(2)}</span>
+                        ${priceDisplayHTML}
                         <span class="price-stock-separator">|</span>
                         <span class="product-stock-badge ${stockClass}">Stock: ${stock}</span>
                     </div>
