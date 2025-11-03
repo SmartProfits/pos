@@ -351,7 +351,21 @@ function initEventListeners() {
     addStoreBtn.addEventListener('click', () => showModal(addStoreModal));
     
     // 添加商品按钮
-    addProductBtn.addEventListener('click', () => showModal(addProductModal));
+    addProductBtn.addEventListener('click', () => {
+        showModal(addProductModal);
+        // 添加促销价格开关事件监听
+        const promotionEnabledCheckbox = document.getElementById('productPromotionEnabled');
+        const promotionPriceGroup = document.getElementById('productPromotionPriceGroup');
+        if (promotionEnabledCheckbox && promotionPriceGroup) {
+            // 移除旧的事件监听器（如果有）
+            const newCheckbox = promotionEnabledCheckbox.cloneNode(true);
+            promotionEnabledCheckbox.parentNode.replaceChild(newCheckbox, promotionEnabledCheckbox);
+            
+            newCheckbox.addEventListener('change', function() {
+                promotionPriceGroup.style.display = this.checked ? 'block' : 'none';
+            });
+        }
+    });
     
     // 商品店铺过滤器变化
     productStoreFilter.addEventListener('change', loadProducts);
@@ -1519,11 +1533,19 @@ function renderProducts(searchQuery = '', categoryFilter = 'all') {
         // 使用stock值，如果不存在则使用quantity，确保兼容旧数据
         const stockDisplay = product.stock !== undefined ? product.stock : (product.quantity || 0);
         
+        // 计算显示价格（如果启用促销价格则显示促销价格，否则显示正常价格）
+        const displayPrice = (product.promotionEnabled && product.promotionPrice !== null && product.promotionPrice !== undefined) 
+            ? product.promotionPrice 
+            : product.price;
+        const priceDisplay = product.promotionEnabled && product.promotionPrice !== null && product.promotionPrice !== undefined
+            ? `<span style="text-decoration: line-through; color: #999; margin-right: 5px;">RM${product.price.toFixed(2)}</span><span style="color: #f44336; font-weight: bold;">RM${displayPrice.toFixed(2)}</span>`
+            : `RM${displayPrice.toFixed(2)}`;
+        
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${productId}</td>
-            <td>${product.name}</td>
-            <td>RM${product.price.toFixed(2)}</td>
+            <td>${product.name}${product.promotionEnabled ? ' <span style="color: #f44336; font-size: 0.85em;"><i class="material-icons" style="font-size: 14px; vertical-align: middle;">local_offer</i></span>' : ''}</td>
+            <td>${priceDisplay}</td>
             <td>${stockDisplay}</td>
             <td>${product.category || '-'}</td>
             <td>${storeName}</td>
@@ -1595,6 +1617,8 @@ function handleAddProduct(e) {
     const productQuantityInput = document.getElementById('productQuantity');
     const productCategoryInput = document.getElementById('productCategory');
     const productStoreIdInput = document.getElementById('productStoreId');
+    const productPromotionEnabledInput = document.getElementById('productPromotionEnabled');
+    const productPromotionPriceInput = document.getElementById('productPromotionPrice');
     
     const productId = productIdInput.value.trim();
     const name = productNameInput.value.trim();
@@ -1602,14 +1626,21 @@ function handleAddProduct(e) {
     const stock = parseFloat(productQuantityInput.value) || 0; // 更名为stock
     const category = productCategoryInput.value.trim();
     const storeId = productStoreIdInput.value;
+    const promotionEnabled = productPromotionEnabledInput ? productPromotionEnabledInput.checked : false;
+    const promotionPrice = promotionEnabled && productPromotionPriceInput ? parseFloat(productPromotionPriceInput.value) : null;
     
     if (!productId || !name || isNaN(price) || !storeId) {
         alert('Please fill in all required fields');
         return;
     }
     
+    if (promotionEnabled && (isNaN(promotionPrice) || promotionPrice < 0)) {
+        alert('Please enter a valid promotion price');
+        return;
+    }
+    
     // 添加商品到数据库
-    addProduct(productId, name, price, stock, category, storeId)
+    addProduct(productId, name, price, stock, category, storeId, promotionEnabled, promotionPrice)
         .then(() => {
             hideModal(addProductModal);
             loadProducts();
@@ -1647,6 +1678,16 @@ function editProduct(productId) {
                 <div class="form-group">
                     <label for="editProductPrice"><i class="material-icons">attach_money</i> Price:</label>
                     <input type="number" id="editProductPrice" value="${product.price}" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="editProductPromotionEnabled" style="width: auto;" ${product.promotionEnabled ? 'checked' : ''}>
+                        <span><i class="material-icons">local_offer</i> Enable Promotion Price</span>
+                    </label>
+                </div>
+                <div class="form-group" id="editProductPromotionPriceGroup" style="display: ${product.promotionEnabled ? 'block' : 'none'};">
+                    <label for="editProductPromotionPrice"><i class="material-icons">sell</i> Promotion Price:</label>
+                    <input type="number" id="editProductPromotionPrice" value="${product.promotionPrice || ''}" step="0.01" min="0" placeholder="Enter promotion price">
                 </div>
                 <div class="form-group">
                     <label for="editProductStock"><i class="material-icons">inventory_2</i> Stock:</label>
@@ -1694,6 +1735,15 @@ function editProduct(productId) {
         }
     });
     
+    // 添加促销价格开关事件监听
+    const promotionEnabledCheckbox = document.getElementById('editProductPromotionEnabled');
+    const promotionPriceGroup = document.getElementById('editProductPromotionPriceGroup');
+    if (promotionEnabledCheckbox && promotionPriceGroup) {
+        promotionEnabledCheckbox.addEventListener('change', function() {
+            promotionPriceGroup.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+    
     // 处理表单提交
     const editForm = document.getElementById('editProductForm');
     editForm.addEventListener('submit', (e) => {
@@ -1705,9 +1755,16 @@ function editProduct(productId) {
         const newStock = parseFloat(document.getElementById('editProductStock').value) || 0;
         const newCategory = document.getElementById('editProductCategory').value.trim();
         const newStoreId = document.getElementById('editProductStoreId').value;
+        const newPromotionEnabled = document.getElementById('editProductPromotionEnabled') ? document.getElementById('editProductPromotionEnabled').checked : false;
+        const newPromotionPrice = newPromotionEnabled && document.getElementById('editProductPromotionPrice') ? parseFloat(document.getElementById('editProductPromotionPrice').value) : null;
         
         if (!newProductId || !newName || isNaN(newPrice) || !newStoreId) {
             alert('Please fill in all required fields');
+            return;
+        }
+        
+        if (newPromotionEnabled && (isNaN(newPromotionPrice) || newPromotionPrice < 0)) {
+            alert('Please enter a valid promotion price');
             return;
         }
         
@@ -1718,7 +1775,7 @@ function editProduct(productId) {
         }
         
         // 更新商品
-        updateProduct(productId, newProductId, newName, newPrice, newStock, newCategory, newStoreId, product.store_id)
+        updateProduct(productId, newProductId, newName, newPrice, newStock, newCategory, newStoreId, product.store_id, newPromotionEnabled, newPromotionPrice)
             .then(() => {
                 hideModal(editModal);
                 // 移除模态框
@@ -1736,14 +1793,16 @@ function editProduct(productId) {
 }
 
 // 更新商品
-function updateProduct(oldProductId, newProductId, name, price, stock, category, newStoreId, oldStoreId) {
+function updateProduct(oldProductId, newProductId, name, price, stock, category, newStoreId, oldStoreId, promotionEnabled = false, promotionPrice = null) {
     const productData = {
         name,
         price,
         quantity: stock,
         category: category || '',
         store_id: newStoreId,
-        stock: stock // 确保更新stock字段
+        stock: stock, // 确保更新stock字段
+        promotionEnabled: promotionEnabled || false,
+        promotionPrice: promotionEnabled ? (promotionPrice || null) : null
     };
     
     // 如果产品ID发生变化
@@ -2041,14 +2100,16 @@ function getAllStores() {
 }
 
 // 添加商品
-function addProduct(productId, name, price, quantity, category, storeId) {
+function addProduct(productId, name, price, quantity, category, storeId, promotionEnabled = false, promotionPrice = null) {
     const productData = {
         name,
         price,
         quantity: quantity || 0,
         category: category || '',
         store_id: storeId,
-        stock: quantity || 0 // 添加stock字段，与POS页面保持一致
+        stock: quantity || 0, // 添加stock字段，与POS页面保持一致
+        promotionEnabled: promotionEnabled || false,
+        promotionPrice: promotionEnabled ? (promotionPrice || null) : null
     };
     return database.ref(`store_products/${storeId}/${productId}`).set(productData);
 }
