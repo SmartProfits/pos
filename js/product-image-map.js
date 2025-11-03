@@ -82,6 +82,9 @@ const productImageMap = {
 'bh fillet cracker with anchovy': '../product/BH Fillet Cracker With Anchovy.jpg',
 'bh fillet cracker with seaweed': '../product/BH Fillet Cracker With Seaweed.png',
 'bh shopping bag': '../product/bh shopping bag.jpg',
+'bh cheese crisp': '../product/bh cheese crisp.png',
+'bh shat kek ma': '../product/bh shat kek ma.png',
+'bh shat kek ma (brown sugar)': '../product/bh shat kek ma (bs).png',
 
 // Hoe Hup
 'hh durian cookies': '../product/HH Durian Cookies.png',
@@ -96,6 +99,12 @@ const productImageMap = {
 'hh coconut pandan cookies': '../product/HH Coconut Pandan Cookies.png',
 'hh dodol kopi': '../product/HH Dodol Kopi.png',
 'hh dodol original': '../product/HH Dodol Original.png',
+'hh cuttlefish red': '../product/hh cutterfish red.jpg',
+'hh cuttlefish honey': '../product/hh cutterfish honey.jpg',
+'hh cuttlefish slices': '../product/hh cutterfish slices.jpg',
+'hh cuttlefish sugar': '../product/hh cutterfish sugar.jpg',
+'hh cuttlefish lemon': '../product/hh cutterfish lemon.jpg',
+'hh cuttlefish floss original': '../product/hh cutterfish floss.jpg',
 
 // AD Chocolate
 'ad chocolate original': '../product/Sabah Tea Chocolate Ori.jpg',
@@ -185,6 +194,19 @@ const productImageMap = {
 // Office
 'mango gummy': '../product/mango gummy.jpg',
 'dried mango (office)': '../product/dried mango office.jpg',
+'rempeyek': '../product/rempeyek.jpg',
+'kerepek pisang manis': '../product/KP Manis.jpg',
+'kerepek pisang masin': '../product/KP Masin.jpg',
+'kerepek ubi belado': '../product/kerepek ubi belado.jpg',
+'kuih cacap (s)': '../product/Kuih Cacap (S).jpg',
+'kuih cacap (b)': '../product/Kuih Cacap (b).jpg',
+'kuih lidah chocolate': '../product/kuih lidah chocolate.jpg',
+'kuih lidah cheese': '../product/kuih lidah cheese.jpg',
+'kuih lidah durian': '../product/kuih lidah durian.jpg',
+'kuih cincin (b)': '../product/kuih cincin big.jpg',
+'kuih cincin (s)': '../product/kuih cincin small.jpg',
+
+
 
 // Other
 'durian milk candy': '../product/Durian milk candy.jpg',
