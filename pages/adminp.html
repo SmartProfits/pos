@@ -397,38 +397,110 @@
             cursor: pointer;
         }
 
-        /* Search & Filter */
-        .search-section {
-            margin-bottom: 20px;
+        /* Fixed Stock Dashboard - Compact Version */
+        .stock-dashboard {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 414px;
+            background: var(--ios-background);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 0.5px solid var(--ios-gray-4);
+            z-index: 100;
+            padding: 0 16px;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+        }
+
+        .dashboard-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+        }
+
+        .dashboard-row:first-child {
+            padding-top: 12px;
+        }
+
+        .dashboard-row:last-child {
+            padding-bottom: 10px;
+        }
+
+        .dashboard-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .dashboard-label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: var(--ios-gray-1);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .dashboard-label i {
+            font-size: 12px;
+            color: var(--ios-blue);
+        }
+
+        .dashboard-select {
+            background: var(--ios-secondary-background);
+            border: 0.5px solid var(--ios-gray-5);
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 13px;
+            color: var(--ios-blue);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .dashboard-select:focus {
+            outline: none;
+            border-color: var(--ios-blue);
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+        }
+
+        .search-container {
+            flex: 1;
         }
 
         .search-bar {
             background: var(--ios-tertiary-background);
-            border-radius: var(--ios-corner-radius-small);
-            padding: 12px 16px;
-            margin-bottom: 16px;
+            border-radius: 6px;
+            padding: 8px 10px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             border: 0.5px solid var(--ios-gray-5);
             transition: all 0.2s;
         }
 
         .search-bar:focus-within {
             border-color: var(--ios-blue);
-            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
         }
 
         .search-bar i {
             color: var(--ios-gray-1);
-            font-size: 18px;
+            font-size: 14px;
         }
 
         .search-bar input {
             border: none;
             outline: none;
             flex: 1;
-            font-size: var(--ios-body);
+            font-size: 14px;
             background: transparent;
             color: var(--ios-label);
         }
@@ -437,20 +509,20 @@
             color: var(--ios-gray-1);
         }
 
-        /* Filter Segmented Control */
+        /* Filter Segmented Control - Compact */
         .filter-control {
             background: var(--ios-gray-6);
-            border-radius: var(--ios-corner-radius-small);
-            padding: 2px;
+            border-radius: 6px;
+            padding: 1px;
             display: flex;
         }
 
         .filter-tab {
             flex: 1;
-            padding: 8px 12px;
+            padding: 5px 8px;
             text-align: center;
-            border-radius: 6px;
-            font-size: var(--ios-footnote);
+            border-radius: 5px;
+            font-size: 11px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -463,26 +535,35 @@
             box-shadow: var(--ios-shadow-1);
         }
 
-        /* Product List */
+        /* Stock View Layout */
+        #stockView {
+            padding-top: 100px; /* Space for compact fixed dashboard */
+        }
+
+        /* Product List - Optimized for more cards */
         .product-list {
             display: flex;
             flex-direction: column;
-            gap: 1px;
-            background: var(--ios-gray-6);
-            border-radius: var(--ios-corner-radius-medium);
-            overflow: hidden;
+            gap: 0px;
+            padding: 0 6px;
         }
 
         .product-item {
             background: var(--ios-tertiary-background);
             border-radius: var(--ios-corner-radius-medium);
-            padding: 16px;
-            margin-bottom: 12px;
+            padding: 14px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 12px;
             box-shadow: var(--ios-shadow-1);
             border: 0.5px solid var(--ios-gray-5);
+            transition: all 0.2s ease;
+            min-height: 80px;
+        }
+
+        .product-item:hover {
+            box-shadow: var(--ios-shadow-2);
+            transform: translateY(-1px);
         }
 
         .product-item:active {
@@ -500,20 +581,21 @@
         }
 
         .product-icon {
-            width: 40px;
-            height: 40px;
+            width: 80px;
+            height: 80px;
             border-radius: var(--ios-corner-radius-small);
             background: var(--ios-blue);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: #ffffff;
             font-size: 20px;
             overflow: hidden;
             cursor: pointer;
             transition: all 0.2s ease;
             border: 1px solid var(--ios-gray-5);
             position: relative;
+            flex-shrink: 0;
         }
 
         .product-icon:hover {
@@ -523,7 +605,7 @@
 
         .product-image-container {
             background: var(--ios-gray-6) !important;
-            border: 1px solid var(--ios-gray-4);
+            border: 0px solid var(--ios-gray-4);
         }
 
         .product-image {
@@ -541,71 +623,88 @@
 
         /* Ensure images load properly */
         .product-image-container img {
-            background: white;
+            background: #646465;
             opacity: 1 !important;
             visibility: visible !important;
         }
 
         .product-details {
             flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-width: 0;
+            height: 100%;
+            text-align: center;
         }
 
         .product-name {
-            font-size: var(--ios-body);
-            font-weight: 500;
+            font-size: 15px;
+            font-weight: 700;
             color: var(--ios-label);
-            margin-bottom: 2px;
+            margin-bottom: 6px;
             letter-spacing: -0.2px;
+            line-height: 1.2;
+            text-align: center;
         }
 
-        .product-meta {
-            font-size: var(--ios-footnote);
-            color: var(--ios-gray-1);
+        .product-category {
+            font-size: 11px;
+            color: #7e22ce;
+            background: #f3e8ff;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: inline-block;
+            width: fit-content;
+            text-align: center;
+        }
+
+        .product-price-stock {
             display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            flex-wrap: nowrap;
+            text-align: center;
         }
 
-        .product-meta .price {
-            color: var(--ios-green);
-            font-weight: 600;
-            background: rgba(52, 199, 89, 0.1);
-            padding: 2px 6px;
-            border-radius: 4px;
+        .product-price {
+            font-size: 14px;
+            font-weight: 700;
+            color: #22c55e;
         }
 
-        .product-meta .stock {
-            color: var(--ios-blue);
+        .price-stock-separator {
+            color: var(--ios-gray-3);
+            font-weight: 300;
+            flex-shrink: 0;
+        }
+
+        .product-stock-badge {
+            font-size: 10px;
             font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+        }
+
+        .product-stock-badge.stock {
             background: rgba(0, 122, 255, 0.1);
-            padding: 2px 6px;
-            border-radius: 4px;
+            color: #007AFF;
         }
 
-        .product-meta .stock.low {
-            color: var(--ios-orange);
+        .product-stock-badge.low {
             background: rgba(255, 149, 0, 0.1);
+            color: #FF9500;
         }
 
-        .product-meta .stock.out {
-            color: var(--ios-red);
+        .product-stock-badge.out {
             background: rgba(255, 59, 48, 0.1);
-        }
-
-        .product-meta .category {
-            color: var(--ios-purple);
-            font-weight: 500;
-            background: rgba(175, 82, 222, 0.1);
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-
-        .product-meta .store {
-            color: var(--ios-orange);
-            font-weight: 500;
-            background: rgba(255, 149, 0, 0.1);
-            padding: 2px 6px;
-            border-radius: 4px;
+            color: #FF3B30;
         }
 
         .stock-status {
@@ -1341,12 +1440,34 @@
                 box-shadow: var(--ios-shadow-3);
             }
             
+            .stock-dashboard {
+                max-width: 768px;
+            }
+            
             .stats-grid {
                 grid-template-columns: repeat(4, 1fr);
             }
             
             .stores-grid {
                 grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .product-list {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+                padding: 0 16px;
+            }
+            
+            .product-item {
+                margin-bottom: 0;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .product-list {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 16px;
             }
         }
 
@@ -1745,41 +1866,44 @@
     
             <!-- Stock View -->
             <div id="stockView" class="view">
-                <!-- Store Selection -->
-                <div class="date-selector-section">
-                    <div class="date-picker">
-                        <label for="storeSelector">
-                            <i class="material-icons">store</i>
-                            <span>Store</span>
-                        </label>
-                        <select id="storeSelector" style="background: transparent; border: none; color: var(--ios-blue); font-size: var(--ios-subhead); font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px;">
-                            <!-- Store options will be loaded dynamically -->
-                        </select>
-                    </div>
-                </div>
-                
-                <!-- Search Section -->
-                <div class="search-section">
-                    <div class="search-bar">
-                        <i class="material-icons">search</i>
-                        <input type="text" placeholder="Search products" id="productSearch">
-                    </div>
-                    
-                    <!-- Category Filter -->
-                    <div class="category-filter-section">
-                        <div class="category-selector">
-                            <i class="material-icons">category</i>
-                            <select id="categoryFilter" style="background: transparent; border: none; color: var(--ios-blue); font-size: var(--ios-subhead); font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px;">
+                <!-- Fixed Stock Dashboard -->
+                <div class="stock-dashboard">
+                    <!-- Store & Category Row -->
+                    <div class="dashboard-row">
+                        <div class="dashboard-item">
+                            <div class="dashboard-label">
+                                <i class="material-icons">store</i>
+                                <span>Store</span>
+                            </div>
+                            <select id="storeSelector" class="dashboard-select">
+                                <!-- Store options will be loaded dynamically -->
+                            </select>
+                        </div>
+                        <div class="dashboard-item">
+                            <div class="dashboard-label">
+                                <i class="material-icons">category</i>
+                                <span>Category</span>
+                            </div>
+                            <select id="categoryFilter" class="dashboard-select">
                                 <option value="all">All Categories</option>
                                 <!-- Category options will be loaded dynamically -->
                             </select>
                         </div>
                     </div>
                     
-                    <div class="filter-control">
-                        <div class="filter-tab active" data-filter="all">All</div>
-                        <div class="filter-tab" data-filter="low">Low Stock</div>
-                        <div class="filter-tab" data-filter="out">Out of Stock</div>
+                    <!-- Search Row -->
+                    <div class="dashboard-row">
+                        <div class="search-container">
+                            <div class="search-bar">
+                                <i class="material-icons">search</i>
+                                <input type="text" placeholder="Search" id="productSearch">
+                            </div>
+                        </div>
+                        <div class="filter-control">
+                            <div class="filter-tab active" data-filter="all">All</div>
+                            <div class="filter-tab" data-filter="low">Low Stock</div>
+                            <div class="filter-tab" data-filter="out">Out of Stock</div>
+                        </div>
                     </div>
                 </div>
                 

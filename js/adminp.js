@@ -1251,14 +1251,15 @@ function filterProducts() {
                          class="product-image"
                          onload="console.log('✅ Image loaded: ${productImage}'); this.style.opacity='1';"
                          onerror="console.log('❌ Image failed: ${productImage}'); this.parentElement.innerHTML='<i class=\\"material-icons\\" style=\\"font-size: 20px; color: var(--ios-blue);\\">inventory_2</i>'; this.parentElement.classList.remove('product-image-container');">
-            </div>
+                </div>
                 <div class="product-details">
                     <div class="product-name">${product.name || 'Unnamed Product'}</div>
-                    <div class="product-meta">
-                        <span class="price">RM ${parseFloat(product.price || 0).toFixed(2)}</span>
-                        <span class="${stockClass}">Stock: ${stock}</span>
-                        <span class="category">${product.category || 'Uncategorized'}</span>
-                </div>
+                    <div class="product-category">${product.category || 'Uncategorized'}</div>
+                    <div class="product-price-stock">
+                        <span class="product-price">RM ${parseFloat(product.price || 0).toFixed(2)}</span>
+                        <span class="price-stock-separator">|</span>
+                        <span class="product-stock-badge ${stockClass}">Stock: ${stock}</span>
+                    </div>
                 </div>
             `;
         } else {
@@ -1266,14 +1267,15 @@ function filterProducts() {
             productItem.innerHTML = `
                 <div class="product-icon" onclick="showImageModal('${escapedImagePath}', '${escapedProductName}')">
                     <i class="material-icons">inventory_2</i>
-            </div>
+                </div>
                 <div class="product-details">
                     <div class="product-name">${product.name || 'Unnamed Product'}</div>
-                    <div class="product-meta">
-                        <span class="price">RM ${parseFloat(product.price || 0).toFixed(2)}</span>
-                        <span class="${stockClass}">Stock: ${stock}</span>
-                        <span class="category">${product.category || 'Uncategorized'}</span>
-                </div>
+                    <div class="product-category">${product.category || 'Uncategorized'}</div>
+                    <div class="product-price-stock">
+                        <span class="product-price">RM ${parseFloat(product.price || 0).toFixed(2)}</span>
+                        <span class="price-stock-separator">|</span>
+                        <span class="product-stock-badge ${stockClass}">Stock: ${stock}</span>
+                    </div>
                 </div>
             `;
         }
