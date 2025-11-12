@@ -75,6 +75,7 @@ const addProductBtn = document.getElementById('addProductBtn');
 const productStoreFilter = document.getElementById('productStoreFilter');
 const productCategoryFilter = document.getElementById('productCategoryFilter');
 const productSearch = document.getElementById('productSearch');
+const productPromotionFilter = document.getElementById('productPromotionFilter');
 const productsTableBody = document.getElementById('productsTableBody');
 const addProductModal = document.getElementById('addProductModal');
 const addProductForm = document.getElementById('addProductForm');
@@ -378,6 +379,11 @@ function initEventListeners() {
     // 商品搜索框输入变化
     if (productSearch) {
         productSearch.addEventListener('input', loadProducts);
+    }
+    
+    // 商品促销过滤器变化
+    if (productPromotionFilter) {
+        productPromotionFilter.addEventListener('change', loadProducts);
     }
     
     // 添加用户按钮
@@ -1460,6 +1466,7 @@ function loadProducts() {
     const storeId = productStoreFilter.value;
     const categoryFilter = productCategoryFilter ? productCategoryFilter.value : 'all';
     const searchQuery = productSearch ? productSearch.value.trim().toLowerCase() : '';
+    const promotionFilter = productPromotionFilter ? productPromotionFilter.value : 'all';
     
     // 显示加载状态
     productsTableBody.innerHTML = '<tr><td colspan="7" class="loading"><i class="material-icons">hourglass_empty</i> Loading...</td></tr>';
@@ -1470,7 +1477,7 @@ function loadProducts() {
             .then(productData => {
                 products = productData;
                 populateProductCategories(productData);
-                renderProducts(searchQuery, categoryFilter);
+                renderProducts(searchQuery, categoryFilter, promotionFilter);
             })
             .catch(error => {
                 console.error('Failed to load products:', error);
@@ -1482,7 +1489,7 @@ function loadProducts() {
             .then(productData => {
                 products = productData;
                 populateProductCategories(productData);
-                renderProducts(searchQuery, categoryFilter);
+                renderProducts(searchQuery, categoryFilter, promotionFilter);
             })
             .catch(error => {
                 console.error('Failed to load products:', error);
@@ -1492,7 +1499,7 @@ function loadProducts() {
 }
 
 // 渲染商品列表
-function renderProducts(searchQuery = '', categoryFilter = 'all') {
+function renderProducts(searchQuery = '', categoryFilter = 'all', promotionFilter = 'all') {
     productsTableBody.innerHTML = '';
     
     if (Object.keys(products).length === 0) {
@@ -1508,6 +1515,17 @@ function renderProducts(searchQuery = '', categoryFilter = 'all') {
         // 类别过滤
         if (categoryFilter !== 'all' && product.category !== categoryFilter) {
             return false;
+        }
+        
+        // 促销价格过滤
+        if (promotionFilter !== 'all') {
+            const hasPromotion = product.promotionEnabled && product.promotionPrice !== null && product.promotionPrice !== undefined;
+            if (promotionFilter === 'promotion' && !hasPromotion) {
+                return false;
+            }
+            if (promotionFilter === 'no-promotion' && hasPromotion) {
+                return false;
+            }
         }
         
         // 搜索过滤
