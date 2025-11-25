@@ -28,6 +28,7 @@ const storeImageMap = {
     'som': '../shop/som.png',
     'left': '../shop/left.png',
     'ktsp': '../shop/ktsp.png',
+    'tamoi': '../shop/tamoi.png',
     // Fallback options
     'store1': '../shop/dalam.png',
     'store2': '../shop/luar.png',
