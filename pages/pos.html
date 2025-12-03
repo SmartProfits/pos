@@ -502,14 +502,6 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="updateOperation">Operation:</label>
-                    <select id="updateOperation">
-                        <option value="add">Add Stock</option>
-                        <option value="subtract">Remove Stock</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
                     <label for="updateQuantity">Quantity:</label>
                     <input type="number" id="updateQuantity" min="1" value="1" required>
                 </div>
@@ -520,9 +512,17 @@
                         <option value="new_stock">New Stock</option>
                         <option value="returned">Returned Items</option>
                         <option value="damaged">Damaged/Lost</option>
-                        <option value="correction">Inventory Correction</option>
                         <option value="expired">Expired</option>
+                        <option value="stock_transfer">Stock Transfer</option>
                         <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="storeTransferContainer" style="display: none;">
+                    <label for="transferStoreSelect">Transfer To Store:</label>
+                    <select id="transferStoreSelect">
+                        <option value="">Select a store...</option>
+                        <!-- Store options will be loaded dynamically -->
                     </select>
                 </div>
                 
