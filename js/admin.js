@@ -126,6 +126,16 @@ const updateStockForm = document.getElementById('updateStockForm');
 const bulkUpdateModal = document.getElementById('bulkUpdateModal');
 const bulkUpdateForm = document.getElementById('bulkUpdateForm');
 
+// Stock History DOM元素
+const stockHistoryStoreFilter = document.getElementById('stockHistoryStoreFilter');
+const stockHistoryDatePicker = document.getElementById('stockHistoryDatePicker');
+const refreshStockHistoryBtn = document.getElementById('refreshStockHistoryBtn');
+const stockHistoryTableBody = document.getElementById('stockHistoryTableBody');
+const stockHistoryTitle = document.getElementById('stockHistoryTitle');
+const totalItemsReceived = document.getElementById('totalItemsReceived');
+const totalQuantityReceived = document.getElementById('totalQuantityReceived');
+const lastReceiptTime = document.getElementById('lastReceiptTime');
+
 // 调试库存DOM元素
 console.log("库存DOM元素检查:");
 console.log("inventoryStoreFilter:", inventoryStoreFilter);
@@ -531,6 +541,33 @@ function initEventListeners() {
     document.getElementById('updateReason').addEventListener('change', toggleOtherReason);
     document.getElementById('bulkUpdateReason').addEventListener('change', toggleBulkOtherReason);
     
+    // Stock History 相关事件监听
+    if (stockHistoryStoreFilter) {
+        stockHistoryStoreFilter.addEventListener('change', loadStockHistoryView);
+    }
+    if (stockHistoryDatePicker) {
+        stockHistoryDatePicker.addEventListener('change', loadStockHistoryView);
+        // 设置默认日期为今天
+        stockHistoryDatePicker.value = getCurrentDate();
+    }
+    if (refreshStockHistoryBtn) {
+        refreshStockHistoryBtn.addEventListener('click', () => {
+            // 显示粒子动画效果
+            showRefreshAnimation();
+            
+            // 添加按钮旋转效果
+            refreshStockHistoryBtn.classList.add('refreshing');
+            
+            // 执行刷新
+            loadStockHistoryView();
+            
+            // 1.5秒后移除按钮旋转效果
+            setTimeout(() => {
+                refreshStockHistoryBtn.classList.remove('refreshing');
+            }, 1500);
+        });
+    }
+    
     // 在线用户刷新按钮
     const refreshOnlineUsersBtn = document.getElementById('refreshOnlineUsersBtn');
     if (refreshOnlineUsersBtn) {
@@ -647,6 +684,23 @@ function performViewSwitch(viewName) {
         case 'users':
             viewTitle.textContent = 'User Management';
             break;
+        case 'stock-history':
+            viewTitle.textContent = 'Stock History';
+            // 确保商店下拉菜单已填充
+            if (stockHistoryStoreFilter && Object.keys(stores).length > 0) {
+                // 重新填充商店下拉菜单
+                while (stockHistoryStoreFilter.options.length > 1) {
+                    stockHistoryStoreFilter.remove(1);
+                }
+                
+                Object.keys(stores).forEach(storeId => {
+                    const option = document.createElement('option');
+                    option.value = storeId;
+                    option.textContent = stores[storeId].name;
+                    stockHistoryStoreFilter.appendChild(option);
+                });
+            }
+            break;
     }
     
     // 显示对应的视图
@@ -671,6 +725,12 @@ function performViewSwitch(viewName) {
                 loadUsers();
             } else if (viewName === 'announcement') {
                 loadAnnouncements();
+            } else if (viewName === 'stock-history') {
+                // 确保商店下拉菜单已填充
+                if (stockHistoryStoreFilter && stockHistoryStoreFilter.options.length <= 1) {
+                    populateStoreDropdowns();
+                }
+                loadStockHistoryView();
             }
         } else {
             view.classList.remove('active');
@@ -758,7 +818,7 @@ function renderStores() {
 // 填充店铺下拉菜单
 function populateStoreDropdowns() {
     // 清空并重新填充店铺过滤器
-    const dropdowns = [productStoreFilter, productStoreId, userStoreId, inventoryStoreFilter];
+    const dropdowns = [productStoreFilter, productStoreId, userStoreId, inventoryStoreFilter, stockHistoryStoreFilter];
     
     dropdowns.forEach(dropdown => {
         if (!dropdown) return;
@@ -5544,4 +5604,421 @@ function initializeMaintenanceStatus() {
     }).catch(error => {
         console.error('初始化维护状态失败:', error);
     });
+}
+
+// ====== Stock History 功能 ======
+
+// 加载 Stock History 视图
+function loadStockHistoryView() {
+    if (!stockHistoryTableBody || !stockHistoryDatePicker || !stockHistoryStoreFilter) {
+        console.error('Stock History DOM elements not found');
+        return;
+    }
+    
+    // 显示加载状态
+    stockHistoryTableBody.innerHTML = `
+        <tr>
+            <td colspan="10" style="text-align: center; padding: 20px;">
+                <div class="loading"><i class="material-icons">hourglass_empty</i> Loading stock history...</div>
+            </td>
+        </tr>
+    `;
+    
+    // 获取选定的日期，如果没有选择则使用今天
+    const selectedDate = stockHistoryDatePicker.value || getCurrentDate();
+    const selectedStoreId = stockHistoryStoreFilter.value;
+    
+    // 更新标题
+    if (stockHistoryTitle) {
+        const dateObj = new Date(selectedDate);
+        const formattedDate = dateObj.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        if (selectedStoreId === 'all') {
+            stockHistoryTitle.textContent = `Stock History - ${formattedDate} (All Stores)`;
+        } else {
+            const storeName = stores[selectedStoreId] ? stores[selectedStoreId].name : selectedStoreId;
+            stockHistoryTitle.textContent = `Stock History - ${formattedDate} (${storeName})`;
+        }
+    }
+    
+    // 如果选择了所有商店，需要加载所有商店的数据
+    if (selectedStoreId === 'all') {
+        loadAllStoresStockHistory(selectedDate);
+    } else {
+        loadSingleStoreStockHistory(selectedStoreId, selectedDate);
+    }
+}
+
+// 加载单个商店的库存历史
+function loadSingleStoreStockHistory(storeId, selectedDate) {
+    if (!storeId) {
+        stockHistoryTableBody.innerHTML = `
+            <tr>
+                <td colspan="10" style="text-align: center; padding: 20px; color: #e74c3c;">
+                    <i class="material-icons">error</i> Store ID not found
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // 加载所有产品的库存历史
+    database.ref(`stock_history/${storeId}`).once('value')
+        .then(snapshot => {
+            const allStockHistory = snapshot.val() || {};
+            const selectedDateRecords = [];
+            
+            // 遍历所有产品的历史记录
+            Object.keys(allStockHistory).forEach(productId => {
+                const productHistory = allStockHistory[productId];
+                if (!productHistory) return;
+                
+                // 遍历该产品的所有历史记录
+                Object.keys(productHistory).forEach(historyId => {
+                    const record = productHistory[historyId];
+                    if (!record || !record.timestamp) return;
+                    
+                    // 提取日期部分（格式：YYYY-MM-DD HH:MM:SS）
+                    const recordDate = record.timestamp.split(' ')[0];
+                    
+                    // 显示指定日期的所有记录（包括进货和消耗）
+                    if (recordDate === selectedDate) {
+                        selectedDateRecords.push({
+                            productId,
+                            storeId,
+                            ...record
+                        });
+                    }
+                });
+            });
+            
+            // 按时间排序，最新的在前
+            selectedDateRecords.sort((a, b) => {
+                return new Date(b.timestamp) - new Date(a.timestamp);
+            });
+            
+            // 更新统计信息
+            updateStockHistorySummary(selectedDateRecords);
+            
+            // 显示记录
+            displayStockHistoryRecords(selectedDateRecords);
+        })
+        .catch(error => {
+            console.error('Failed to load stock history:', error);
+            stockHistoryTableBody.innerHTML = `
+                <tr>
+                    <td colspan="10" style="text-align: center; padding: 20px; color: #e74c3c;">
+                        <i class="material-icons">error</i> Failed to load stock history data
+                    </td>
+                </tr>
+            `;
+        });
+}
+
+// 加载所有商店的库存历史
+function loadAllStoresStockHistory(selectedDate) {
+    // 获取所有商店的ID
+    const storeIds = Object.keys(stores);
+    
+    if (storeIds.length === 0) {
+        stockHistoryTableBody.innerHTML = `
+            <tr>
+                <td colspan="10" style="text-align: center; padding: 20px;">
+                    <div class="no-data"><i class="material-icons">info</i> No stores found</div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // 并行加载所有商店的数据
+    const promises = storeIds.map(storeId => {
+        return database.ref(`stock_history/${storeId}`).once('value')
+            .then(snapshot => {
+                const allStockHistory = snapshot.val() || {};
+                const storeRecords = [];
+                
+                // 遍历所有产品的历史记录
+                Object.keys(allStockHistory).forEach(productId => {
+                    const productHistory = allStockHistory[productId];
+                    if (!productHistory) return;
+                    
+                    // 遍历该产品的所有历史记录
+                    Object.keys(productHistory).forEach(historyId => {
+                        const record = productHistory[historyId];
+                        if (!record || !record.timestamp) return;
+                        
+                        // 提取日期部分（格式：YYYY-MM-DD HH:MM:SS）
+                        const recordDate = record.timestamp.split(' ')[0];
+                        
+                        // 显示指定日期的所有记录（包括进货和消耗）
+                        if (recordDate === selectedDate) {
+                            storeRecords.push({
+                                productId,
+                                storeId,
+                                ...record
+                            });
+                        }
+                    });
+                });
+                
+                return storeRecords;
+            });
+    });
+    
+    Promise.all(promises)
+        .then(allStoreRecords => {
+            // 合并所有商店的记录
+            const allRecords = allStoreRecords.flat();
+            
+            // 按时间排序，最新的在前
+            allRecords.sort((a, b) => {
+                return new Date(b.timestamp) - new Date(a.timestamp);
+            });
+            
+            // 更新统计信息
+            updateStockHistorySummary(allRecords);
+            
+            // 显示记录
+            displayStockHistoryRecords(allRecords);
+        })
+        .catch(error => {
+            console.error('Failed to load stock history:', error);
+            stockHistoryTableBody.innerHTML = `
+                <tr>
+                    <td colspan="10" style="text-align: center; padding: 20px; color: #e74c3c;">
+                        <i class="material-icons">error</i> Failed to load stock history data
+                    </td>
+                </tr>
+            `;
+        });
+}
+
+// 显示库存历史记录
+function displayStockHistoryRecords(records) {
+    if (!stockHistoryTableBody) return;
+    
+    // 检查是否选择了所有商店
+    const selectedStoreId = stockHistoryStoreFilter ? stockHistoryStoreFilter.value : 'all';
+    const showStoreColumn = selectedStoreId === 'all';
+    
+    // 显示/隐藏商店列表头
+    const storeColumnHeader = document.getElementById('storeColumnHeader');
+    if (storeColumnHeader) {
+        storeColumnHeader.style.display = showStoreColumn ? '' : 'none';
+    }
+    
+    if (records.length === 0) {
+        const colspan = showStoreColumn ? 11 : 10;
+        stockHistoryTableBody.innerHTML = `
+            <tr>
+                <td colspan="${colspan}" style="text-align: center; padding: 20px;">
+                    <div class="no-data"><i class="material-icons">info</i> No stock history found for this date</div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // 收集所有需要获取的产品信息（去重）
+    const productKeys = new Set();
+    records.forEach(record => {
+        if (record.storeId && record.productId) {
+            productKeys.add(`${record.storeId}_${record.productId}`);
+        }
+    });
+    
+    // 并行获取所有产品信息
+    const productPromises = Array.from(productKeys).map(key => {
+        const [storeId, productId] = key.split('_');
+        return database.ref(`store_products/${storeId}/${productId}`).once('value')
+            .then(snapshot => {
+                const product = snapshot.val();
+                return {
+                    key: key,
+                    product: product || null
+                };
+            })
+            .catch(error => {
+                console.error(`Failed to load product ${productId} from store ${storeId}:`, error);
+                return {
+                    key: key,
+                    product: null
+                };
+            });
+    });
+    
+    // 等待所有产品信息加载完成后再显示
+    Promise.all(productPromises)
+        .then(productResults => {
+            // 创建产品信息映射
+            const productMap = {};
+            productResults.forEach(({ key, product }) => {
+                productMap[key] = product;
+            });
+            
+            // 生成表格内容
+            let tableHTML = '';
+            records.forEach(record => {
+                // 从产品映射中获取产品信息
+                const productKey = `${record.storeId}_${record.productId}`;
+                const product = productMap[productKey] || {};
+                const productName = product.name || record.productId;
+                const category = product.category || '-';
+                
+                // 获取商店名称
+                const storeName = stores[record.storeId] ? stores[record.storeId].name : record.storeId;
+                
+                // 格式化时间（只显示时间部分）
+                const timePart = record.timestamp.split(' ')[1] || record.timestamp;
+                
+                // 根据 operation 判断是增加还是减少库存
+                const operation = record.operation || 'add';
+                const quantity = record.quantity || 0;
+                let displayQuantity;
+                let quantityColor;
+                
+                if (operation === 'subtract') {
+                    // 减少库存，显示负数，红色
+                    displayQuantity = `-${quantity}`;
+                    quantityColor = '#f44336'; // 红色
+                } else {
+                    // 增加库存，显示正数，绿色
+                    displayQuantity = `+${quantity}`;
+                    quantityColor = '#4caf50'; // 绿色
+                }
+                
+                // 根据是否显示商店列来构建表格行
+                if (showStoreColumn) {
+                    tableHTML += `
+                        <tr>
+                            <td>${timePart}</td>
+                            <td>${storeName}</td>
+                            <td>${record.productId}</td>
+                            <td>${productName}</td>
+                            <td>${category}</td>
+                            <td style="text-align: center; color: ${quantityColor}; font-weight: 600;">${displayQuantity}</td>
+                            <td style="text-align: center;">${record.previous_stock || 0}</td>
+                            <td style="text-align: center; font-weight: 600;">${record.new_stock || 0}</td>
+                            <td>${record.reason || '-'}</td>
+                            <td>${record.cashier || '-'}</td>
+                            <td>${record.notes || '-'}</td>
+                        </tr>
+                    `;
+                } else {
+                    tableHTML += `
+                        <tr>
+                            <td>${timePart}</td>
+                            <td>${record.productId}</td>
+                            <td>${productName}</td>
+                            <td>${category}</td>
+                            <td style="text-align: center; color: ${quantityColor}; font-weight: 600;">${displayQuantity}</td>
+                            <td style="text-align: center;">${record.previous_stock || 0}</td>
+                            <td style="text-align: center; font-weight: 600;">${record.new_stock || 0}</td>
+                            <td>${record.reason || '-'}</td>
+                            <td>${record.cashier || '-'}</td>
+                            <td>${record.notes || '-'}</td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            stockHistoryTableBody.innerHTML = tableHTML;
+        })
+        .catch(error => {
+            console.error('Failed to load product information:', error);
+            // 即使产品信息加载失败，也显示记录（使用 productId 作为名称）
+            let tableHTML = '';
+            records.forEach(record => {
+                const storeName = stores[record.storeId] ? stores[record.storeId].name : record.storeId;
+                const timePart = record.timestamp.split(' ')[1] || record.timestamp;
+                const operation = record.operation || 'add';
+                const quantity = record.quantity || 0;
+                let displayQuantity;
+                let quantityColor;
+                
+                if (operation === 'subtract') {
+                    displayQuantity = `-${quantity}`;
+                    quantityColor = '#f44336';
+                } else {
+                    displayQuantity = `+${quantity}`;
+                    quantityColor = '#4caf50';
+                }
+                
+                if (showStoreColumn) {
+                    tableHTML += `
+                        <tr>
+                            <td>${timePart}</td>
+                            <td>${storeName}</td>
+                            <td>${record.productId}</td>
+                            <td>${record.productId}</td>
+                            <td>-</td>
+                            <td style="text-align: center; color: ${quantityColor}; font-weight: 600;">${displayQuantity}</td>
+                            <td style="text-align: center;">${record.previous_stock || 0}</td>
+                            <td style="text-align: center; font-weight: 600;">${record.new_stock || 0}</td>
+                            <td>${record.reason || '-'}</td>
+                            <td>${record.cashier || '-'}</td>
+                            <td>${record.notes || '-'}</td>
+                        </tr>
+                    `;
+                } else {
+                    tableHTML += `
+                        <tr>
+                            <td>${timePart}</td>
+                            <td>${record.productId}</td>
+                            <td>${record.productId}</td>
+                            <td>-</td>
+                            <td style="text-align: center; color: ${quantityColor}; font-weight: 600;">${displayQuantity}</td>
+                            <td style="text-align: center;">${record.previous_stock || 0}</td>
+                            <td style="text-align: center; font-weight: 600;">${record.new_stock || 0}</td>
+                            <td>${record.reason || '-'}</td>
+                            <td>${record.cashier || '-'}</td>
+                            <td>${record.notes || '-'}</td>
+                        </tr>
+                    `;
+                }
+            });
+            stockHistoryTableBody.innerHTML = tableHTML;
+        });
+}
+
+// 更新 Stock History 统计信息
+function updateStockHistorySummary(records) {
+    if (!records || records.length === 0) {
+        if (totalItemsReceived) totalItemsReceived.textContent = '0';
+        if (totalQuantityReceived) totalQuantityReceived.textContent = '0';
+        if (lastReceiptTime) lastReceiptTime.textContent = '-';
+        return;
+    }
+    
+    // 只统计增加库存的记录（进货记录）
+    const receiptRecords = records.filter(r => {
+        const operation = r.operation || 'add';
+        return operation !== 'subtract';
+    });
+    
+    // 计算不同产品的数量（只统计进货记录）
+    const uniqueProducts = new Set(receiptRecords.map(r => r.productId));
+    if (totalItemsReceived) {
+        totalItemsReceived.textContent = uniqueProducts.size;
+    }
+    
+    // 计算总数量（只统计进货记录）
+    const totalQuantity = receiptRecords.reduce((sum, r) => sum + (r.quantity || 0), 0);
+    if (totalQuantityReceived) {
+        totalQuantityReceived.textContent = totalQuantity;
+    }
+    
+    // 获取最后进货时间（只统计进货记录）
+    if (receiptRecords.length > 0 && lastReceiptTime) {
+        const lastRecord = receiptRecords[0]; // 已经按时间排序，第一个就是最新的
+        const timePart = lastRecord.timestamp.split(' ')[1] || lastRecord.timestamp;
+        lastReceiptTime.textContent = timePart;
+    } else if (lastReceiptTime) {
+        lastReceiptTime.textContent = '-';
+    }
 }

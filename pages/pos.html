@@ -215,6 +215,7 @@
                     <div class="nav-item active" data-view="sales"><i class="material-icons">point_of_sale</i> <span class="nav-text">Sales</span></div>
                     <div class="nav-item" data-view="salesHistory"><i class="material-icons">history</i> <span class="nav-text">Sales History</span></div>
                     <div class="nav-item" data-view="inventory"><i class="material-icons">inventory_2</i> <span class="nav-text">Inventory</span></div>
+                    <div class="nav-item" data-view="stockHistory"><i class="material-icons">local_shipping</i> <span class="nav-text">Stock History</span></div>
                     <div class="nav-item" onclick="location.href='./product_catalog.html'"><i class="material-icons">menu_book</i> <span class="nav-text">Product Catalog</span></div>
                     <div class="nav-item" onclick="logout()"><i class="material-icons">logout</i> <span class="nav-text">Logout</span></div>
                 </div>
@@ -423,6 +424,80 @@
                     </table>
                 </div>
             </div>
+            
+            <!-- Stock History View -->
+            <div id="stockHistoryView" class="view">
+                <div class="stock-history-header">
+                    <h2><i class="material-icons">local_shipping</i> <span id="stockHistoryTitle">Today's Stock Receipts</span></h2>
+                    <div class="stock-history-filters">
+                        <div class="date-filter-group">
+                            <label for="stockHistoryDatePicker">
+                                <i class="material-icons">event</i>
+                                <span>Date:</span>
+                            </label>
+                            <input type="date" id="stockHistoryDatePicker" value="">
+                        </div>
+                        <button id="refreshStockHistoryBtn" class="icon-button" aria-label="刷新进货记录">
+                            <i class="material-icons" aria-hidden="true">refresh</i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="stock-history-summary">
+                    <div class="summary-card">
+                        <div class="summary-icon"><i class="material-icons">inventory</i></div>
+                        <div class="summary-content">
+                            <h3>Total Items Received</h3>
+                            <div class="summary-value" id="totalItemsReceived">0</div>
+                            <div class="summary-subtitle">Different products</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-card">
+                        <div class="summary-icon"><i class="material-icons">add_shopping_cart</i></div>
+                        <div class="summary-content">
+                            <h3>Total Quantity</h3>
+                            <div class="summary-value" id="totalQuantityReceived">0</div>
+                            <div class="summary-subtitle" id="totalQuantitySubtitle">Units received</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-card">
+                        <div class="summary-icon"><i class="material-icons">schedule</i></div>
+                        <div class="summary-content">
+                            <h3>Last Receipt</h3>
+                            <div class="summary-value" id="lastReceiptTime">-</div>
+                            <div class="summary-subtitle">Most recent entry</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stock-history-table-container">
+                    <table id="stockHistoryTable">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Product ID</th>
+                                <th>Product Name</th>
+                                <th>Category</th>
+                                <th>Quantity</th>
+                                <th>Previous Stock</th>
+                                <th>New Stock</th>
+                                <th>Reason</th>
+                                <th>Cashier</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockHistoryTableBody">
+                            <tr>
+                                <td colspan="10" style="text-align: center; padding: 20px;">
+                                    <div class="loading"><i class="material-icons">hourglass_empty</i> Loading today's stock receipts...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -543,7 +618,7 @@
     
     <!-- Stock History Modal -->
     <div id="stockHistoryModal" class="modal">
-        <div class="modal-content" style="width: 80%;">
+        <div class="modal-content stock-history-modal-content">
             <span class="close">&times;</span>
             <h2><i class="material-icons">history</i> Stock History</h2>
             <div id="stockHistoryContent">

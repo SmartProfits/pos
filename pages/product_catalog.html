@@ -84,6 +84,7 @@
                 <div class="nav-item" id="backButton" onclick="location.href='admin.html'"><i class="material-icons">arrow_back</i> Back to Admin</div>
                 <div class="nav-item active" data-view="catalog" id="catalogNavItem"><i class="material-icons">menu_book</i> Product Catalog</div>
                 <div class="nav-item" data-view="import" id="importNavItem"><i class="material-icons">download</i> Import Products</div>
+                <div class="nav-item admin-only" data-view="sync" id="syncNavItem"><i class="material-icons">sync_alt</i> Sync Store Products</div>
                 <div class="nav-item" onclick="logout()"><i class="material-icons">logout</i> Logout</div>
             </div>
         </div>
@@ -196,6 +197,70 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Sync Products View (Super Admin) -->
+            <div id="syncView" class="view">
+                <h2>Sync Store Products</h2>
+
+                <div class="page-header">
+                    <div class="filter-section">
+                        <div class="filter-item">
+                            <label for="syncStoreSelector">
+                                <i class="material-icons">store</i>
+                                <span>Store</span>
+                            </label>
+                            <select id="syncStoreSelector">
+                                <option value="">Select Store</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label for="syncMismatchFilter">
+                                <i class="material-icons">rule</i>
+                                <span>Status</span>
+                            </label>
+                            <select id="syncMismatchFilter">
+                                <option value="all">All</option>
+                                <option value="missing">Not in Catalog</option>
+                                <option value="name-mismatch">Name Mismatch</option>
+                                <option value="matched">Matched</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label for="syncSearch">
+                                <i class="material-icons">search</i>
+                                <span>Search</span>
+                            </label>
+                            <input type="text" id="syncSearch" placeholder="Search by ID or name...">
+                        </div>
+                    </div>
+                    <div class="header-actions">
+                        <button id="syncRefreshBtn" class="icon-button" title="Refresh store products">
+                            <i class="material-icons">refresh</i>
+                        </button>
+                        <button id="syncApplyAllBtn" class="action-button" disabled>
+                            <i class="material-icons">done_all</i>
+                            <span>Apply All Matches</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="data-table-container">
+                    <table id="syncTable">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Store Product ID</th>
+                                <th>Store Product Name</th>
+                                <th>Catalog Reference</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="syncTableBody">
+                            <!-- Sync list will be rendered dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -239,6 +304,31 @@
                     <span>Confirm Import</span>
                 </button>
                 <button id="cancelImportBtn" class="secondary-button">
+                    <i class="material-icons">close</i>
+                    <span>Cancel</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Match Modal -->
+    <div id="manualMatchModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">sync_alt</i> Match Store Product to Catalog</h2>
+            <p id="manualCurrentInfo"></p>
+            <div class="form-group">
+                <label for="manualCatalogInput"><i class="material-icons">menu_book</i> Catalog Product:</label>
+                <input list="manualCatalogOptions" id="manualCatalogInput" placeholder="Enter catalog ID to map">
+                <datalist id="manualCatalogOptions"></datalist>
+                <small>选择要映射的目录商品，将用其ID、名称、价格、类别覆盖店铺商品（保留库存与促销）</small>
+            </div>
+            <div class="modal-actions">
+                <button id="manualApplyBtn" class="primary-button">
+                    <i class="material-icons">check</i>
+                    <span>Apply</span>
+                </button>
+                <button id="manualCancelBtn" class="secondary-button">
                     <i class="material-icons">close</i>
                     <span>Cancel</span>
                 </button>

@@ -1359,30 +1359,115 @@ tr:hover {
     color: #c62828;
 }
 
+/* Stock History Modal 特殊样式 */
+.stock-history-modal-content {
+    width: 95% !important;
+    max-width: 1400px !important;
+    max-height: 90vh !important;
+    padding: 25px !important;
+}
+
+.stock-history-modal-content h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+
+#stockHistoryContent {
+    max-height: calc(90vh - 120px);
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
 .inventory-history-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 10px;
+    font-size: 13px;
+    min-width: 1200px;
 }
 
 .inventory-history-table th, 
 .inventory-history-table td {
-    padding: 8px;
+    padding: 10px 8px;
     border: 1px solid #ddd;
     text-align: left;
+    white-space: nowrap;
 }
 
 .inventory-history-table th {
-    background-color: #f5f5f5;
-    font-weight: bold;
+    background-color: #4a90e2;
+    color: white;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    font-size: 13px;
+    padding: 12px 8px;
 }
 
-.inventory-history-table tr:nth-child(even) {
-    background-color: #f9f9f9;
+.inventory-history-table th:first-child {
+    padding-left: 12px;
 }
 
-.inventory-history-table tr:hover {
-    background-color: #f1f1f1;
+.inventory-history-table td {
+    font-size: 12.5px;
+    background-color: #fff;
+}
+
+.inventory-history-table td:first-child {
+    padding-left: 12px;
+}
+
+.inventory-history-table tr:nth-child(even) td {
+    background-color: #f8f9fa;
+}
+
+.inventory-history-table tr:hover td {
+    background-color: #e3f2fd;
+}
+
+/* 优化列宽 */
+.inventory-history-table th:nth-child(1),
+.inventory-history-table td:nth-child(1) {
+    min-width: 160px;
+    max-width: 180px;
+}
+
+.inventory-history-table th:nth-child(2),
+.inventory-history-table td:nth-child(2) {
+    min-width: 120px;
+    max-width: 140px;
+}
+
+.inventory-history-table th:nth-child(3),
+.inventory-history-table td:nth-child(3),
+.inventory-history-table th:nth-child(4),
+.inventory-history-table td:nth-child(4),
+.inventory-history-table th:nth-child(5),
+.inventory-history-table td:nth-child(5) {
+    min-width: 100px;
+    max-width: 120px;
+    text-align: center;
+}
+
+.inventory-history-table th:nth-child(6),
+.inventory-history-table td:nth-child(6) {
+    min-width: 140px;
+    max-width: 180px;
+}
+
+.inventory-history-table th:nth-child(7),
+.inventory-history-table td:nth-child(7) {
+    min-width: 120px;
+    max-width: 150px;
+}
+
+.inventory-history-table th:nth-child(8),
+.inventory-history-table td:nth-child(8) {
+    min-width: 150px;
+    max-width: 250px;
+    white-space: normal;
+    word-wrap: break-word;
 }
 
 /* 折扣功能样式 */
@@ -5452,5 +5537,184 @@ body {
     .color-picker-container {
         flex-direction: column;
         align-items: flex-start;
+    }
+}
+
+/* Stock History View 样式 */
+.stock-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    background-color: white;
+    border-radius: 8px;
+    padding: 15px 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.stock-history-header h2 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #333;
+    font-size: 24px;
+}
+
+.stock-history-header h2 .material-icons {
+    color: #4a90e2;
+}
+
+.stock-history-filters {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.date-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.date-filter-group label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #555;
+    font-weight: 500;
+}
+
+.date-filter-group .material-icons {
+    font-size: 20px;
+    color: #4a90e2;
+}
+
+.date-filter-group input[type="date"] {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.date-filter-group input[type="date"]:hover {
+    border-color: #4a90e2;
+}
+
+.date-filter-group input[type="date"]:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.stock-history-summary {
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.stock-history-table-container {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    overflow-x: auto;
+    max-height: calc(100vh - 450px);
+    overflow-y: auto;
+}
+
+#stockHistoryTable {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1200px;
+}
+
+#stockHistoryTable thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #4a90e2;
+}
+
+#stockHistoryTable th {
+    background-color: #4a90e2;
+    color: white;
+    font-weight: 600;
+    padding: 12px 10px;
+    text-align: left;
+    font-size: 13px;
+    border: 1px solid #357abd;
+}
+
+#stockHistoryTable th:first-child {
+    padding-left: 15px;
+}
+
+#stockHistoryTable td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    font-size: 12.5px;
+    background-color: #fff;
+}
+
+#stockHistoryTable td:first-child {
+    padding-left: 15px;
+}
+
+#stockHistoryTable tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+#stockHistoryTable tbody tr:hover {
+    background-color: #e3f2fd;
+    transition: background-color 0.2s ease;
+}
+
+#stockHistoryTable .loading,
+#stockHistoryTable .no-data {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+#stockHistoryTable .loading .material-icons,
+#stockHistoryTable .no-data .material-icons {
+    font-size: 48px;
+    color: #999;
+    margin-bottom: 10px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .stock-history-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .stock-history-filters {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .date-filter-group {
+        width: 100%;
+    }
+    
+    .date-filter-group input[type="date"] {
+        width: 100%;
+    }
+    
+    .stock-history-summary {
+        flex-direction: column;
+    }
+    
+    .summary-card {
+        min-width: 100%;
     }
 }

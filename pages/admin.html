@@ -197,6 +197,7 @@
                 <div class="nav-item" data-view="stores"><i class="material-icons">store</i> Stores</div>
                 <div class="nav-item" data-view="products"><i class="material-icons">inventory</i> Products</div>
                 <div class="nav-item" data-view="inventory"><i class="material-icons">inventory_2</i> Inventory</div>
+                <div class="nav-item" data-view="stock-history"><i class="material-icons">local_shipping</i> Stock History</div>
                 <div class="nav-item" onclick="location.href='./product_catalog.html'"><i class="material-icons">menu_book</i> Product Catalog</div>
                 <div class="nav-item" data-view="users"><i class="material-icons">people</i> Users</div>
                 <div class="nav-item sadmin-only" data-view="online-users"><i class="material-icons">online_prediction</i> Online Users</div>
@@ -580,6 +581,91 @@
                         </thead>
                         <tbody id="announcementsTableBody">
                             <!-- Announcement list will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Stock History View -->
+            <div id="stock-historyView" class="view">
+                <div class="stock-history-header">
+                    <h2><i class="material-icons">local_shipping</i> <span id="stockHistoryTitle">Stock History</span></h2>
+                    <div class="stock-history-filters">
+                        <div class="filter-item">
+                            <label for="stockHistoryStoreFilter">
+                                <i class="material-icons">store</i>
+                                <span>Store</span>
+                            </label>
+                            <select id="stockHistoryStoreFilter">
+                                <option value="all">All Stores</option>
+                                <!-- Store options will be loaded dynamically -->
+                            </select>
+                        </div>
+                        <div class="date-filter-group">
+                            <label for="stockHistoryDatePicker">
+                                <i class="material-icons">event</i>
+                                <span>Date:</span>
+                            </label>
+                            <input type="date" id="stockHistoryDatePicker" value="">
+                        </div>
+                        <button id="refreshStockHistoryBtn" class="icon-button" title="刷新库存历史">
+                            <i class="material-icons">refresh</i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="stock-history-summary">
+                    <div class="summary-card">
+                        <div class="summary-icon"><i class="material-icons">inventory</i></div>
+                        <div class="summary-content">
+                            <h3>Total Items Received</h3>
+                            <div class="summary-value" id="totalItemsReceived">0</div>
+                            <div class="summary-subtitle">Different products</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-card">
+                        <div class="summary-icon"><i class="material-icons">add_shopping_cart</i></div>
+                        <div class="summary-content">
+                            <h3>Total Quantity</h3>
+                            <div class="summary-value" id="totalQuantityReceived">0</div>
+                            <div class="summary-subtitle" id="totalQuantitySubtitle">Units received</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-card">
+                        <div class="summary-icon"><i class="material-icons">schedule</i></div>
+                        <div class="summary-content">
+                            <h3>Last Receipt</h3>
+                            <div class="summary-value" id="lastReceiptTime">-</div>
+                            <div class="summary-subtitle">Most recent entry</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stock-history-table-container">
+                    <table id="stockHistoryTable">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th id="storeColumnHeader" style="display: none;">Store</th>
+                                <th>Product ID</th>
+                                <th>Product Name</th>
+                                <th>Category</th>
+                                <th>Quantity</th>
+                                <th>Previous Stock</th>
+                                <th>New Stock</th>
+                                <th>Reason</th>
+                                <th>Cashier</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockHistoryTableBody">
+                            <tr>
+                                <td colspan="11" style="text-align: center; padding: 20px;">
+                                    <div class="loading"><i class="material-icons">hourglass_empty</i> Loading stock history...</div>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>

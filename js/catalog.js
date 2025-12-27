@@ -1,11 +1,16 @@
 // 定义全局变量
 let currentUser = null;
 let currentStore = null;
+let currentUserRole = 'staff';
+let isSuperAdmin = false;
+let isAdminUser = false;
 let catalogProducts = {}; // 全局商品目录
 let categories = new Set(); // 商品类别
 let selectedProducts = new Set(); // 选中的产品
 let stores = {}; // 商店列表
 let storeProducts = {}; // 商店产品
+let syncStoreProducts = {}; // 同步视图的店铺商品
+let pendingSyncTarget = null; // { storeId, productId }
 
 // DOM元素
 const storeName = document.getElementById('storeName');
@@ -34,6 +39,21 @@ const importCount = document.getElementById('importCount');
 const confirmImportBtn = document.getElementById('confirmImportBtn');
 const cancelImportBtn = document.getElementById('cancelImportBtn');
 
+// 同步视图DOM元素（仅Super Admin）
+const syncNavItem = document.getElementById('syncNavItem');
+const syncStoreSelector = document.getElementById('syncStoreSelector');
+const syncMismatchFilter = document.getElementById('syncMismatchFilter');
+const syncSearch = document.getElementById('syncSearch');
+const syncTableBody = document.getElementById('syncTableBody');
+const syncApplyAllBtn = document.getElementById('syncApplyAllBtn');
+const syncRefreshBtn = document.getElementById('syncRefreshBtn');
+const manualMatchModal = document.getElementById('manualMatchModal');
+const manualCatalogInput = document.getElementById('manualCatalogInput');
+const manualCatalogOptions = document.getElementById('manualCatalogOptions');
+const manualCurrentInfo = document.getElementById('manualCurrentInfo');
+const manualApplyBtn = document.getElementById('manualApplyBtn');
+const manualCancelBtn = document.getElementById('manualCancelBtn');
+
 // 模态框关闭按钮
 const closeButtons = document.querySelectorAll('.close');
 
@@ -50,8 +70,11 @@ document.addEventListener('DOMContentLoaded', () => {
             currentUser = user;
             getUserInfo(user.uid)
                 .then(userInfo => {
+                    currentUserRole = userInfo?.role || 'staff';
+                    isSuperAdmin = currentUserRole === 'sadmin';
+                    isAdminUser = currentUserRole === 'admin' || isSuperAdmin;
                     // 检查用户是否是管理员
-                    const isAdmin = userInfo && (userInfo.role === 'admin' || userInfo.role === 'sadmin');
+                    const isAdmin = isAdminUser;
                     
                     // 如果不是管理员，则需要检查商店ID
                     if (!isAdmin && (!userInfo || !userInfo.store_id)) {
@@ -62,6 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // 设置当前商店(管理员默认可以访问所有商店)
                     currentStore = isAdmin ? 'admin' : userInfo.store_id;
+                    if (!isSuperAdmin && syncNavItem) {
+                        syncNavItem.style.display = 'none';
+                    }
                     document.getElementById('storeName').textContent = `Store: ${isAdmin ? 'All Stores (Admin)' : (userInfo.store_name || currentStore)}`;
                     document.getElementById('userName').textContent = `User: ${user.email}`;
                     
@@ -82,6 +108,7 @@ function init() {
         loadStores().then(() => {
             // 创建商店选择器
             createStoreSelector();
+            populateSyncStoreSelector();
         });
     }
 
@@ -196,6 +223,31 @@ function initEventListeners() {
     
     // 取消导入按钮
     cancelImportBtn.addEventListener('click', () => hideModal(importConfirmModal));
+
+    // 同步视图事件（仅Super Admin）
+    if (isSuperAdmin) {
+        if (syncStoreSelector) {
+            syncStoreSelector.addEventListener('change', () => loadSyncStoreProducts());
+        }
+        if (syncMismatchFilter) {
+            syncMismatchFilter.addEventListener('change', renderSyncProducts);
+        }
+        if (syncSearch) {
+            syncSearch.addEventListener('input', renderSyncProducts);
+        }
+        if (syncRefreshBtn) {
+            syncRefreshBtn.addEventListener('click', () => loadSyncStoreProducts(true));
+        }
+        if (syncApplyAllBtn) {
+            syncApplyAllBtn.addEventListener('click', applyAllCatalogMatches);
+        }
+    }
+    if (manualApplyBtn) {
+        manualApplyBtn.addEventListener('click', handleManualApply);
+    }
+    if (manualCancelBtn) {
+        manualCancelBtn.addEventListener('click', () => hideModal(manualMatchModal));
+    }
 }
 
 // 切换视图
@@ -222,6 +274,19 @@ function switchView(viewName) {
     // 根据视图更新数据
     if (viewName === 'import') {
         renderImportProducts();
+    }
+    
+    if (viewName === 'sync') {
+        if (!isSuperAdmin) {
+            alert('Only Super Admin can access sync view');
+            switchView('catalog');
+            return;
+        }
+        // 默认选择第一个店铺
+        if (currentStore === 'admin' && syncStoreSelector && !syncStoreSelector.value && Object.keys(stores).length > 0) {
+            syncStoreSelector.value = Object.keys(stores)[0];
+        }
+        loadSyncStoreProducts();
     }
 }
 
@@ -265,6 +330,9 @@ function loadCatalogProducts() {
             
             // 渲染商品
             renderCatalogProducts();
+            
+            // 刷新手动匹配下拉
+            refreshManualCatalogOptions();
         })
         .catch(error => {
             console.error('Failed to load catalog products:', error);
@@ -1116,4 +1184,253 @@ function createStoreSelector() {
             });
         }
     }
+    
+    // 同步视图下拉
+    populateSyncStoreSelector();
 } 
+
+// 填充同步视图的店铺选择下拉
+function populateSyncStoreSelector() {
+    if (!syncStoreSelector || Object.keys(stores).length === 0) return;
+    syncStoreSelector.innerHTML = '<option value="">Select Store</option>';
+    Object.entries(stores).forEach(([storeId, store]) => {
+        const option = document.createElement('option');
+        option.value = storeId;
+        option.textContent = store.name || storeId;
+        syncStoreSelector.appendChild(option);
+    });
+}
+
+// 加载指定店铺的商品（同步视图）
+function loadSyncStoreProducts(force = false) {
+    if (!syncTableBody) return;
+    const targetStore = currentStore === 'admin' ? (syncStoreSelector ? syncStoreSelector.value : '') : currentStore;
+    
+    if (!targetStore) {
+        syncTableBody.innerHTML = '<tr><td colspan="5" class="no-data"><i class="material-icons">info</i> Please select a store first</td></tr>';
+        if (syncApplyAllBtn) syncApplyAllBtn.disabled = true;
+        return;
+    }
+    
+    syncTableBody.innerHTML = '<tr><td colspan="5" class="loading"><i class="material-icons">hourglass_empty</i> Loading store products...</td></tr>';
+    
+    firebase.database().ref(`store_products/${targetStore}`).once('value')
+        .then(snapshot => {
+            syncStoreProducts = snapshot.val() || {};
+            renderSyncProducts();
+        })
+        .catch(error => {
+            console.error('Failed to load store products for sync:', error);
+            syncTableBody.innerHTML = '<tr><td colspan="5" class="error"><i class="material-icons">error</i> Failed to load store products</td></tr>';
+            if (syncApplyAllBtn) syncApplyAllBtn.disabled = true;
+        });
+}
+
+// 渲染同步视图列表
+function renderSyncProducts() {
+    if (!syncTableBody) return;
+    
+    const targetStore = currentStore === 'admin' ? (syncStoreSelector ? syncStoreSelector.value : '') : currentStore;
+    const searchTerm = syncSearch ? syncSearch.value.toLowerCase() : '';
+    const filter = syncMismatchFilter ? syncMismatchFilter.value : 'all';
+    
+    syncTableBody.innerHTML = '';
+    
+    if (!targetStore) {
+        syncTableBody.innerHTML = '<tr><td colspan="5" class="no-data"><i class="material-icons">info</i> Please select a store first</td></tr>';
+        if (syncApplyAllBtn) syncApplyAllBtn.disabled = true;
+        return;
+    }
+    
+    const productEntries = Object.entries(syncStoreProducts || {});
+    if (productEntries.length === 0) {
+        syncTableBody.innerHTML = '<tr><td colspan="5" class="no-data"><i class="material-icons">info</i> No products found for this store</td></tr>';
+        if (syncApplyAllBtn) syncApplyAllBtn.disabled = true;
+        return;
+    }
+    
+    let pendingCount = 0;
+    
+    productEntries.forEach(([productId, product]) => {
+        const catalogMatch = catalogProducts[productId];
+        const nameMismatch = catalogMatch && catalogMatch.name !== product.name;
+        const status = !catalogMatch ? 'missing' : (nameMismatch ? 'name-mismatch' : 'matched');
+        
+        if (filter !== 'all' && filter !== status) return;
+        if (searchTerm) {
+            const name = (product.name || '').toLowerCase();
+            if (!productId.toLowerCase().includes(searchTerm) && !name.includes(searchTerm)) return;
+        }
+        
+        if (status !== 'matched') pendingCount++;
+        
+        let statusBadge = '';
+        if (!catalogMatch) {
+            statusBadge = '<span class="badge warning">ID not in catalog</span>';
+        } else if (nameMismatch) {
+            statusBadge = '<span class="badge alert">Name mismatch</span>';
+        } else {
+            statusBadge = '<span class="badge success">Matched</span>';
+        }
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${statusBadge}</td>
+            <td>${productId}</td>
+            <td>${product.name || '-'}</td>
+            <td>${catalogMatch ? `${productId} - ${catalogMatch.name}` : '—'}</td>
+            <td>
+                <div class="catalog-actions">
+                    ${catalogMatch ? `<button class="catalog-btn edit-catalog-btn" data-action="apply" data-id="${productId}" title="Use catalog data"><i class="material-icons">done</i></button>` : ''}
+                    <button class="catalog-btn edit-catalog-btn" data-action="manual" data-id="${productId}" title="Manual match"><i class="material-icons">sync_alt</i></button>
+                </div>
+            </td>
+        `;
+        
+        syncTableBody.appendChild(row);
+    });
+    
+    if (syncApplyAllBtn) {
+        syncApplyAllBtn.disabled = pendingCount === 0;
+    }
+    
+    // 绑定按钮事件
+    syncTableBody.querySelectorAll('button[data-action]').forEach(btn => {
+        const productId = btn.dataset.id;
+        const action = btn.dataset.action;
+        btn.addEventListener('click', () => {
+            if (action === 'apply') {
+                applyCatalogDataToStoreProduct(targetStore, productId, productId);
+            } else if (action === 'manual') {
+                openManualMatchModal(targetStore, productId);
+            }
+        });
+    });
+}
+
+// 使用目录数据更新店铺商品
+function applyCatalogDataToStoreProduct(storeId, storeProductId, catalogProductId) {
+    const storeProduct = syncStoreProducts[storeProductId];
+    const catalogProduct = catalogProducts[catalogProductId];
+    
+    if (!storeProduct || !catalogProduct) {
+        alert('Product not found in store or catalog');
+        return;
+    }
+    
+    const updatedData = {
+        ...storeProduct,
+        name: catalogProduct.name,
+        price: catalogProduct.price,
+        category: catalogProduct.category || '',
+        store_id: storeId,
+        quantity: storeProduct.quantity !== undefined ? storeProduct.quantity : (storeProduct.stock || 0),
+        stock: storeProduct.stock !== undefined ? storeProduct.stock : (storeProduct.quantity || 0),
+        promotionEnabled: storeProduct.promotionEnabled || false,
+        promotionPrice: storeProduct.promotionEnabled ? storeProduct.promotionPrice || null : null,
+        updated_at: firebase.database.ServerValue.TIMESTAMP
+    };
+    
+    const tasks = [];
+    if (catalogProductId !== storeProductId) {
+        // ID变化：删除旧的，写入新的
+        tasks.push(firebase.database().ref(`store_products/${storeId}/${storeProductId}`).remove());
+        tasks.push(firebase.database().ref(`store_products/${storeId}/${catalogProductId}`).set(updatedData));
+    } else {
+        tasks.push(firebase.database().ref(`store_products/${storeId}/${storeProductId}`).update(updatedData));
+    }
+    
+    Promise.all(tasks)
+        .then(() => {
+            alert('Store product updated from catalog');
+            // 刷新本地数据并重渲染
+            loadSyncStoreProducts();
+        })
+        .catch(error => {
+            console.error('Failed to update store product from catalog:', error);
+            alert('Failed to update store product. Please try again.');
+        });
+}
+
+// 打开手动匹配模态框
+function openManualMatchModal(storeId, productId) {
+    pendingSyncTarget = { storeId, productId };
+    const product = syncStoreProducts[productId];
+    if (manualCurrentInfo) {
+        manualCurrentInfo.textContent = `Store Product: ${productId} - ${product?.name || ''}`;
+    }
+    if (manualCatalogInput) {
+        manualCatalogInput.value = '';
+    }
+    refreshManualCatalogOptions();
+    showModal(manualMatchModal);
+}
+
+// 手动应用映射
+function handleManualApply() {
+    if (!pendingSyncTarget) return;
+    const catalogId = manualCatalogInput ? manualCatalogInput.value.trim() : '';
+    if (!catalogId || !catalogProducts[catalogId]) {
+        alert('Please enter a valid catalog product ID');
+        return;
+    }
+    applyCatalogDataToStoreProduct(pendingSyncTarget.storeId, pendingSyncTarget.productId, catalogId);
+    hideModal(manualMatchModal);
+    pendingSyncTarget = null;
+}
+
+// 刷新手动匹配下拉列表
+function refreshManualCatalogOptions() {
+    if (!manualCatalogOptions) return;
+    manualCatalogOptions.innerHTML = '';
+    Object.entries(catalogProducts).forEach(([id, product]) => {
+        const option = document.createElement('option');
+        option.value = id;
+        option.label = `${id} - ${product.name}`;
+        manualCatalogOptions.appendChild(option);
+    });
+}
+
+// 批量应用目录匹配（仅对ID已存在但名称不一致的商品）
+function applyAllCatalogMatches() {
+    const targetStore = currentStore === 'admin' ? (syncStoreSelector ? syncStoreSelector.value : '') : currentStore;
+    if (!targetStore) {
+        alert('Please select a store first');
+        return;
+    }
+    
+    const tasks = [];
+    Object.entries(syncStoreProducts || {}).forEach(([productId, product]) => {
+        const catalogMatch = catalogProducts[productId];
+        if (catalogMatch && catalogMatch.name !== product.name) {
+            const updatedData = {
+                ...product,
+                name: catalogMatch.name,
+                price: catalogMatch.price,
+                category: catalogMatch.category || '',
+                store_id: targetStore,
+                quantity: product.quantity !== undefined ? product.quantity : (product.stock || 0),
+                stock: product.stock !== undefined ? product.stock : (product.quantity || 0),
+                promotionEnabled: product.promotionEnabled || false,
+                promotionPrice: product.promotionEnabled ? product.promotionPrice || null : null,
+                updated_at: firebase.database.ServerValue.TIMESTAMP
+            };
+            tasks.push(firebase.database().ref(`store_products/${targetStore}/${productId}`).update(updatedData));
+        }
+    });
+    
+    if (tasks.length === 0) {
+        alert('No mismatched products to update');
+        return;
+    }
+    
+    Promise.all(tasks)
+        .then(() => {
+            alert('All matched products updated from catalog');
+            loadSyncStoreProducts();
+        })
+        .catch(error => {
+            console.error('Failed to apply all catalog matches:', error);
+            alert('Failed to update some products. Please try again.');
+        });
+}
