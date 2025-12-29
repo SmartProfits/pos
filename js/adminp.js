@@ -8,6 +8,10 @@ let salesData = {};
 let dailySalesData = {};
 let selectedDate = null;
 
+// Timer system variables
+let activeTimers = {}; // Stores timestamps: { storeId: timestamp }
+let timerInterval = null;
+
 // DOM elements for category filter
 let categoryFilter = null;
 
@@ -40,13 +44,13 @@ const storeImageMap = {
     'store8': '../shop/jkl.png'
 };
 
-// Product image mapping will be loaded from external file
-
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Admin panel initializing...');
     initializeApp();
     setupEventListeners();
+    // Start the global timer loop
+    startLiveTimer();
     console.log('Admin panel ready!');
 });
 
@@ -526,6 +530,123 @@ function getStoreImage(storeId, storeName) {
 
 // Product image functions are now loaded from js/product-image-map.js
 
+// ====== REAL TIME TIMER LOGIC ======
+
+/**
+ * Starts the global interval to update all active counters every second.
+ */
+function startLiveTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    
+    // Update immediately, then every second
+    updateAllTimers();
+    timerInterval = setInterval(updateAllTimers, 1000);
+}
+
+/**
+ * Iterates through all known store timestamps and updates their DOM elements.
+ */
+function updateAllTimers() {
+    const now = new Date();
+    
+    Object.keys(activeTimers).forEach(storeId => {
+        const timestamp = activeTimers[storeId];
+        const el = document.getElementById(`last-sale-time-${storeId}`);
+        
+        if (el && timestamp) {
+            const diffInSeconds = Math.floor((now - new Date(timestamp)) / 1000);
+            
+            // Format time string
+            let timeString = '';
+            let color = '';
+            
+            if (diffInSeconds < 60) {
+                timeString = `${diffInSeconds}s `;
+                color = '#34C759'; // Bright Green (Active)
+            } else {
+                const minutes = Math.floor(diffInSeconds / 60);
+                const seconds = diffInSeconds % 60;
+                
+                if (minutes < 60) {
+                    timeString = `${minutes}m ${seconds}s `;
+                    color = '#34C759'; // Green (Active)
+                } else {
+                    const hours = Math.floor(minutes / 60);
+                    const remainingMinutes = minutes % 60;
+                
+                    if (hours < 24) {
+                        timeString = `${hours}h ${remainingMinutes}m ${seconds}s `;
+                        // Logic for color based on inactivity
+                        if (hours >= 3) {
+                            color = '#FF3B30'; // Grey (Inactive)
+                        } else {
+                            color = '#FF9500'; // Orange (Idle)
+                        }
+                    } else {
+                        // Over 24 hours, show date instead of seconds
+                         const dateObj = new Date(timestamp);
+                         timeString = dateObj.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'});
+                         color = '#8E8E93';
+                    }
+                }
+            }
+            
+            el.textContent = timeString;
+            el.style.color = color;
+            // Use tabular-nums to prevent jitter when numbers change width
+            el.style.fontVariantNumeric = 'tabular-nums'; 
+            el.style.fontWeight = '600';
+        }
+    });
+}
+
+/**
+ * Fetches the most recent sale for a specific store and date,
+ * then updates the global timer registry.
+ */
+function updateLastSaleTime(storeId, date) {
+    const datePath = getDatePathFromString(date);
+    const labelId = `last-sale-time-${storeId}`;
+    const el = document.getElementById(labelId);
+    
+    if (!el) return;
+
+    // Use firebase limitToLast to fetch only the most recent transaction
+    firebase.database().ref(`sales/${storeId}/${datePath.path}`)
+        .orderByChild('timestamp')
+        .limitToLast(1)
+        .once('value')
+        .then(snapshot => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                const key = Object.keys(data)[0];
+                const sale = data[key];
+                
+                if (sale && sale.timestamp) {
+                    // STORE THE TIMESTAMP IN GLOBAL OBJECT
+                    activeTimers[storeId] = sale.timestamp;
+                    
+                    // Trigger immediate update for this specific element so user doesn't wait 1s
+                    // We don't call updateAllTimers here to save performance, just let the interval handle it next tick
+                    // But we can manually set text for instant feedback
+                    el.textContent = 'Calculating...'; 
+                } else {
+                    delete activeTimers[storeId]; // Remove if no data
+                    el.textContent = 'No Sales';
+                    el.style.color = '#8E8E93';
+                }
+            } else {
+                delete activeTimers[storeId]; // Remove if no data
+                el.textContent = 'No Sales';
+                el.style.color = '#8E8E93';
+            }
+        })
+        .catch(err => {
+            console.error(`Error fetching last sale for ${storeId}:`, err);
+            el.textContent = 'No Sales';
+        });
+}
+
 // Render store cards for specific date
 function renderStoreCardsForDate(date) {
     const storesGrid = document.getElementById('storesGrid');
@@ -533,17 +654,13 @@ function renderStoreCardsForDate(date) {
 
     storesGrid.innerHTML = '';
     
+    // Reset timers map when rendering new cards
+    activeTimers = {};
+    
     if (Object.keys(storesData).length === 0) {
         storesGrid.innerHTML = '<div class="loading"><div class="spinner"></div>Loading stores data...</div>';
         return;
     }
-    
-    // Check if any stores have sales for this date
-    let hasAnySales = false;
-    Object.keys(storesData).forEach(storeId => {
-        const revenue = calculateRealStoreRevenue(storeId, date);
-        if (revenue > 0) hasAnySales = true;
-    });
     
     Object.entries(storesData).forEach(([storeId, store]) => {
         const storeRevenue = calculateRealStoreRevenue(storeId, date);
@@ -556,17 +673,22 @@ function renderStoreCardsForDate(date) {
         storeCard.innerHTML = `
             <div class="store-image">
                 <img src="${storeImage}" alt="${store.name}" onerror="this.src='../icons/pos.png'">
-                </div>
+            </div>
             <div class="store-info">
                 <h3>${store.name}</h3>
                 <div class="store-sales">
                     <div class="sales-amount">RM ${storeRevenue.toFixed(2)}</div>
-                    <div class="sales-label">Sales</div>
+                    <div class="sales-label" id="last-sale-time-${storeId}" style="min-width: 80px; text-align: right;">Checking...</div>
                 </div>
-        </div>
-    `;
+            </div>
+        `;
     
         storesGrid.appendChild(storeCard);
+    });
+
+    // After rendering HTML, trigger the async fetch for last sale times
+    Object.keys(storesData).forEach(storeId => {
+        updateLastSaleTime(storeId, date);
     });
 }
 
@@ -1702,4 +1824,3 @@ window.debugImagePerformance = function() {
     const estimatedMemory = imageCache.size * 0.1; // Rough estimate in MB
     console.log(`Estimated memory usage: ~${estimatedMemory.toFixed(2)} MB`);
 };
-
