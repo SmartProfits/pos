@@ -147,6 +147,92 @@
             75% { transform: translateY(3px); }
             100% { transform: translateY(0); }
         }
+        
+        /* Pending Transfers Styles */
+        .pending-transfers-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .pending-transfers-header h2 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #2c3e50;
+        }
+        
+        .pending-transfers-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .pending-transfers-table-container {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .pending-transfers-table-container table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .pending-transfers-table-container th {
+            background: #34495e;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .pending-transfers-table-container td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .pending-transfers-table-container tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .btn-confirm-transfer, .btn-reject-transfer {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            transition: all 0.2s;
+            margin-right: 5px;
+        }
+        
+        .btn-confirm-transfer {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-confirm-transfer:hover {
+            background: #229954;
+            transform: translateY(-1px);
+        }
+        
+        .btn-reject-transfer {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-reject-transfer:hover {
+            background: #c0392b;
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body>
@@ -216,6 +302,7 @@
                     <div class="nav-item" data-view="salesHistory"><i class="material-icons">history</i> <span class="nav-text">Sales History</span></div>
                     <div class="nav-item" data-view="inventory"><i class="material-icons">inventory_2</i> <span class="nav-text">Inventory</span></div>
                     <div class="nav-item" data-view="stockHistory"><i class="material-icons">local_shipping</i> <span class="nav-text">Stock History</span></div>
+                    <div class="nav-item" data-view="pendingTransfers"><i class="material-icons">swap_horiz</i> <span class="nav-text">Pending Transfers</span></div>
                     <div class="nav-item" onclick="location.href='./product_catalog.html'"><i class="material-icons">menu_book</i> <span class="nav-text">Product Catalog</span></div>
                     <div class="nav-item" onclick="logout()"><i class="material-icons">logout</i> <span class="nav-text">Logout</span></div>
                 </div>
@@ -492,6 +579,43 @@
                             <tr>
                                 <td colspan="10" style="text-align: center; padding: 20px;">
                                     <div class="loading"><i class="material-icons">hourglass_empty</i> Loading today's stock receipts...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Pending Transfers View -->
+            <div id="pendingTransfersView" class="view">
+                <div class="pending-transfers-header">
+                    <h2><i class="material-icons">swap_horiz</i> Pending Transfer Requests</h2>
+                    <div class="pending-transfers-actions">
+                        <button id="refreshPendingTransfersBtn" class="icon-button" aria-label="刷新待处理转移">
+                            <i class="material-icons" aria-hidden="true">refresh</i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="pending-transfers-table-container">
+                    <table id="pendingTransfersTable">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>From Store</th>
+                                <th>Product ID</th>
+                                <th>Product Name</th>
+                                <th>Category</th>
+                                <th>Quantity</th>
+                                <th>Reason</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingTransfersTableBody">
+                            <tr>
+                                <td colspan="9" style="text-align: center; padding: 20px;">
+                                    <div class="loading"><i class="material-icons">hourglass_empty</i> Loading pending transfers...</div>
                                 </td>
                             </tr>
                         </tbody>
