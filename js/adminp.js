@@ -45,7 +45,7 @@ const storeImageMap = {
 };
 
 // Initialize app
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('Admin panel initializing...');
     initializeApp();
     setupEventListeners();
@@ -61,13 +61,13 @@ function initializeApp() {
         showError('Firebase connection failed. Please check your internet connection and refresh the page.');
         return;
     }
-    
+
     // Check user authentication status
     firebase.auth().onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
             console.log('User authenticated:', user.email);
-            
+
             // 首先检查维护状态
             checkMaintenanceStatus().then(maintenanceData => {
                 if (maintenanceData.enabled) {
@@ -75,13 +75,13 @@ function initializeApp() {
                     showMaintenancePage();
                     return;
                 }
-                
+
                 // 如果没有维护模式，继续正常流程
                 // Initialize selected date
                 if (!selectedDate) {
                     selectedDate = getCurrentDate();
                 }
-                
+
                 loadUserProfile();
                 loadDashboardData();
             }).catch(error => {
@@ -105,7 +105,7 @@ function initializeApp() {
 function setupEventListeners() {
     // Bottom navigation
     document.querySelectorAll('.tab-item[data-view]').forEach(item => {
-        item.addEventListener('click', function() {
+        item.addEventListener('click', function () {
             const view = this.getAttribute('data-view');
             switchView(view);
         });
@@ -119,7 +119,7 @@ function setupEventListeners() {
 
     // Filter tabs
     document.querySelectorAll('.filter-tab').forEach(tab => {
-        tab.addEventListener('click', function() {
+        tab.addEventListener('click', function () {
             document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
             this.classList.add('active');
             filterProducts();
@@ -129,7 +129,7 @@ function setupEventListeners() {
     // Store selector
     const storeSelector = document.getElementById('storeSelector');
     if (storeSelector) {
-        storeSelector.addEventListener('change', function() {
+        storeSelector.addEventListener('change', function () {
             // Repopulate category filter when store changes
             populateCategoryFilter();
             // Then filter products
@@ -150,9 +150,9 @@ function setupEventListeners() {
         const today = getCurrentDate();
         datePickerInput.value = today;
         selectedDate = today;
-        
+
         // Listen for date changes
-        datePickerInput.addEventListener('change', function() {
+        datePickerInput.addEventListener('change', function () {
             selectedDate = this.value;
             updateDateDisplay();
             loadSalesDataForDate(selectedDate);
@@ -175,7 +175,7 @@ function setupEventListeners() {
 function switchView(viewName) {
     // Update navigation state
     document.querySelectorAll('.tab-item').forEach(item => {
-                        item.classList.remove('active');
+        item.classList.remove('active');
     });
     document.querySelector(`[data-view="${viewName}"]`).classList.add('active');
 
@@ -183,16 +183,16 @@ function switchView(viewName) {
     document.querySelectorAll('.view').forEach(view => {
         view.classList.remove('active');
     });
-    
+
     const targetView = document.getElementById(`${viewName}View`);
     if (targetView) {
         targetView.classList.add('active');
         currentView = viewName;
-        
+
         // Update navigation title
         const navTitle = document.getElementById('navTitle');
         const navSubtitle = document.getElementById('navSubtitle');
-        
+
         if (viewName === 'sales') {
             navTitle.innerHTML = 'Sales';
             navSubtitle.textContent = "Today's Performance";
@@ -211,7 +211,7 @@ async function loadUserProfile() {
         const userRef = firebase.database().ref(`users/${currentUser.uid}`);
         const snapshot = await userRef.once('value');
         const userData = snapshot.val();
-        
+
         if (userData) {
             document.getElementById('adminName').textContent = userData.name || 'Admin';
             document.getElementById('adminRole').textContent = userData.role || 'Admin';
@@ -225,7 +225,7 @@ async function loadUserProfile() {
 async function loadDashboardData() {
     try {
         showLoading('Loading dashboard data...');
-        
+
         // Initialize selected date if not set
         if (!selectedDate) {
             selectedDate = getCurrentDate();
@@ -234,13 +234,13 @@ async function loadDashboardData() {
                 datePickerInput.value = selectedDate;
             }
         }
-        
+
         await Promise.all([
             loadStores(),
             loadProducts(),
             loadRealSalesData()
         ]);
-        
+
         updateDashboardStats();
         updateDateDisplay();
         hideLoading();
@@ -271,7 +271,7 @@ async function loadProducts() {
         const productsRef = firebase.database().ref('store_products');
         const snapshot = await productsRef.once('value');
         const storeProducts = snapshot.val() || {};
-        
+
         // 合并所有店铺的产品数据
         productsData = {};
         Object.entries(storeProducts).forEach(([storeId, storeProductList]) => {
@@ -288,10 +288,10 @@ async function loadProducts() {
                 });
             }
         });
-        
+
         console.log('Loaded products data:', productsData);
         console.log('Total products loaded:', Object.keys(productsData).length);
-        
+
         // Populate category filter after loading products
         populateCategoryFilter();
     } catch (error) {
@@ -305,10 +305,10 @@ function updateDateDisplay() {
     if (selectedDate) {
         const dateObj = new Date(selectedDate);
         const today = getCurrentDate();
-        
+
         if (selectedDate === today) {
             navSubtitle.textContent = "Today's Performance";
-                } else {
+        } else {
             const options = { year: 'numeric', month: 'long', day: 'numeric' };
             navSubtitle.textContent = dateObj.toLocaleDateString('en-US', options);
         }
@@ -319,21 +319,22 @@ function updateDateDisplay() {
 async function loadSalesDataForDate(date) {
     try {
         showLoading(`Loading sales data for ${date}...`);
-        
+
         console.log('Loading sales data for date:', date);
-        
+
         // Load daily sales summary for all stores
         const dailySalesRef = firebase.database().ref('daily_sales');
         const dailySalesSnapshot = await dailySalesRef.once('value');
         dailySalesData = dailySalesSnapshot.val() || {};
-        
+
         console.log('Loaded daily sales data:', dailySalesData);
-        
+
         if (currentView === 'sales') {
             updateDashboardStatsForDate(date);
             renderStoreCardsForDate(date);
+            loadTopProductsStats(date);
         }
-        
+
         hideLoading();
     } catch (error) {
         console.error('Failed to load sales data for date:', error);
@@ -383,7 +384,7 @@ function updateDashboardStatsForDate(date) {
     let totalRevenue = 0;
     let totalTransactions = 0;
     let activeStores = 0;
-    
+
     console.log('Updating dashboard stats for date:', date);
     console.log('Available daily sales data:', dailySalesData);
 
@@ -393,19 +394,19 @@ function updateDashboardStatsForDate(date) {
     Object.keys(dailySalesData).forEach(storeId => {
         const storeData = dailySalesData[storeId];
         // 使用新的分层路径访问数据
-        if (storeData && storeData[datePath.year] && 
-            storeData[datePath.year][datePath.month] && 
+        if (storeData && storeData[datePath.year] &&
+            storeData[datePath.year][datePath.month] &&
             storeData[datePath.year][datePath.month][datePath.day]) {
             const dateSales = storeData[datePath.year][datePath.month][datePath.day];
             const storeTotalSales = parseFloat(dateSales.total_sales || 0);
             const storeTransactions = parseInt(dateSales.transaction_count || 0);
-            
+
             if (storeTotalSales > 0) {
                 totalRevenue += storeTotalSales;
                 totalTransactions += storeTransactions;
                 activeStores++;
             }
-            
+
             console.log(`Store ${storeId} - Sales: RM ${storeTotalSales}, Transactions: ${storeTransactions}`);
         }
     });
@@ -414,17 +415,17 @@ function updateDashboardStatsForDate(date) {
     const previousDate = getPreviousDate(date);
     const previousDatePath = getDatePathFromString(previousDate);
     let previousRevenue = 0;
-    
+
     Object.keys(dailySalesData).forEach(storeId => {
         const storeData = dailySalesData[storeId];
-        if (storeData && storeData[previousDatePath.year] && 
-            storeData[previousDatePath.year][previousDatePath.month] && 
+        if (storeData && storeData[previousDatePath.year] &&
+            storeData[previousDatePath.year][previousDatePath.month] &&
             storeData[previousDatePath.year][previousDatePath.month][previousDatePath.day]) {
             previousRevenue += parseFloat(storeData[previousDatePath.year][previousDatePath.month][previousDatePath.day].total_sales || 0);
         }
     });
 
-    const growthRate = previousRevenue > 0 ? 
+    const growthRate = previousRevenue > 0 ?
         ((totalRevenue - previousRevenue) / previousRevenue * 100) : 0;
 
     console.log('Dashboard stats:', {
@@ -446,6 +447,95 @@ function updateDashboardStatsForDate(date) {
 function updateDashboardStats() {
     const today = getCurrentDate();
     updateDashboardStatsForDate(today);
+}
+
+// Load top 3 products by qty and by revenue for the given date across all stores
+async function loadTopProductsStats(date) {
+    const qtyEl = document.getElementById('top3QtyList');
+    const revEl = document.getElementById('top3RevenueList');
+    if (!qtyEl || !revEl) return;
+
+    qtyEl.innerHTML = '<div class="top3-empty">Loading...</div>';
+    revEl.innerHTML = '<div class="top3-empty">Loading...</div>';
+
+    try {
+        const datePath = getDatePathFromString(date);
+        const storeIds = Object.keys(storesData);
+
+        // Fetch all stores' sales in parallel
+        const results = await Promise.all(
+            storeIds.map(storeId =>
+                firebase.database()
+                    .ref(`sales/${storeId}/${datePath.path}`)
+                    .once('value')
+                    .then(snap => snap.val() || {})
+                    .catch(() => ({}))
+            )
+        );
+
+        // Aggregate products
+        const qtyMap = {};   // productName -> total quantity
+        const revMap = {};   // productName -> total revenue (RM)
+
+        results.forEach(storeSales => {
+            Object.values(storeSales).forEach(sale => {
+                if (!sale || !sale.items) return;
+                sale.items.forEach(item => {
+                    const name = (item.name || item.productName || item.product_name || 'Unknown').trim();
+                    const qty = parseInt(item.quantity || item.qty || 1);
+                    const price = parseFloat(item.price || item.unit_price || 0);
+                    const subtotal = parseFloat(item.subtotal || item.total || (price * qty) || 0);
+
+                    if (!qtyMap[name]) qtyMap[name] = 0;
+                    if (!revMap[name]) revMap[name] = 0;
+                    qtyMap[name] += qty;
+                    revMap[name] += subtotal || (price * qty);
+                });
+            });
+        });
+
+        // Build top 3
+        const rankClasses = ['r1', 'r2', 'r3'];
+
+        // --- Top 3 by Quantity ---
+        const topQty = Object.entries(qtyMap)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3);
+
+        if (topQty.length === 0) {
+            qtyEl.innerHTML = '<div class="top3-empty">暂无数据</div>';
+        } else {
+            qtyEl.innerHTML = topQty.map(([name, qty], i) => `
+                <div class="top3-item">
+                    <span class="top3-rank ${rankClasses[i]}">${i + 1}</span>
+                    <span class="top3-name" title="${name}">${name}</span>
+                    <span class="top3-val">${qty} 件</span>
+                </div>
+            `).join('');
+        }
+
+        // --- Top 3 by Revenue ---
+        const topRev = Object.entries(revMap)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3);
+
+        if (topRev.length === 0) {
+            revEl.innerHTML = '<div class="top3-empty">暂无数据</div>';
+        } else {
+            revEl.innerHTML = topRev.map(([name, rev], i) => `
+                <div class="top3-item">
+                    <span class="top3-rank ${rankClasses[i]}">${i + 1}</span>
+                    <span class="top3-name" title="${name}">${name}</span>
+                    <span class="top3-val" style="color:#34C759;">RM ${rev.toFixed(2)}</span>
+                </div>
+            `).join('');
+        }
+
+    } catch (err) {
+        console.error('Failed to load top products stats:', err);
+        qtyEl.innerHTML = '<div class="top3-empty">加载失败</div>';
+        revEl.innerHTML = '<div class="top3-empty">加载失败</div>';
+    }
 }
 
 // Get yesterday's date
@@ -472,33 +562,33 @@ function getPreviousDate(dateString) {
 function animateValue(elementId, targetValue, prefix = '', suffix = '') {
     const element = document.getElementById(elementId);
     if (!element) return;
-    
+
     const startValue = 0;
     const duration = 1500;
     const startTime = performance.now();
-    
+
     function update(currentTime) {
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        
+
         // Use easing function for smooth animation
         const easeProgress = 1 - Math.pow(1 - progress, 3);
         const currentValue = startValue + (targetValue - startValue) * easeProgress;
-        
+
         if (elementId === 'totalRevenue') {
             element.textContent = `${prefix}${currentValue.toFixed(2)}${suffix}`;
         } else if (elementId === 'growthRate') {
             const sign = currentValue >= 0 ? '+' : '';
             element.textContent = `${sign}${currentValue.toFixed(1)}${suffix}`;
-            } else {
+        } else {
             element.textContent = `${prefix}${Math.round(currentValue)}${suffix}`;
         }
-        
+
         if (progress < 1) {
             requestAnimationFrame(update);
         }
     }
-    
+
     requestAnimationFrame(update);
 }
 
@@ -509,13 +599,13 @@ function getStoreImage(storeId, storeName) {
     if (storeImageMap[lowerStoreId]) {
         return storeImageMap[lowerStoreId];
     }
-    
+
     // Then try to match by store name (lowercase)
     const lowerStoreName = storeName ? storeName.toLowerCase().replace(/\s+/g, '') : '';
     if (storeImageMap[lowerStoreName]) {
         return storeImageMap[lowerStoreName];
     }
-    
+
     // Try partial matches for common store names
     const availableImages = Object.keys(storeImageMap);
     for (let imageKey of availableImages) {
@@ -523,7 +613,7 @@ function getStoreImage(storeId, storeName) {
             return storeImageMap[imageKey];
         }
     }
-    
+
     // Default fallback
     return '../icons/pos.png';
 }
@@ -537,7 +627,7 @@ function getStoreImage(storeId, storeName) {
  */
 function startLiveTimer() {
     if (timerInterval) clearInterval(timerInterval);
-    
+
     // Update immediately, then every second
     updateAllTimers();
     timerInterval = setInterval(updateAllTimers, 1000);
@@ -548,32 +638,32 @@ function startLiveTimer() {
  */
 function updateAllTimers() {
     const now = new Date();
-    
+
     Object.keys(activeTimers).forEach(storeId => {
         const timestamp = activeTimers[storeId];
         const el = document.getElementById(`last-sale-time-${storeId}`);
-        
+
         if (el && timestamp) {
             const diffInSeconds = Math.floor((now - new Date(timestamp)) / 1000);
-            
+
             // Format time string
             let timeString = '';
             let color = '';
-            
+
             if (diffInSeconds < 60) {
                 timeString = `${diffInSeconds}s `;
                 color = '#34C759'; // Bright Green (Active)
             } else {
                 const minutes = Math.floor(diffInSeconds / 60);
                 const seconds = diffInSeconds % 60;
-                
+
                 if (minutes < 60) {
                     timeString = `${minutes}m ${seconds}s `;
                     color = '#34C759'; // Green (Active)
                 } else {
                     const hours = Math.floor(minutes / 60);
                     const remainingMinutes = minutes % 60;
-                
+
                     if (hours < 24) {
                         timeString = `${hours}h ${remainingMinutes}m ${seconds}s `;
                         // Logic for color based on inactivity
@@ -584,17 +674,17 @@ function updateAllTimers() {
                         }
                     } else {
                         // Over 24 hours, show date instead of seconds
-                         const dateObj = new Date(timestamp);
-                         timeString = dateObj.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'});
-                         color = '#8E8E93';
+                        const dateObj = new Date(timestamp);
+                        timeString = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                        color = '#8E8E93';
                     }
                 }
             }
-            
+
             el.textContent = timeString;
             el.style.color = color;
             // Use tabular-nums to prevent jitter when numbers change width
-            el.style.fontVariantNumeric = 'tabular-nums'; 
+            el.style.fontVariantNumeric = 'tabular-nums';
             el.style.fontWeight = '600';
         }
     });
@@ -608,7 +698,7 @@ function updateLastSaleTime(storeId, date) {
     const datePath = getDatePathFromString(date);
     const labelId = `last-sale-time-${storeId}`;
     const el = document.getElementById(labelId);
-    
+
     if (!el) return;
 
     // Use firebase limitToLast to fetch only the most recent transaction
@@ -621,15 +711,15 @@ function updateLastSaleTime(storeId, date) {
                 const data = snapshot.val();
                 const key = Object.keys(data)[0];
                 const sale = data[key];
-                
+
                 if (sale && sale.timestamp) {
                     // STORE THE TIMESTAMP IN GLOBAL OBJECT
                     activeTimers[storeId] = sale.timestamp;
-                    
+
                     // Trigger immediate update for this specific element so user doesn't wait 1s
                     // We don't call updateAllTimers here to save performance, just let the interval handle it next tick
                     // But we can manually set text for instant feedback
-                    el.textContent = 'Calculating...'; 
+                    el.textContent = 'Calculating...';
                 } else {
                     delete activeTimers[storeId]; // Remove if no data
                     el.textContent = 'No Sales';
@@ -653,23 +743,23 @@ function renderStoreCardsForDate(date) {
     if (!storesGrid) return;
 
     storesGrid.innerHTML = '';
-    
+
     // Reset timers map when rendering new cards
     activeTimers = {};
-    
+
     if (Object.keys(storesData).length === 0) {
         storesGrid.innerHTML = '<div class="loading"><div class="spinner"></div>Loading stores data...</div>';
         return;
     }
-    
+
     Object.entries(storesData).forEach(([storeId, store]) => {
         const storeRevenue = calculateRealStoreRevenue(storeId, date);
         const storeImage = getStoreImage(storeId, store.name);
-        
+
         const storeCard = document.createElement('div');
         storeCard.className = 'store-card';
         storeCard.onclick = () => showStoreDetailView(storeId, date);
-        
+
         storeCard.innerHTML = `
             <div class="store-image">
                 <img src="${storeImage}" alt="${store.name}" onerror="this.src='../icons/pos.png'">
@@ -682,7 +772,7 @@ function renderStoreCardsForDate(date) {
                 </div>
             </div>
         `;
-    
+
         storesGrid.appendChild(storeCard);
     });
 
@@ -701,13 +791,13 @@ function renderStoreCards() {
 // Calculate real store revenue from Firebase data
 function calculateRealStoreRevenue(storeId, date) {
     const datePath = getDatePathFromString(date);
-    if (!dailySalesData[storeId] || 
-        !dailySalesData[storeId][datePath.year] || 
-        !dailySalesData[storeId][datePath.year][datePath.month] || 
+    if (!dailySalesData[storeId] ||
+        !dailySalesData[storeId][datePath.year] ||
+        !dailySalesData[storeId][datePath.year][datePath.month] ||
         !dailySalesData[storeId][datePath.year][datePath.month][datePath.day]) {
         return 0;
     }
-    
+
     const storeDailySales = dailySalesData[storeId][datePath.year][datePath.month][datePath.day];
     return parseFloat(storeDailySales.total_sales || 0);
 }
@@ -715,13 +805,13 @@ function calculateRealStoreRevenue(storeId, date) {
 // Calculate real store sales count from Firebase data
 function calculateRealStoreSales(storeId, date) {
     const datePath = getDatePathFromString(date);
-    if (!dailySalesData[storeId] || 
-        !dailySalesData[storeId][datePath.year] || 
-        !dailySalesData[storeId][datePath.year][datePath.month] || 
+    if (!dailySalesData[storeId] ||
+        !dailySalesData[storeId][datePath.year] ||
+        !dailySalesData[storeId][datePath.year][datePath.month] ||
         !dailySalesData[storeId][datePath.year][datePath.month][datePath.day]) {
         return 0;
     }
-    
+
     const storeDailySales = dailySalesData[storeId][datePath.year][datePath.month][datePath.day];
     return parseInt(storeDailySales.transaction_count || 0);
 }
@@ -729,30 +819,30 @@ function calculateRealStoreSales(storeId, date) {
 // Show store detail modal with real data
 async function showStoreDetail(storeId, date = null) {
     hapticFeedback();
-    
+
     const store = storesData[storeId];
     if (!store) return;
-    
+
     const modal = document.getElementById('storeDetailModal');
     const storeImage = getStoreImage(storeId, store.name);
     const targetDate = date || selectedDate || getCurrentDate();
-    
+
     // Get real sales data for this store
     const dateRevenue = calculateRealStoreRevenue(storeId, targetDate);
     const dateTransactions = calculateRealStoreSales(storeId, targetDate);
-    
+
     // Calculate week's data
     const weekData = await calculateWeekData(storeId);
-    
+
     // Set store image
     const storeImageElement = document.querySelector('#storeDetailImage img');
     if (storeImageElement) {
         storeImageElement.src = storeImage;
-        storeImageElement.onerror = function() {
+        storeImageElement.onerror = function () {
             this.src = '../icons/pos.png';
         };
     }
-    
+
     // Update modal content with real data
     document.getElementById('storeDetailName').textContent = store.name;
     document.getElementById('storeDetailAddress').textContent = store.location || 'Location not specified';
@@ -760,10 +850,10 @@ async function showStoreDetail(storeId, date = null) {
     document.getElementById('storeDetailSales').textContent = dateTransactions.toString();
     document.getElementById('storeDetailProducts').textContent = Object.keys(productsData).length.toString();
     document.getElementById('storeDetailOrders').textContent = dateTransactions.toString();
-    
+
     // Load recent sales for this store
     await renderStoreDetailSales(storeId, targetDate);
-    
+
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
 }
@@ -771,28 +861,28 @@ async function showStoreDetail(storeId, date = null) {
 // Navigate to store detail view
 function showStoreDetailView(storeId, date = null) {
     hapticFeedback();
-    
+
     const store = storesData[storeId];
     if (!store) return;
-    
+
     const targetDate = date || selectedDate || getCurrentDate();
-    
+
     // Hide main nav-bar when entering store detail view
     const navBar = document.querySelector('.nav-bar');
     if (navBar) {
         navBar.style.display = 'none';
     }
-    
+
     // Switch to store detail view
     document.querySelectorAll('.view').forEach(view => {
         view.classList.remove('active');
     });
-    
+
     document.getElementById('storeDetailView').classList.add('active');
-    
+
     // Scroll to top to ensure page starts from the top
     document.getElementById('storeDetailView').scrollTop = 0;
-    
+
     // Load store detail data
     loadStoreDetailData(storeId, targetDate);
 }
@@ -800,18 +890,18 @@ function showStoreDetailView(storeId, date = null) {
 // Go back to sales view
 function goBackToSales() {
     hapticFeedback();
-    
+
     // Show main nav-bar when returning to sales view
     const navBar = document.querySelector('.nav-bar');
     if (navBar) {
         navBar.style.display = 'block';
     }
-    
+
     // Switch back to sales view
     document.querySelectorAll('.view').forEach(view => {
         view.classList.remove('active');
     });
-    
+
     document.getElementById('salesView').classList.add('active');
 }
 
@@ -820,52 +910,52 @@ async function loadStoreDetailData(storeId, date) {
     try {
         const store = storesData[storeId];
         if (!store) return;
-        
+
         showLoading('Loading store details...');
-        
+
         // Get store image
         const storeImage = getStoreImage(storeId, store.name);
-        
+
         // Update store info
         document.getElementById('storeDetailTitle').textContent = store.name;
         document.getElementById('storeDetailImage').src = storeImage;
-        document.getElementById('storeDetailImage').onerror = function() {
+        document.getElementById('storeDetailImage').onerror = function () {
             this.src = '../icons/pos.png';
         };
         document.getElementById('storeDetailName').textContent = store.name;
         document.getElementById('storeDetailLocation').textContent = store.location || 'Location not specified';
-        
+
         // Get sales data for this store and date
         const datePath = getDatePathFromString(date);
         const salesRef = firebase.database().ref(`sales/${storeId}/${datePath.path}`);
         const salesSnapshot = await salesRef.once('value');
         const salesData = salesSnapshot.val() || {};
-        
+
         // Calculate totals
-            let totalSales = 0;
-            let transactionCount = 0;
-            
+        let totalSales = 0;
+        let transactionCount = 0;
+
         Object.values(salesData).forEach(sale => {
             if (sale && sale.total_amount) {
                 totalSales += parseFloat(sale.total_amount || 0);
-                    transactionCount++;
-                }
-            });
-            
+                transactionCount++;
+            }
+        });
+
         // Update sales summary
         document.getElementById('storeDetailTotalSales').textContent = `RM ${totalSales.toFixed(2)}`;
         document.getElementById('storeDetailTransactionText').textContent = `${transactionCount} sales transaction`;
-        
+
         // Calculate shift sales
         const shiftSales = calculateShiftSales(salesData);
         document.getElementById('shift1Sales').textContent = `RM ${shiftSales.shift1.toFixed(2)}`;
         document.getElementById('shift2Sales').textContent = `RM ${shiftSales.shift2.toFixed(2)}`;
-        
+
         // Render sales records
         renderSalesRecords(salesData);
-        
+
         hideLoading();
-        
+
     } catch (error) {
         console.error('Failed to load store detail data:', error);
         hideLoading();
@@ -889,7 +979,7 @@ function renderSalesRecords(salesData) {
         `;
         return;
     }
-    
+
     // Convert to array and sort by timestamp (newest first)
     const salesArray = Object.entries(salesData).map(([saleId, sale]) => ({
         id: saleId,
@@ -898,8 +988,8 @@ function renderSalesRecords(salesData) {
 
     salesArray.forEach(sale => {
         const saleDate = new Date(sale.timestamp);
-        const saleTime = saleDate.toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
+        const saleTime = saleDate.toLocaleTimeString('en-US', {
+            hour: '2-digit',
             minute: '2-digit'
         });
         const saleDateTime = saleDate.toLocaleDateString('en-US', {
@@ -932,29 +1022,29 @@ function renderSalesRecords(salesData) {
 // Show sales record detail modal
 function showSalesRecordDetail(sale) {
     hapticFeedback();
-    
+
     const modal = document.getElementById('salesRecordDetailModal');
     if (!modal) return;
 
     // Format date and time
     const saleDate = new Date(sale.timestamp);
 
-// 获取日期部分：日/月/年（用马来西亚常用格式）
-const datePart = saleDate.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-});
+    // 获取日期部分：日/月/年（用马来西亚常用格式）
+    const datePart = saleDate.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
 
-// 获取时间部分：时:分 AM/PM（使用 12 小时制）
-const timePart = saleDate.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-});
+    // 获取时间部分：时:分 AM/PM（使用 12 小时制）
+    const timePart = saleDate.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
 
-// 组合日期时间字符串
-const formattedDateTime = `${datePart} ${timePart}`;
+    // 组合日期时间字符串
+    const formattedDateTime = `${datePart} ${timePart}`;
 
 
     // Update basic info
@@ -967,12 +1057,12 @@ const formattedDateTime = `${datePart} ${timePart}`;
     // Render items list
     const itemsList = document.getElementById('saleDetailItemsList');
     itemsList.innerHTML = '';
-    
+
     if (sale.items && Array.isArray(sale.items) && sale.items.length > 0) {
         sale.items.forEach(item => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'sale-item';
-            
+
             itemDiv.innerHTML = `
                 <div class="sale-item-info">
                     <div class="sale-item-name">${item.name || 'Unknown Item'}</div>
@@ -983,10 +1073,10 @@ const formattedDateTime = `${datePart} ${timePart}`;
                     <div class="sale-item-subtotal">Total: RM ${parseFloat(item.subtotal || 0).toFixed(2)}</div>
         </div>
     `;
-    
+
             itemsList.appendChild(itemDiv);
         });
-            } else {
+    } else {
         itemsList.innerHTML = `
             <div style="text-align: center; padding: 20px; color: var(--ios-gray-1);">
                 No items information available
@@ -1019,7 +1109,7 @@ const formattedDateTime = `${datePart} ${timePart}`;
 // Close sales record detail modal
 function closeSalesRecordDetail() {
     hapticFeedback();
-    
+
     const modal = document.getElementById('salesRecordDetailModal');
     if (modal) {
         modal.style.display = 'none';
@@ -1031,24 +1121,24 @@ function closeSalesRecordDetail() {
 async function calculateWeekData(storeId) {
     let weekRevenue = 0;
     let weekTransactions = 0;
-    
+
     // Get data for the last 7 days
     for (let i = 0; i < 7; i++) {
         const date = new Date();
         date.setDate(date.getDate() - i);
         const dateStr = date.toISOString().split('T')[0];
         const datePath = getDatePathFromString(dateStr);
-        
-        if (dailySalesData[storeId] && 
-            dailySalesData[storeId][datePath.year] && 
-            dailySalesData[storeId][datePath.year][datePath.month] && 
+
+        if (dailySalesData[storeId] &&
+            dailySalesData[storeId][datePath.year] &&
+            dailySalesData[storeId][datePath.year][datePath.month] &&
             dailySalesData[storeId][datePath.year][datePath.month][datePath.day]) {
             const dayData = dailySalesData[storeId][datePath.year][datePath.month][datePath.day];
             weekRevenue += parseFloat(dayData.total_sales || 0);
             weekTransactions += parseInt(dayData.transaction_count || 0);
         }
     }
-    
+
     return { weekRevenue, weekTransactions };
 }
 
@@ -1056,12 +1146,12 @@ async function calculateWeekData(storeId) {
 function calculateShiftSales(salesData) {
     let shift1Sales = 0;
     let shift2Sales = 0;
-    
+
     Object.values(salesData).forEach(sale => {
         if (sale && sale.total_amount) {
             const totalAmount = parseFloat(sale.total_amount || 0);
             const cashierShift = sale.cashierShift || "";
-            
+
             // 根据cashierShift字段计算班次销售额
             if (cashierShift.includes("1st Shift")) {
                 shift1Sales += totalAmount;
@@ -1070,7 +1160,7 @@ function calculateShiftSales(salesData) {
             }
         }
     });
-    
+
     return { shift1: shift1Sales, shift2: shift2Sales };
 }
 
@@ -1078,51 +1168,51 @@ function calculateShiftSales(salesData) {
 async function renderStoreDetailSales(storeId, date = null) {
     const salesList = document.getElementById('storeDetailSalesList');
     if (!salesList) return;
-    
+
     salesList.innerHTML = '<div class="loading"><div class="spinner"></div>Loading sales data...</div>';
-    
+
     try {
         const targetDate = date || selectedDate || getCurrentDate();
         const datePath = getDatePathFromString(targetDate);
-        
+
         // Get detailed sales for the selected date
         const salesRef = firebase.database().ref(`sales/${storeId}/${datePath.path}`);
         const salesSnapshot = await salesRef.once('value');
         const salesData = salesSnapshot.val() || {};
-        
+
         salesList.innerHTML = '';
-        
+
         if (Object.keys(salesData).length === 0) {
             const dateObj = new Date(targetDate);
-            const dateString = dateObj.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric' 
+            const dateString = dateObj.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
             });
             salesList.innerHTML = `<div style="text-align: center; padding: 20px; color: #8E8E93;">No sales data available for ${dateString}</div>`;
-                return;
-            }
-            
+            return;
+        }
+
         // Convert to array and sort by timestamp
         const salesArray = Object.entries(salesData).map(([saleId, sale]) => ({
             id: saleId,
             ...sale
         })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        
+
         // Create sales list HTML
         const dateObj = new Date(targetDate);
-        const dateString = dateObj.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
+        const dateString = dateObj.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
         });
         let salesHTML = `<h4 style="margin: 20px 0 10px; color: #1D1D1F; font-weight: 700;">Sales for ${dateString}</h4>`;
-        
+
         // Display recent sales
         salesArray.slice(0, 10).forEach(sale => {
             const saleTime = new Date(sale.timestamp).toLocaleTimeString();
             const itemCount = sale.items ? sale.items.length : 0;
-            
+
             salesHTML += `
                 <div style="background: #F2F1F6; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1138,9 +1228,9 @@ async function renderStoreDetailSales(storeId, date = null) {
                 </div>
             `;
         });
-        
+
         salesList.innerHTML = salesHTML;
-        
+
     } catch (error) {
         console.error('Failed to load store sales details:', error);
         salesList.innerHTML = '<div style="text-align: center; padding: 20px; color: #FF3B30;">Failed to load sales data</div>';
@@ -1164,15 +1254,15 @@ async function loadStockData() {
 
         // Test image loading
         testImageLoading();
-        
+
         // Show available image mappings
         showAvailableImageMappings();
-        
+
         await loadProducts();
-        
+
         // Populate category filter after loading products
         populateCategoryFilter();
-        
+
         filterProducts();
     } catch (error) {
         console.error('Failed to load stock data:', error);
@@ -1209,33 +1299,33 @@ function populateStoreSelector() {
 // Populate category filter
 function populateCategoryFilter() {
     if (!categoryFilter) return;
-    
+
     console.log('Populating category filter...');
     console.log('Available products:', Object.keys(productsData).length);
-    
+
     // Get selected store
     const selectedStore = document.getElementById('storeSelector')?.value;
     console.log('Selected store for category filter:', selectedStore);
-    
+
     // Get categories from selected store only
     const categories = ['all'];
-    
+
     Object.values(productsData).forEach(product => {
         if (product.store_id === selectedStore && product.category && !categories.includes(product.category)) {
             categories.push(product.category);
         }
     });
-    
+
     console.log('Found categories for store', selectedStore, ':', categories);
-    
+
     // Save current selection
     const selectedValue = categoryFilter.value;
-    
+
     // Clear all options except the first one
     while (categoryFilter.options.length > 1) {
         categoryFilter.remove(1);
     }
-    
+
     // Add category options
     categories.forEach(category => {
         if (category !== 'all') {
@@ -1245,7 +1335,7 @@ function populateCategoryFilter() {
             categoryFilter.appendChild(option);
         }
     });
-    
+
     // Restore previous selection if it's still valid
     if (selectedValue && selectedValue !== 'all' && categories.includes(selectedValue)) {
         categoryFilter.value = selectedValue;
@@ -1253,7 +1343,7 @@ function populateCategoryFilter() {
         // Reset to "all" if previous selection is no longer valid
         categoryFilter.value = 'all';
     }
-    
+
     console.log('Category filter populated with', categories.length, 'options');
 }
 
@@ -1263,53 +1353,53 @@ function filterProducts() {
     const activeFilter = document.querySelector('.filter-tab.active')?.getAttribute('data-filter') || 'all';
     const selectedStore = document.getElementById('storeSelector')?.value || 'all';
     const selectedCategory = categoryFilter ? categoryFilter.value : 'all';
-    
+
     console.log('Filtering products with:', {
         searchTerm,
         activeFilter,
         selectedStore,
         selectedCategory
     });
-    
+
     console.log('Category filter element:', categoryFilter);
     console.log('Category filter value:', selectedCategory);
     console.log('Available products data:', Object.keys(productsData).length);
-    
+
     const productList = document.getElementById('productList');
     if (!productList) return;
 
     productList.innerHTML = '';
-    
+
     const filteredProducts = Object.entries(productsData).filter(([_, product]) => {
         // Search filter
-        const matchesSearch = !searchTerm || 
+        const matchesSearch = !searchTerm ||
             (product.name && product.name.toLowerCase().includes(searchTerm)) ||
             (product.id && product.id.toLowerCase().includes(searchTerm));
-        
+
         // Store filter
         const matchesStore = product.store_id === selectedStore;
-        
+
         // Category filter
         const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-        
+
         // Stock status filter - 使用 stock 字段或 quantity 字段
         const stock = product.stock !== undefined ? product.stock : (product.quantity || 0);
         let matchesFilter = true;
-        
+
         switch (activeFilter) {
             case 'low':
                 matchesFilter = stock > 0 && stock <= 10;
-            break;
+                break;
             case 'out':
                 matchesFilter = stock === 0;
-            break;
+                break;
             case 'all':
             default:
                 matchesFilter = true;
         }
-        
+
         const matches = matchesSearch && matchesStore && matchesCategory && matchesFilter;
-        
+
         // Enhanced debug logging
         if (selectedCategory !== 'all') {
             console.log(`Product ${product.name} (${product.id}) filtering details:`, {
@@ -1322,7 +1412,7 @@ function filterProducts() {
                 finalMatches: matches
             });
         }
-        
+
         return matches;
     });
 
@@ -1330,14 +1420,14 @@ function filterProducts() {
         productList.innerHTML = '<div style="text-align: center; padding: 40px; color: #8E8E93;">No matching products found</div>';
         return;
     }
-    
+
     // Collect all product images for preloading
     const productImages = [];
-    
+
     filteredProducts.forEach(([productId, product]) => {
         const stock = product.stock !== undefined ? product.stock : (product.quantity || 0);
         const productImage = getProductImage(product.name);
-        
+
         // Add to preload list if it's a real product image
         if (productImage !== '../icons/pos.png') {
             productImages.push(productImage);
@@ -1345,7 +1435,7 @@ function filterProducts() {
 
         const productItem = document.createElement('div');
         productItem.className = 'product-item';
-        
+
         // 确定库存状态的CSS类
         let stockClass = 'stock';
         if (stock === 0) {
@@ -1353,13 +1443,13 @@ function filterProducts() {
         } else if (stock <= 10) {
             stockClass = 'stock low';
         }
-        
+
         // 计算显示价格（如果启用促销价格则使用促销价格，否则使用正常价格）
-        const displayPrice = (product.promotionEnabled && product.promotionPrice !== null && product.promotionPrice !== undefined) 
-            ? product.promotionPrice 
+        const displayPrice = (product.promotionEnabled && product.promotionPrice !== null && product.promotionPrice !== undefined)
+            ? product.promotionPrice
             : product.price;
         const hasPromotion = product.promotionEnabled && product.promotionPrice !== null && product.promotionPrice !== undefined;
-        
+
         // 构建价格显示HTML
         let priceDisplayHTML = '';
         if (hasPromotion) {
@@ -1370,20 +1460,20 @@ function filterProducts() {
         } else {
             priceDisplayHTML = `<span class="product-price">RM ${displayPrice.toFixed(2)}</span>`;
         }
-        
+
         const escapedProductName = (product.name || 'Product').replace(/'/g, "\\'");
         const escapedImagePath = productImage.replace(/'/g, "\\'");
-        
+
         // Test if this is actually a product image or fallback
         const isProductImage = productImage !== '../icons/pos.png';
-        
+
         // Log product matching status
         if (isProductImage) {
             console.log(`✅ Product "${product.name}" -> Image: ${productImage}`);
         } else {
             console.log(`❌ Product "${product.name}" -> No image match, using default icon`);
         }
-        
+
         if (isProductImage) {
             productItem.innerHTML = `
                 <div class="product-icon product-image-container" onclick="showImageModal('${escapedImagePath}', '${escapedProductName}')">
@@ -1419,10 +1509,10 @@ function filterProducts() {
                 </div>
             `;
         }
-        
+
         productList.appendChild(productItem);
     });
-    
+
     // Batch preload images for better performance
     if (productImages.length > 0) {
         batchPreloadImages(productImages);
@@ -1442,7 +1532,7 @@ function logout() {
 }
 
 // Click outside modal to close
-document.addEventListener('click', function(event) {
+document.addEventListener('click', function (event) {
     const modal = document.getElementById('storeDetailModal');
     if (event.target === modal) {
         closeStoreDetail();
@@ -1485,7 +1575,7 @@ function showError(message) {
     errorDiv.className = 'error-toast';
     errorDiv.textContent = message;
     document.body.appendChild(errorDiv);
-    
+
     // Auto remove after 3 seconds
     setTimeout(() => {
         errorDiv.remove();
@@ -1493,12 +1583,12 @@ function showError(message) {
 }
 
 // Add haptic feedback to interactive elements
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Add haptic feedback to buttons
     document.querySelectorAll('.nav-item, .store-card, .product-item, .stat-card').forEach(element => {
         element.addEventListener('touchstart', hapticFeedback);
-            });
     });
+});
 
 // ====== 维护模式管理功能 ======
 
@@ -1597,10 +1687,10 @@ function showMaintenancePage() {
 // 重新检查维护状态并尝试重新进入应用
 function checkMaintenanceAndRetry() {
     showLoading('正在检查系统状态...');
-    
+
     checkMaintenanceStatus().then(maintenanceData => {
         hideLoading();
-        
+
         if (!maintenanceData.enabled) {
             // 维护模式已关闭，重新加载页面
             location.reload();
@@ -1618,20 +1708,20 @@ function checkMaintenanceAndRetry() {
 // Show image modal for product images - Optimized version
 function showImageModal(imageSrc, productName) {
     hapticFeedback();
-    
+
     // Use cached modal if available
     let modal = document.getElementById('imageModal');
     if (!modal) {
         modal = createImageModal();
         document.body.appendChild(modal);
     }
-    
+
     // Check if this is the same image to avoid unnecessary updates
     const currentImg = document.getElementById('imageModalImg');
     if (currentImg && currentImg.src === imageSrc && modal.style.display === 'flex') {
         return; // Already showing this image
     }
-    
+
     // Preload image before showing modal
     preloadImage(imageSrc).then(() => {
         // Update modal content
@@ -1639,11 +1729,11 @@ function showImageModal(imageSrc, productName) {
         const modalImg = document.getElementById('imageModalImg');
         modalImg.src = imageSrc;
         modalImg.alt = productName || 'Product Image';
-        
+
         // Show modal with optimized animation
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
-        
+
         // Add loading class for smooth transition
         modal.classList.add('modal-loading');
         setTimeout(() => {
@@ -1655,7 +1745,7 @@ function showImageModal(imageSrc, productName) {
         const modalImg = document.getElementById('imageModalImg');
         modalImg.src = '../icons/pos.png'; // Fallback image
         modalImg.alt = productName || 'Product Image';
-        
+
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
     });
@@ -1679,14 +1769,14 @@ function createImageModal() {
             </div>
         </div>
     `;
-    
+
     // Close modal when clicking outside
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             closeImageModal();
         }
     });
-    
+
     return modal;
 }
 
@@ -1697,13 +1787,13 @@ function preloadImage(src) {
             resolve(); // Skip preloading for fallback images
             return;
         }
-        
+
         // Check if image is already cached
         if (imageCache.has(src)) {
             resolve();
             return;
         }
-        
+
         const img = new Image();
         img.onload = () => {
             imageCache.set(src, true);
@@ -1720,18 +1810,18 @@ function preloadImage(src) {
 // Batch preload images for better performance
 function batchPreloadImages(imageUrls) {
     if (!Array.isArray(imageUrls) || imageUrls.length === 0) return;
-    
+
     // Filter out fallback images and already cached images
-    const urlsToPreload = imageUrls.filter(url => 
-        url && 
-        url !== '../icons/pos.png' && 
+    const urlsToPreload = imageUrls.filter(url =>
+        url &&
+        url !== '../icons/pos.png' &&
         !imageCache.has(url)
     );
-    
+
     if (urlsToPreload.length === 0) return;
-    
+
     console.log(`🔄 Preloading ${urlsToPreload.length} images...`);
-    
+
     // Preload images in batches to avoid overwhelming the browser
     const batchSize = 3;
     for (let i = 0; i < urlsToPreload.length; i += batchSize) {
@@ -1749,12 +1839,12 @@ function batchPreloadImages(imageUrls) {
 // Close image modal - Optimized version
 function closeImageModal() {
     hapticFeedback();
-    
+
     const modal = document.getElementById('imageModal');
     if (modal) {
         // Add closing animation class
         modal.classList.add('modal-closing');
-        
+
         // Hide modal after animation
         setTimeout(() => {
             modal.style.display = 'none';
@@ -1770,25 +1860,25 @@ window.showImageModal = showImageModal;
 window.closeImageModal = closeImageModal;
 
 // Debug function for category filter
-window.debugCategoryFilter = function() {
+window.debugCategoryFilter = function () {
     console.log('=== Category Filter Debug ===');
     console.log('Category filter element:', categoryFilter);
     console.log('Category filter value:', categoryFilter ? categoryFilter.value : 'undefined');
     console.log('Available products:', Object.keys(productsData).length);
-    
+
     // Get selected store
     const selectedStore = document.getElementById('storeSelector')?.value;
     console.log('Selected store:', selectedStore);
-    
+
     // Show sample products with categories
     const productsWithCategories = Object.values(productsData).filter(p => p.category);
     console.log('Products with categories:', productsWithCategories.length);
     console.log('Sample products:', productsWithCategories.slice(0, 3));
-    
+
     // Show all unique categories
     const allCategories = [...new Set(Object.values(productsData).map(p => p.category).filter(Boolean))];
     console.log('All unique categories:', allCategories);
-    
+
     // Show categories for selected store
     if (selectedStore) {
         const storeCategories = [...new Set(
@@ -1798,7 +1888,7 @@ window.debugCategoryFilter = function() {
         )];
         console.log(`Categories for store "${selectedStore}":`, storeCategories);
     }
-    
+
     // Test filtering
     if (categoryFilter && categoryFilter.value !== 'all') {
         const testFilter = Object.values(productsData).filter(p => p.category === categoryFilter.value);
@@ -1808,19 +1898,193 @@ window.debugCategoryFilter = function() {
 };
 
 // Performance monitoring function for image loading
-window.debugImagePerformance = function() {
+window.debugImagePerformance = function () {
     console.log('=== Image Performance Debug ===');
     console.log('Image cache size:', imageCache.size);
     console.log('Cached images:', Array.from(imageCache.entries()));
     console.log('Preload queue length:', preloadQueue.length);
-    
+
     // Show cache hit rate
     const totalImages = Object.keys(productsData).length;
     const cachedImages = Array.from(imageCache.values()).filter(Boolean).length;
     const hitRate = totalImages > 0 ? (cachedImages / totalImages * 100).toFixed(1) : 0;
     console.log(`Cache hit rate: ${hitRate}% (${cachedImages}/${totalImages})`);
-    
+
     // Show memory usage estimate
     const estimatedMemory = imageCache.size * 0.1; // Rough estimate in MB
     console.log(`Estimated memory usage: ~${estimatedMemory.toFixed(2)} MB`);
 };
+
+// ====== TOP 3 MODAL ======
+
+// Store the full aggregated data so modal can read it
+let _top3QtyData = [];   // [{name, qty}]
+let _top3RevData = [];   // [{name, rev}]
+
+// Override loadTopProductsStats to also cache full data for modal
+const _origLoadTopProductsStats = loadTopProductsStats;
+loadTopProductsStats = async function (date) {
+    const qtyEl = document.getElementById('top3QtyList');
+    const revEl = document.getElementById('top3RevenueList');
+    if (!qtyEl || !revEl) return;
+
+    qtyEl.innerHTML = '<div class="top3-empty">Loading...</div>';
+    revEl.innerHTML = '<div class="top3-empty">Loading...</div>';
+
+    try {
+        const datePath = getDatePathFromString(date);
+        const storeIds = Object.keys(storesData);
+
+        const results = await Promise.all(
+            storeIds.map(storeId =>
+                firebase.database()
+                    .ref(`sales/${storeId}/${datePath.path}`)
+                    .once('value')
+                    .then(snap => snap.val() || {})
+                    .catch(() => ({}))
+            )
+        );
+
+        const qtyMap = {};
+        const revMap = {};
+
+        results.forEach(storeSales => {
+            Object.values(storeSales).forEach(sale => {
+                if (!sale || !sale.items) return;
+                sale.items.forEach(item => {
+                    const name = (item.name || item.productName || item.product_name || 'Unknown').trim();
+                    const qty = parseInt(item.quantity || item.qty || 1);
+                    const price = parseFloat(item.price || item.unit_price || 0);
+                    const subtotal = parseFloat(item.subtotal || item.total || 0) || (price * qty);
+
+                    if (!qtyMap[name]) qtyMap[name] = 0;
+                    if (!revMap[name]) revMap[name] = 0;
+                    qtyMap[name] += qty;
+                    revMap[name] += subtotal;
+                });
+            });
+        });
+
+        // Cache full sorted arrays
+        _top3QtyData = Object.entries(qtyMap).sort((a, b) => b[1] - a[1]).map(([name, qty]) => ({ name, qty }));
+        _top3RevData = Object.entries(revMap).sort((a, b) => b[1] - a[1]).map(([name, rev]) => ({ name, rev }));
+
+        const rankClasses = ['r1', 'r2', 'r3'];
+
+        // Render compact top 3 in cards
+        const topQty = _top3QtyData.slice(0, 3);
+        qtyEl.innerHTML = topQty.length === 0
+            ? '<div class="top3-empty">暂无数据</div>'
+            : topQty.map(({ name, qty }, i) => `
+                <div class="top3-item">
+                    <span class="top3-rank ${rankClasses[i]}">${i + 1}</span>
+                    <span class="top3-name" title="${name}">${name}</span>
+                    <span class="top3-val">${qty} 件</span>
+                </div>`).join('');
+
+        const topRev = _top3RevData.slice(0, 3);
+        revEl.innerHTML = topRev.length === 0
+            ? '<div class="top3-empty">暂无数据</div>'
+            : topRev.map(({ name, rev }, i) => `
+                <div class="top3-item">
+                    <span class="top3-rank ${rankClasses[i]}">${i + 1}</span>
+                    <span class="top3-name" title="${name}">${name}</span>
+                    <span class="top3-val" style="color:#34C759;">RM ${rev.toFixed(2)}</span>
+                </div>`).join('');
+
+    } catch (err) {
+        console.error('Failed to load top products stats:', err);
+        qtyEl.innerHTML = '<div class="top3-empty">加载失败</div>';
+        revEl.innerHTML = '<div class="top3-empty">加载失败</div>';
+    }
+};
+
+// Open the Top 3 modal
+function openTop3Modal(type) {
+    const modal = document.getElementById('top3Modal');
+    const title = document.getElementById('top3ModalTitle');
+    const body = document.getElementById('top3ModalBody');
+    if (!modal || !title || !body) return;
+
+    const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
+    const rankTextColors = ['#7a5c00', '#555', '#fff'];
+
+    if (type === 'qty') {
+        title.textContent = '今日 Top 10 — 数量排行';
+
+        if (_top3QtyData.length === 0) {
+            body.innerHTML = '<p style="text-align:center;color:var(--ios-gray-1);padding:30px 0;">暂无数据</p>';
+        } else {
+            body.innerHTML = _top3QtyData
+                .slice(0, 10)   // ✅ 只取前10
+                .map(({ name, qty }, i) => `
+                <div style="
+                    display:flex; align-items:center; gap:12px;
+                    padding:14px 0;
+                    border-bottom:0.5px solid var(--ios-gray-5);
+                ">
+                    <div style="
+                        width:28px; height:28px; border-radius:50%; flex-shrink:0;
+                        background:${rankColors[i] || '#e5e5ea'};
+                        color:${rankTextColors[i] || '#333'};
+                        display:flex; align-items:center; justify-content:center;
+                        font-weight:700; font-size:13px;
+                    ">${i + 1}</div>
+
+                    <div style="flex:1; font-size:14px; font-weight:600; color:var(--ios-label); line-height:1.4;">
+                        ${name}
+                    </div>
+
+                    <div style="font-size:15px; font-weight:700; color:var(--ios-blue); white-space:nowrap;">
+                        ${qty} 件
+                    </div>
+                </div>
+            `).join('');
+        }
+
+    } else {
+
+        title.textContent = '今日 Top 10 — 总金额排行';
+
+        if (_top3RevData.length === 0) {
+            body.innerHTML = '<p style="text-align:center;color:var(--ios-gray-1);padding:30px 0;">暂无数据</p>';
+        } else {
+            body.innerHTML = _top3RevData
+                .slice(0, 10)   // ✅ 只取前10
+                .map(({ name, rev }, i) => `
+                <div style="
+                    display:flex; align-items:center; gap:12px;
+                    padding:14px 0;
+                    border-bottom:0.5px solid var(--ios-gray-5);
+                ">
+                    <div style="
+                        width:28px; height:28px; border-radius:50%; flex-shrink:0;
+                        background:${rankColors[i] || '#e5e5ea'};
+                        color:${rankTextColors[i] || '#333'};
+                        display:flex; align-items:center; justify-content:center;
+                        font-weight:700; font-size:13px;
+                    ">${i + 1}</div>
+
+                    <div style="flex:1; font-size:14px; font-weight:600; color:var(--ios-label); line-height:1.4;">
+                        ${name}
+                    </div>
+
+                    <div style="font-size:15px; font-weight:700; color:#34C759; white-space:nowrap;">
+                        RM ${rev.toFixed(2)}
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    modal.style.display = 'flex';
+
+    modal.onclick = function (e) {
+        if (e.target === modal) closeTop3Modal();
+    };
+}
+// Close the Top 3 modal
+function closeTop3Modal() {
+    const modal = document.getElementById('top3Modal');
+    if (modal) modal.style.display = 'none';
+}
