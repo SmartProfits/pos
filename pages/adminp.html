@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,7 +18,7 @@
             --ios-orange: #FF9500;
             --ios-red: #FF3B30;
             --ios-purple: #AF52DE;
-            
+
             /* iOS Gray Scale */
             --ios-gray-1: #8E8E93;
             --ios-gray-2: #AEAEB2;
@@ -25,7 +26,7 @@
             --ios-gray-4: #D1D1D6;
             --ios-gray-5: #E5E5EA;
             --ios-gray-6: #F2F2F7;
-            
+
             /* iOS System Colors */
             --ios-label: #000000;
             --ios-secondary-label: #3C3C43;
@@ -33,7 +34,7 @@
             --ios-background: #FFFFFF;
             --ios-secondary-background: #F2F2F7;
             --ios-tertiary-background: #FFFFFF;
-            
+
             /* iOS Typography Scale */
             --ios-large-title: 34px;
             --ios-title-1: 28px;
@@ -46,13 +47,13 @@
             --ios-footnote: 13px;
             --ios-caption-1: 12px;
             --ios-caption-2: 11px;
-            
+
             /* iOS Corner Radius */
             --ios-corner-radius-small: 8px;
             --ios-corner-radius-medium: 12px;
             --ios-corner-radius-large: 16px;
             --ios-corner-radius-xlarge: 20px;
-            
+
             /* iOS Shadows */
             --ios-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.12);
             --ios-shadow-2: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -64,7 +65,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
             background: var(--ios-secondary-background);
@@ -77,17 +78,17 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-        
+
         body::-webkit-scrollbar {
             display: none;
         }
-        
+
         /* Global scrollbar hiding */
         * {
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-        
+
         *::-webkit-scrollbar {
             display: none;
         }
@@ -115,12 +116,13 @@
         }
 
         .nav-title {
-    display: flex;
-    align-items: center;
-    font-size: 24px;
-    font-weight: bold;
-    gap: 8px; /* 按钮和文字间的间距 */
-}
+            display: flex;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            gap: 8px;
+            /* 按钮和文字间的间距 */
+        }
 
         .nav-subtitle {
             font-size: var(--ios-subhead);
@@ -138,7 +140,7 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-        
+
         .app-main::-webkit-scrollbar {
             display: none;
         }
@@ -151,7 +153,7 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-        
+
         .view::-webkit-scrollbar {
             display: none;
         }
@@ -166,6 +168,7 @@
                 opacity: 0;
                 transform: translateX(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateX(0);
@@ -226,6 +229,75 @@
             font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+
+        /* Top 3 ranking list inside stat card */
+        .stat-card .top3-list {
+            margin-top: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            text-align: left;
+        }
+
+        .stat-card .top3-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        .stat-card .top3-rank {
+            font-size: 10px;
+            font-weight: 700;
+            min-width: 14px;
+            text-align: center;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .stat-card .top3-rank.r1 {
+            background: #FFD700;
+            color: #7a5c00;
+        }
+
+        .stat-card .top3-rank.r2 {
+            background: #C0C0C0;
+            color: #555;
+        }
+
+        .stat-card .top3-rank.r3 {
+            background: #CD7F32;
+            color: #fff;
+        }
+
+        .stat-card .top3-name {
+            flex: 1;
+            color: var(--ios-label);
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .stat-card .top3-val {
+            font-weight: 700;
+            color: var(--ios-blue);
+            white-space: nowrap;
+            font-size: 10px;
+        }
+
+        .stat-card .top3-empty {
+            font-size: 10px;
+            color: var(--ios-gray-1);
+            text-align: center;
+            padding: 4px 0;
         }
 
         /* Section Headers */
@@ -537,7 +609,8 @@
 
         /* Stock View Layout */
         #stockView {
-            padding-top: 100px; /* Space for compact fixed dashboard */
+            padding-top: 100px;
+            /* Space for compact fixed dashboard */
         }
 
         /* Product List - Optimized for more cards */
@@ -715,9 +788,17 @@
             font-weight: 500;
         }
 
-        .stock-status.low { color: var(--ios-orange); }
-        .stock-status.normal { color: var(--ios-green); }
-        .stock-status.out { color: var(--ios-red); }
+        .stock-status.low {
+            color: var(--ios-orange);
+        }
+
+        .stock-status.normal {
+            color: var(--ios-green);
+        }
+
+        .stock-status.out {
+            color: var(--ios-red);
+        }
 
         /* Bottom Tab Bar */
         .tab-bar {
@@ -794,8 +875,13 @@
         }
 
         @keyframes modalFadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         .modal-content {
@@ -813,8 +899,9 @@
         @keyframes modalSlideUp {
             from {
                 transform: translateY(100px) scale(0.95);
-            opacity: 0;
+                opacity: 0;
             }
+
             to {
                 transform: translateY(0) scale(1);
                 opacity: 1;
@@ -867,7 +954,7 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-        
+
         .modal-body::-webkit-scrollbar {
             display: none;
         }
@@ -955,8 +1042,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         /* Empty State */
@@ -1439,26 +1531,26 @@
                 height: calc(100vh - 40px);
                 box-shadow: var(--ios-shadow-3);
             }
-            
+
             .stock-dashboard {
                 max-width: 768px;
             }
-            
+
             .stats-grid {
                 grid-template-columns: repeat(4, 1fr);
             }
-            
+
             .stores-grid {
                 grid-template-columns: repeat(3, 1fr);
             }
-            
+
             .product-list {
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
                 gap: 12px;
                 padding: 0 16px;
             }
-            
+
             .product-item {
                 margin-bottom: 0;
             }
@@ -1480,7 +1572,10 @@
 
         /* Reduced Motion Support */
         @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
+
+            *,
+            *::before,
+            *::after {
                 animation-duration: 0.01ms !important;
                 animation-iteration-count: 1 !important;
                 transition-duration: 0.01ms !important;
@@ -1543,6 +1638,7 @@
                 transform: translateX(-50%) translateY(-20px);
                 opacity: 0;
             }
+
             to {
                 transform: translateX(-50%) translateY(0);
                 opacity: 1;
@@ -1572,6 +1668,7 @@
             from {
                 opacity: 0;
             }
+
             to {
                 opacity: 1;
             }
@@ -1601,6 +1698,7 @@
                 transform: translateY(50px) scale(0.9);
                 opacity: 0;
             }
+
             to {
                 transform: translateY(0) scale(1);
                 opacity: 1;
@@ -1625,10 +1723,10 @@
             left: 24px;
             right: 24px;
             height: 1px;
-            background: linear-gradient(90deg, 
-                transparent 0%, 
-                rgba(0, 0, 0, 0.1) 50%, 
-                transparent 100%);
+            background: linear-gradient(90deg,
+                    transparent 0%,
+                    rgba(0, 0, 0, 0.1) 50%,
+                    transparent 100%);
         }
 
         .image-modal-title {
@@ -1685,10 +1783,10 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: radial-gradient(circle at center, 
-                rgba(255, 255, 255, 0.1) 0%, 
-                rgba(255, 255, 255, 0.05) 70%, 
-                transparent 100%);
+            background: radial-gradient(circle at center,
+                    rgba(255, 255, 255, 0.1) 0%,
+                    rgba(255, 255, 255, 0.05) 70%,
+                    transparent 100%);
             pointer-events: none;
         }
 
@@ -1719,6 +1817,7 @@
                 opacity: 1;
                 transform: scale(1);
             }
+
             to {
                 opacity: 0;
                 transform: scale(0.95);
@@ -1730,33 +1829,33 @@
             .image-modal {
                 padding: 10px;
             }
-            
+
             .image-modal-content {
                 max-width: 95vw;
                 max-height: 95vh;
                 border-radius: 20px;
             }
-            
+
             .image-modal-header {
                 padding: 14px 18px 12px;
             }
-            
+
             .image-modal-title {
                 font-size: 16px;
                 max-width: 200px;
                 font-weight: 600;
             }
-            
+
             .image-modal .close-btn {
                 width: 28px;
                 height: 28px;
                 border-radius: 14px;
             }
-            
+
             .image-modal-body {
                 max-height: calc(95vh - 70px);
             }
-            
+
             .image-modal-body img {
                 border-radius: 0 0 16px 16px;
             }
@@ -1767,56 +1866,57 @@
             .image-modal {
                 background: rgba(0, 0, 0, 0.8);
             }
-            
+
             .image-modal-content {
                 background: rgba(28, 28, 30, 0.95);
                 border: 1px solid rgba(255, 255, 255, 0.1);
             }
-            
+
             .image-modal-header {
                 background: rgba(28, 28, 30, 0.9);
             }
-            
+
             .image-modal-title {
                 color: #f2f2f7;
             }
-            
+
             .image-modal .close-btn {
                 background: rgba(44, 44, 46, 0.9);
                 border: 1px solid rgba(255, 255, 255, 0.2);
                 color: #f2f2f7;
             }
-            
+
             .image-modal .close-btn:hover {
                 background: rgba(58, 58, 60, 1);
             }
-            
+
             .image-modal-body {
                 background: rgba(28, 28, 30, 0.9);
             }
         }
     </style>
 </head>
+
 <body>
     <div class="app-container">
         <!-- Status Bar -->
- 
-                
+
+
         <!-- Navigation Bar -->
-<div class="nav-bar">
-    <div class="nav-title" id="navTitle">
-        Sales<br>
-    </div>
-    <div class="nav-subtitle" id="navSubtitle">Today's Performance</div>
-</div>
-                
-                
+        <div class="nav-bar">
+            <div class="nav-title" id="navTitle">
+                Sales<br>
+            </div>
+            <div class="nav-subtitle" id="navSubtitle">Today's Performance</div>
+        </div>
+
+
         <!-- Main Content -->
         <div class="app-main">
-            
+
             <!-- Sales View -->
             <div id="salesView" class="view active">
-                                <!-- Date Selector & Refresh -->
+                <!-- Date Selector & Refresh -->
                 <div class="date-selector-section">
                     <div class="date-picker">
                         <label for="salesDatePicker">
@@ -1824,10 +1924,10 @@
                             <span>Date</span>
                         </label>
                         <input type="date" id="salesDatePicker" value="">
-    </div>
-    
-    </div>
-    
+                    </div>
+
+                </div>
+
                 <!-- Stats Overview -->
                 <div class="stats-overview">
                     <div class="stats-grid">
@@ -1835,25 +1935,27 @@
                             <div class="icon">💰</div>
                             <div class="value" id="totalRevenue">RM 0</div>
                             <div class="label">Revenue</div>
-                </div>
+                        </div>
                         <div class="stat-card">
                             <div class="icon">📊</div>
                             <div class="value" id="totalSales">0</div>
                             <div class="label">Sales</div>
+                        </div>
+                        <div class="stat-card" onclick="openTop3Modal('qty')" style="cursor:pointer;">
+                            <div class="label" style="margin-bottom:4px;">今日 Top 数量</div>
+                            <div class="top3-list" id="top3QtyList">
+                                <div class="top3-empty">Loading...</div>
+                            </div>
+                        </div>
+                        <div class="stat-card" onclick="openTop3Modal('rev')" style="cursor:pointer;">
+                            <div class="label" style="margin-bottom:4px;">今日 Top 总数RM</div>
+                            <div class="top3-list" id="top3RevenueList">
+                                <div class="top3-empty">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                        <div class="stat-card">
-                            <div class="icon">🏪</div>
-                            <div class="value" id="activeStores">0</div>
-                            <div class="label">Stores</div>
-                </div>
-                        <div class="stat-card">
-                            <div class="icon">📈</div>
-                            <div class="value" id="growthRate">+0%</div>
-                            <div class="label">Growth</div>
-                </div>
-        </div>
-    </div>
-    
+
                 <!-- Stores Section -->
                 <div class="section-header">
                     <div class="section-title">Stores</div>
@@ -1861,9 +1963,9 @@
                 </div>
                 <div class="stores-grid" id="storesGrid">
                     <!-- Store cards will be loaded dynamically -->
-        </div>
-    </div>
-    
+                </div>
+            </div>
+
             <!-- Stock View -->
             <div id="stockView" class="view">
                 <!-- Fixed Stock Dashboard -->
@@ -1890,7 +1992,7 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <!-- Search Row -->
                     <div class="dashboard-row">
                         <div class="search-container">
@@ -1906,13 +2008,13 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Product List -->
                 <div class="product-list" id="productList">
                     <!-- Product items will be loaded dynamically -->
                 </div>
-                </div>
-                
+            </div>
+
             <!-- Store Detail View -->
             <div id="storeDetailView" class="view">
                 <!-- Store Detail Navigation -->
@@ -1923,76 +2025,80 @@
                     </button>
                     <div class="store-detail-title" id="storeDetailTitle"></div>
                 </div>
-                
+
                 <!-- Store Detail Content -->
                 <div class="store-detail-content">
                     <!-- Store Image -->
                     <div class="store-detail-image-section">
                         <img id="storeDetailImage" src="../icons/pos.png" alt="Store Image">
-                </div>
-                
+                    </div>
+
                     <!-- Store Info -->
                     <div class="store-info-section">
                         <h2 id="storeDetailName">Store Name</h2>
                         <p id="storeDetailLocation">Location</p>
-    </div>
-    
+                    </div>
+
                     <!-- Sales Summary -->
                     <div class="sales-summary-section">
                         <div class="summary-card">
                             <div class="summary-icon">💰</div>
                             <div class="summary-info">
-                                <div class="summary-value" id="storeDetailTotalSales" style="font-size: 24px; color: #1e7be9; font-weight: 900;">
-    RM 0
-            </div>
+                                <div class="summary-value" id="storeDetailTotalSales"
+                                    style="font-size: 24px; color: #1e7be9; font-weight: 900;">
+                                    RM 0
+                                </div>
                                 <div class="summary-label">Total Sales</div>
-                                <div class="summary-transactions" id="storeDetailTransactionText">0 sales transaction</div>
-            </div>
-                </div>
-                </div>
-                
+                                <div class="summary-transactions" id="storeDetailTransactionText">0 sales transaction
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Shift Sales -->
                     <div class="shirt-sales-section">
                         <div class="shirt-card">
                             <div class="shirt-icon">☀️</div>
-                            <div class="shirt-value" id="shift1Sales" style="font-size: 16px; color: #f0a111; font-weight: 900;">RM 0</div>
+                            <div class="shirt-value" id="shift1Sales"
+                                style="font-size: 16px; color: #f0a111; font-weight: 900;">RM 0</div>
                             <div class="shirt-label">Shift 1</div>
-                </div>
+                        </div>
                         <div class="shirt-card">
                             <div class="shirt-icon">🌙</div>
-                            <div class="shirt-value" id="shift2Sales" style="font-size: 16px; color: #9706f9; font-weight: 900;">RM 0</div>
+                            <div class="shirt-value" id="shift2Sales"
+                                style="font-size: 16px; color: #9706f9; font-weight: 900;">RM 0</div>
                             <div class="shirt-label">Shift 2</div>
-                </div>
-                </div>
-                
+                        </div>
+                    </div>
+
                     <!-- Product Sales -->
                     <div class="product-sales-section">
                         <h3>Sales Records</h3>
                         <div id="salesRecordsList">
                             <!-- Sales records will be loaded here -->
-        </div>
-    </div>
-            </div>
                         </div>
                     </div>
-                    
+                </div>
+            </div>
+        </div>
+
         <!-- Tab Bar -->
         <div class="tab-bar">
             <div class="tab-item active" data-view="sales">
                 <i class="material-icons icon">trending_up</i>
                 <span class="label">Sales</span>
-                    </div>
+            </div>
             <div class="tab-item" data-view="stock">
                 <i class="material-icons icon">inventory_2</i>
                 <span class="label">Stock</span>
-                        </div>
+            </div>
             <div class="tab-item" onclick="logout()">
                 <i class="material-icons icon">logout</i>
                 <span class="label">Logout</span>
-                        </div>
-                    </div>
-                </div>
-                
+            </div>
+        </div>
+    </div>
+
     <!-- Store Detail Modal -->
     <div id="storeDetailModal" class="modal">
         <div class="modal-content">
@@ -2000,11 +2106,11 @@
                 <div class="modal-title">Store Details</div>
                 <button class="close-btn" onclick="closeStoreDetail()">
                     <i class="material-icons" style="font-size: 18px;">close</i>
-                        </button>
-                    </div>
+                </button>
+            </div>
             <div class="modal-body">
-                
-        
+
+
                 <div class="detail-stats-grid">
                     <div class="detail-stat">
                         <div class="value" id="storeDetailRevenue">RM 0</div>
@@ -2013,24 +2119,24 @@
                     <div class="detail-stat">
                         <div class="value" id="storeDetailSales">0</div>
                         <div class="label">Sales</div>
-                </div>
+                    </div>
                     <div class="detail-stat">
                         <div class="value" id="storeDetailProducts">0</div>
                         <div class="label">Products</div>
-                                </div>
+                    </div>
                     <div class="detail-stat">
                         <div class="value" id="storeDetailOrders">0</div>
                         <div class="label">Orders</div>
-                                </div>
-                                </div>
-            
-                <div id="storeDetailSalesList">
-                    <!-- Detailed sales list will be loaded here -->
-                                </div>
-                        </div>
                     </div>
                 </div>
-                
+
+                <div id="storeDetailSalesList">
+                    <!-- Detailed sales list will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Sales Record Detail Modal -->
     <div id="salesRecordDetailModal" class="modal">
         <div class="modal-content">
@@ -2039,14 +2145,14 @@
                 <button class="close-btn" onclick="closeSalesRecordDetail()">
                     <i class="material-icons" style="font-size: 18px;">close</i>
                 </button>
-                        </div>
+            </div>
             <div class="modal-body">
                 <!-- Sale Basic Info -->
                 <div class="sale-basic-info">
                     <div class="sale-info-row">
                         <span class="sale-label">Bill Number:</span>
                         <span class="sale-value" id="saleDetailBillNumber">-</span>
-                        </div>
+                    </div>
                     <div class="sale-info-row">
                         <span class="sale-label">Time:</span>
                         <span class="sale-value" id="saleDetailDateTime">-</span>
@@ -2054,45 +2160,94 @@
                     <div class="sale-info-row">
                         <span class="sale-label">Shift:</span>
                         <span class="sale-value" id="saleDetailShift">-</span>
-                </div>
+                    </div>
                     <div class="sale-info-row">
                         <span class="sale-label">Cashier:</span>
                         <span class="sale-value" id="saleDetailCashier">-</span>
-                </div>
+                    </div>
                     <div class="sale-info-row">
                         <span class="sale-label">Total Amount:</span>
                         <span class="sale-value sale-total" id="saleDetailTotal">RM 0</span>
-            </div>
-            </div>
-            
+                    </div>
+                </div>
+
                 <!-- Items List -->
                 <div class="sale-items-section">
                     <h4>Items Purchased</h4>
                     <div id="saleDetailItemsList">
                         <!-- Items will be loaded here -->
-        </div>
-    </div>
-    
+                    </div>
+                </div>
+
                 <!-- Summary -->
                 <div class="sale-summary-section">
                     <div class="summary-row">
                         <span class="summary-label">Subtotal:</span>
                         <span class="summary-value" id="saleDetailSubtotal">RM 0</span>
-                </div>
+                    </div>
                     <div class="summary-row" id="discountRow" style="display: none;">
                         <span class="summary-label">Discount:</span>
                         <span class="summary-value discount-value" id="saleDetailDiscount">-RM 0</span>
-                </div>
+                    </div>
                     <div class="summary-row total-row">
                         <span class="summary-label">Total:</span>
                         <span class="summary-value total-value" id="saleDetailFinalTotal">RM 0</span>
-                </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    
 
+
+
+    <!-- Top 3 Detail Modal -->
+    <div id="top3Modal" style="
+        display:none; position:fixed; z-index:2000;
+        top:0; left:0; width:100%; height:100%;
+        background:rgba(0,0,0,0.45);
+        backdrop-filter:blur(16px);
+        -webkit-backdrop-filter:blur(16px);
+        align-items:center; justify-content:center;
+        padding:20px;
+        animation:modalFadeIn 0.25s ease;
+    ">
+        <div style="
+            background:var(--ios-tertiary-background);
+            border-radius:20px;
+            width:100%; max-width:380px;
+            max-height:80vh;
+            display:flex; flex-direction:column;
+            box-shadow:0 20px 60px rgba(0,0,0,0.3);
+            overflow:hidden;
+            animation:modalSlideUp 0.3s cubic-bezier(0.175,0.885,0.32,1.275);
+        ">
+            <!-- Header -->
+            <div style="
+                display:flex; align-items:center; justify-content:space-between;
+                padding:18px 20px 14px;
+                border-bottom:0.5px solid var(--ios-gray-5);
+                flex-shrink:0;
+            ">
+                <div id="top3ModalTitle" style="
+                    font-size:17px; font-weight:700;
+                    color:var(--ios-label); letter-spacing:-0.3px;
+                "></div>
+                <button onclick="closeTop3Modal()" style="
+                    background:var(--ios-gray-6); border:none;
+                    width:30px; height:30px; border-radius:15px;
+                    display:flex; align-items:center; justify-content:center;
+                    cursor:pointer; color:var(--ios-gray-1);
+                    font-size:16px; transition:all 0.2s;
+                ">&times;</button>
+            </div>
+            <!-- Body -->
+            <div id="top3ModalBody" style="
+                overflow-y:auto; padding:16px 20px 20px;
+                flex:1;
+                -ms-overflow-style:none; scrollbar-width:none;
+            "></div>
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -2106,4 +2261,5 @@
     <script src="../js/product-image-map.js"></script>
     <script src="../js/adminp.js"></script>
 </body>
+
 </html>
