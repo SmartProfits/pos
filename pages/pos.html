@@ -1,120 +1,163 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>POS System - Sales</title>
     <link rel="stylesheet" href="../css/styles.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
     <style>
         body {
             margin: 0;
             padding: 0;
             overflow-x: hidden;
         }
+
         .pos-container {
             display: flex;
             width: 100%;
             height: 100vh;
             overflow: hidden;
         }
+
         .sidebar {
             min-width: 250px;
             height: 100vh;
         }
+
         .content {
             flex: 1;
             height: 100vh;
             overflow-y: auto;
         }
+
         .sidebar-content {
             display: flex;
             flex-direction: column;
             height: 100%;
         }
+
         .store-info {
-            padding: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
             flex-direction: column;
             align-items: center;
+            background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%);
         }
+
         .store-logo {
             width: 80px;
             height: 80px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        .store-logo:hover {
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.25);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
         .store-logo img {
             width: 100%;
             height: 100%;
             object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
         }
+
         .store-title {
             text-align: center;
             width: 100%;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
+
         .store-title h2 {
             margin: 0;
-            font-size: 28px;
-            font-weight: 600;
+            font-size: 26px;
+            font-weight: 700;
             font-family: 'Poppins', sans-serif;
-            color: white;
+            background: linear-gradient(135deg, #ffffff, #cbd5e1);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: 0.5px;
         }
+
         .store-details {
             width: 100%;
-            font-size: 14px;
+            font-size: 13px;
+            color: #94a3b8;
+            background: rgba(0, 0, 0, 0.15);
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
         }
+
         .store-details p {
-            margin: 5px 0;
+            margin: 8px 0;
             display: flex;
             align-items: center;
+            color: #cbd5e1;
         }
+
         .store-details .material-icons {
             font-size: 16px;
-            margin-right: 5px;
+            margin-right: 8px;
+            color: #6366f1;
         }
+
         .shift-history-container {
-            margin-top: 12px;
+            margin-top: 16px;
             width: 100%;
         }
-        
+
         .modern-btn {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 8px 12px;
-            background-color: rgba(255, 255, 255, 0.1);
-            border: none;
-            border-radius: 5px;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
             color: white;
             font-size: 13px;
+            font-weight: 500;
             cursor: pointer;
             width: 100%;
-            transition: all 0.2s ease;
-            gap: 6px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            gap: 8px;
             font-family: 'Poppins', sans-serif;
         }
-        
+
         .modern-btn:hover {
-            background-color: rgba(255, 255, 255, 0.2);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
             transform: translateY(-2px);
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 255, 255, 0.2);
         }
-        
+
         .modern-btn:active {
             transform: translateY(0);
             box-shadow: none;
         }
-        
+
         .modern-btn i {
-            font-size: 16px;
+            font-size: 18px;
         }
-        
+
         /* 1st Shift Cashier Name Style */
         .first-shift-name {
             background: linear-gradient(to right, #ffcc00, #ff9900);
@@ -124,12 +167,19 @@
             font-weight: 600;
             animation: first-shift-blink 2s infinite;
         }
-        
+
         @keyframes first-shift-blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
         }
-        
+
         /* 2nd Shift Cashier Name Style */
         .second-shift-name {
             background: linear-gradient(to right, #9966cc, #888888);
@@ -139,15 +189,29 @@
             font-weight: 600;
             animation: second-shift-wave 3s infinite;
         }
-        
+
         @keyframes second-shift-wave {
-            0% { transform: translateY(0); }
-            25% { transform: translateY(-3px); }
-            50% { transform: translateY(0); }
-            75% { transform: translateY(3px); }
-            100% { transform: translateY(0); }
+            0% {
+                transform: translateY(0);
+            }
+
+            25% {
+                transform: translateY(-3px);
+            }
+
+            50% {
+                transform: translateY(0);
+            }
+
+            75% {
+                transform: translateY(3px);
+            }
+
+            100% {
+                transform: translateY(0);
+            }
         }
-        
+
         /* Pending Transfers Styles */
         .pending-transfers-header {
             display: flex;
@@ -158,7 +222,7 @@
             background: #f8f9fa;
             border-radius: 8px;
         }
-        
+
         .pending-transfers-header h2 {
             margin: 0;
             display: flex;
@@ -166,24 +230,24 @@
             gap: 10px;
             color: #2c3e50;
         }
-        
+
         .pending-transfers-actions {
             display: flex;
             gap: 10px;
         }
-        
+
         .pending-transfers-table-container {
             background: white;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        
+
         .pending-transfers-table-container table {
             width: 100%;
             border-collapse: collapse;
         }
-        
+
         .pending-transfers-table-container th {
             background: #34495e;
             color: white;
@@ -191,17 +255,18 @@
             text-align: left;
             font-weight: 600;
         }
-        
+
         .pending-transfers-table-container td {
             padding: 12px;
             border-bottom: 1px solid #e0e0e0;
         }
-        
+
         .pending-transfers-table-container tr:hover {
             background: #f5f5f5;
         }
-        
-        .btn-confirm-transfer, .btn-reject-transfer {
+
+        .btn-confirm-transfer,
+        .btn-reject-transfer {
             padding: 6px 12px;
             border: none;
             border-radius: 4px;
@@ -213,70 +278,99 @@
             transition: all 0.2s;
             margin-right: 5px;
         }
-        
+
         .btn-confirm-transfer {
             background: #27ae60;
             color: white;
         }
-        
+
         .btn-confirm-transfer:hover {
             background: #229954;
             transform: translateY(-1px);
         }
-        
+
         .btn-reject-transfer {
             background: #e74c3c;
             color: white;
         }
-        
+
         .btn-reject-transfer:hover {
             background: #c0392b;
             transform: translateY(-1px);
         }
+
+        .notification-badge {
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            display: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
     </style>
 </head>
+
 <body>
     <!-- 收银员姓名输入模态框 -->
     <div id="cashierNameModal" class="modal">
-        <div class="modal-content">
-            <h2><i class="material-icons">person</i> Cashier Information</h2>
-            <p>Please enter the name of the current cashier on duty</p>
-            <form id="cashierNameForm">
-                <div class="form-group">
-                    <label for="cashierName"><i class="material-icons">badge</i> Name:</label>
-                    <input type="text" id="cashierName" required>
+        <div class="modal-content cashier-modal">
+            <div class="cashier-modal-header">
+                <div class="cashier-icon-wrapper">
+                    <i class="material-icons">person_outline</i>
                 </div>
-                <div class="form-group">
-                    <label for="cashierShift"><i class="material-icons">schedule</i> Shift:</label>
-                    <select id="cashierShift" required>
-                        <option value="1st Shift">1st Shift</option>
-                        <option value="2nd Shift">2nd Shift</option>
-                    </select>
+                <h2>Cashier Information</h2>
+                <p>Welcome! Please set your identity for this session</p>
+            </div>
+            <form id="cashierNameForm" class="cashier-form">
+                <div class="cashier-form-group">
+                    <label for="cashierName"><i class="material-icons">badge</i> Full Name</label>
+                    <input type="text" id="cashierName" required placeholder="E.g. John Doe" autocomplete="off">
                 </div>
-                <button type="submit"><i class="material-icons">save</i> Confirm</button>
+                <div class="cashier-form-group">
+                    <label for="cashierShift"><i class="material-icons">schedule</i> Active Shift</label>
+                    <div class="cashier-select-wrapper">
+                        <select id="cashierShift" required>
+                            <option value="" disabled selected>Select your shift</option>
+                            <option value="1st Shift">1st Shift </option>
+                            <option value="2nd Shift">2nd Shift </option>
+                        </select>
+                        <i class="material-icons select-arrow">expand_more</i>
+                    </div>
+                </div>
+                <button type="submit" class="cashier-submit-btn">
+                    <span>Confirm Identity</span>
+                    <i class="material-icons">check_circle_outline</i>
+                </button>
             </form>
-            <div class="tip-container">
-                <p class="tip"><i class="material-icons">tips_and_updates</i> Tips:</p>
+            <div class="cashier-tip-container">
+                <div class="tip-header">
+                    <i class="material-icons">lightbulb_outline</i>
+                    <span>Tips</span>
+                </div>
                 <ul>
-                    <li>When changing shifts, click the edit button in the sidebar to update cashier information</li>
-                    <li>Cashier names will be displayed on all sales records and receipts</li>
+                    <li>Need to change shifts? Click the <i class="material-icons inline-icon">edit</i> button next to your name in the sidebar later.</li>
+                    <li>Cashier names are actively recorded on all digital receipts and sales history.</li>
                 </ul>
             </div>
         </div>
     </div>
-    
+
     <!-- Announcement Banner -->
     <div id="announcementBanner" class="announcement-banner hidden">
         <div id="announcementScrollingText" class="announcement-scrolling-text">
             <!-- Announcement text will be loaded here -->
         </div>
     </div>
-    
+
     <div class="pos-container">
         <div class="sidebar" id="sidebar">
-            <div class="sidebar-toggle" id="sidebarToggle">
-                <i class="material-icons" id="toggleIcon">chevron_left</i>
-            </div>
             <div class="sidebar-content">
                 <div class="store-info">
                     <div class="store-logo">
@@ -287,8 +381,11 @@
                     </div>
                     <div class="store-details">
                         <p><i class="material-icons">store</i><span id="userName">User</span></p>
-                        <p id="currentCashier"><i class="material-icons">person</i> Cashier: <span id="cashierNameDisplay" style="margin-left: 4px;">Not set</span> <button id="changeCashierBtn" class="small-btn"><i class="material-icons">edit</i></button></p>
-                        <p id="currentShift"><i class="material-icons">schedule</i> On Duty: <span id="cashierShiftDisplay" style="margin-left: 4px;">Not set</span></p>
+                        <p id="currentCashier"><i class="material-icons">person</i> Cashier: <span
+                                id="cashierNameDisplay" style="margin-left: 4px;">Not set</span> <button
+                                id="changeCashierBtn" class="small-btn"><i class="material-icons">edit</i></button></p>
+                        <p id="currentShift"><i class="material-icons">schedule</i> On Duty: <span
+                                id="cashierShiftDisplay" style="margin-left: 4px;">Not set</span></p>
                         <div class="shift-history-container">
                             <button id="viewCashierHistoryBtn" class="modern-btn">
                                 <i class="material-icons">history</i>
@@ -298,28 +395,41 @@
                     </div>
                 </div>
                 <div class="nav-menu">
-                    <div class="nav-item active" data-view="sales"><i class="material-icons">point_of_sale</i> <span class="nav-text">Sales</span></div>
-                    <div class="nav-item" data-view="salesHistory"><i class="material-icons">history</i> <span class="nav-text">Sales History</span></div>
-                    <div class="nav-item" data-view="inventory"><i class="material-icons">inventory_2</i> <span class="nav-text">Inventory</span></div>
-                    <div class="nav-item" data-view="stockHistory"><i class="material-icons">local_shipping</i> <span class="nav-text">Stock History</span></div>
-                    <div class="nav-item" data-view="pendingTransfers"><i class="material-icons">swap_horiz</i> <span class="nav-text">Pending Transfers</span></div>
-                    <div class="nav-item" onclick="location.href='./product_catalog.html'"><i class="material-icons">menu_book</i> <span class="nav-text">Product Catalog</span></div>
-                    <div class="nav-item" onclick="logout()"><i class="material-icons">logout</i> <span class="nav-text">Logout</span></div>
+                    <div class="nav-item active" data-view="sales"><i class="material-icons">point_of_sale</i> <span
+                            class="nav-text">Sales</span></div>
+                    <div class="nav-item" data-view="salesHistory"><i class="material-icons">history</i> <span
+                            class="nav-text">Sales History</span></div>
+                    <div class="nav-item" data-view="inventory"><i class="material-icons">inventory_2</i> <span
+                            class="nav-text">Inventory</span></div>
+                    <div class="nav-item" data-view="stockHistory"><i class="material-icons">local_shipping</i> <span
+                            class="nav-text">Stock History</span></div>
+                    <div class="nav-item" data-view="pendingTransfers" style="position: relative;">
+                        <i class="material-icons">swap_horiz</i>
+                        <span class="nav-text">Pending Transfers</span>
+                        <span id="pendingTransferBadge" class="notification-badge">0</span>
+                    </div>
+                    <div class="nav-item" onclick="location.href='./product_catalog.html'"><i
+                            class="material-icons">menu_book</i> <span class="nav-text">Product Catalog</span></div>
+                    <div class="nav-item" onclick="logout()"><i class="material-icons">logout</i> <span
+                            class="nav-text">Logout</span></div>
                 </div>
             </div>
         </div>
-        
+
         <div class="content" id="mainContent">
             <div class="header">
                 <h1 id="viewTitle">Sales System</h1>
                 <div class="header-actions">
+                    <button id="darkModeBtn" class="theme-toggle-btn" title="Toggle Dark Mode">
+                        <i class="material-icons" id="darkModeIcon">dark_mode</i>
+                    </button>
                     <button id="simpleModeBtn" class="simple-mode-btn" title="Enter Simple Mode">
                         <i class="material-icons">fullscreen</i>
                     </button>
                 </div>
                 <div id="currentDateTime"></div>
             </div>
-            
+
             <!-- Sales View -->
             <div id="salesView" class="view active">
                 <div class="pos-grid">
@@ -329,7 +439,8 @@
                             <div class="hot-items-header">
                                 <h3><i class="material-icons">whatshot</i> Hot Items</h3>
                                 <div style="display: flex; gap: 5px; align-items: center;">
-                                    <button id="manageHotItemsBtn" class="hot-items-manage-btn" title="Manage Hot Items">
+                                    <button id="manageHotItemsBtn" class="hot-items-manage-btn"
+                                        title="Manage Hot Items">
                                         <i class="material-icons">settings</i>
                                     </button>
                                     <button class="hot-items-toggle" id="hotItemsToggle">
@@ -341,11 +452,11 @@
                                 <!-- Hot items will be loaded here dynamically -->
                             </div>
                         </div>
-                        
+
                         <div class="filter-container">
                             <div class="search-box">
                                 <i class="material-icons">search</i>
-                                <input type="text" id="productSearch" placeholder="Search products...">
+                                <input type="text" id="productSearch" placeholder="Search products..." readonly>
                             </div>
                             <div class="category-filter">
                                 <label for="categoryFilter"><i class="material-icons">category</i> Category:</label>
@@ -361,9 +472,14 @@
                             <!-- Product list will be loaded dynamically by JavaScript -->
                         </div>
                     </div>
-                    
+
                     <div class="cart-container">
-                        <h2><i class="material-icons">shopping_cart</i> Cart</h2>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; padding-bottom:12px; border-bottom:2px solid rgba(52,152,219,0.12);">
+                            <div style="background:linear-gradient(135deg,#3498db,#6c5ce7); border-radius:10px; padding:7px; display:flex; align-items:center;">
+                                <i class="material-icons" style="color:white; font-size:20px;">shopping_cart</i>
+                            </div>
+                            <h2 style="margin:0; font-size:17px; font-weight:700; color:#1e293b;">Cart</h2>
+                        </div>
                         <div class="cart-header">
                             <div class="cart-header-item">Product</div>
                             <div class="cart-header-item">Price</div>
@@ -377,22 +493,30 @@
                         <div class="cart-total">Total: <span id="cartTotal">$0.00</span></div>
                         <div class="cart-actions">
                             <button id="checkoutBtn" class="checkout-btn" aria-label="结算购物车">
-                                <i class="material-icons" aria-hidden="true">payment</i> 
+                                <i class="material-icons" aria-hidden="true">payment</i>
                                 <span>Checkout</span>
                             </button>
                             <button id="clearCartBtn" aria-label="清空购物车">
-                                <i class="material-icons" aria-hidden="true">remove_shopping_cart</i> 
+                                <i class="material-icons" aria-hidden="true">remove_shopping_cart</i>
                                 <span>Clear Cart</span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
-            
+
             <!-- Sales History View -->
             <div id="salesHistoryView" class="view">
-                <h2>Sales History</h2>
-                
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+                    <div style="background:linear-gradient(135deg,#3498db,#6c5ce7); border-radius:12px; padding:10px 14px; display:flex; align-items:center; justify-content:center;">
+                        <i class="material-icons" style="color:white; font-size:22px;">history</i>
+                    </div>
+                    <div>
+                        <h2 style="margin:0; font-size:20px; font-weight:700; color:#1e293b; letter-spacing:-0.3px;">Sales History</h2>
+                        <p style="margin:0; font-size:12px; color:#94a3b8; font-weight:500;">Today's transactions overview</p>
+                    </div>
+                </div>
+
                 <!-- Total Sales Summary Section -->
                 <div class="sales-summary">
                     <div class="summary-card">
@@ -400,38 +524,41 @@
                         <div class="summary-content">
                             <h3>Total Sales</h3>
                             <div class="summary-value" id="totalSalesAmount">RM0.00</div>
-                            <div class="summary-subtitle">Total transactions: <span id="totalTransactions">0</span></div>
+                            <div class="summary-subtitle">Total transactions: <span id="totalTransactions">0</span>
+                            </div>
                         </div>
                     </div>
-                    
+
                     <div class="summary-card">
                         <div class="summary-icon"><i class="material-icons">local_offer</i></div>
                         <div class="summary-content">
                             <h3>Discounted Sales</h3>
                             <div class="summary-value" id="discountedSalesCount">0</div>
-                            <div class="summary-subtitle">Total discount amount: <span id="totalDiscountAmount">RM0.00</span></div>
+                            <div class="summary-subtitle">Total discount amount: <span
+                                    id="totalDiscountAmount">RM0.00</span></div>
                         </div>
                     </div>
-                    
+
                     <div class="summary-card">
-                        <div class="summary-icon"><i class="material-icons">schedule</i></div>
+                        <div class="summary-icon"><i class="material-icons">looks_one</i></div>
                         <div class="summary-content">
                             <h3>1st Shift Sales</h3>
                             <div class="summary-value" id="firstShiftSalesAmount">RM0.00</div>
                             <div class="summary-subtitle">Transactions: <span id="firstShiftTransactions">0</span></div>
                         </div>
                     </div>
-                    
+
                     <div class="summary-card">
-                        <div class="summary-icon"><i class="material-icons">schedule</i></div>
+                        <div class="summary-icon"><i class="material-icons">looks_two</i></div>
                         <div class="summary-content">
                             <h3>2nd Shift Sales</h3>
                             <div class="summary-value" id="secondShiftSalesAmount">RM0.00</div>
-                            <div class="summary-subtitle">Transactions: <span id="secondShiftTransactions">0</span></div>
+                            <div class="summary-subtitle">Transactions: <span id="secondShiftTransactions">0</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="sale-details-container">
                     <table id="salesTable">
                         <thead>
@@ -452,48 +579,58 @@
                     </table>
                 </div>
             </div>
-            
+
             <!-- Inventory Management View -->
             <div id="inventoryView" class="view">
-                <div class="inventory-header">
-                    <div class="inventory-filters">
-                        <div class="filter-item">
-                            <label for="inventoryCategoryFilter"><i class="material-icons">category</i> Category:</label>
-                            <select id="inventoryCategoryFilter">
-                                <option value="all">All Categories</option>
-                                <!-- Category options will be loaded dynamically -->
-                            </select>
+                <div class="view-page-header">
+                    <div class="view-page-header-left">
+                        <div class="view-header-icon" style="background:linear-gradient(135deg,#00b894,#00cec9);">
+                            <i class="material-icons">inventory_2</i>
                         </div>
-                        
-                        <div class="filter-item">
-                            <label for="inventorySearchInput"><i class="material-icons">search</i> Search:</label>
-                            <input type="text" id="inventorySearchInput" placeholder="Search products..." class="inventory-search">
-                        </div>
-                        
-                        <div class="filter-item">
-                            <label for="inventoryStockFilter"><i class="material-icons">warning</i> Stock Status:</label>
-                            <select id="inventoryStockFilter">
-                                <option value="all">All</option>
-                                <option value="low">Low Stock</option>
-                                <option value="out">Out of Stock</option>
-                            </select>
+                        <div>
+                            <h2 class="view-header-title">Inventory</h2>
+                            <p class="view-header-subtitle">Manage products &amp; stock levels</p>
                         </div>
                     </div>
-                    
-                    <div class="inventory-actions">
-                        <button id="refreshInventoryBtn" class="icon-button" aria-label="刷新库存">
-                            <i class="material-icons" aria-hidden="true">refresh</i>
-                        </button>
-                        
-                        <button id="addProductBtn" class="action-button" aria-label="添加新产品">
-                            <i class="material-icons" aria-hidden="true">add</i> 
-                            <span>Add Product</span>
-                        </button>
+                    <div class="view-header-actions">
+                        <div class="inventory-filters">
+                            <div class="filter-item">
+                                <label for="inventoryCategoryFilter"><i class="material-icons">category</i> Category:</label>
+                                <select id="inventoryCategoryFilter">
+                                    <option value="all">All Categories</option>
+                                    <!-- Category options will be loaded dynamically -->
+                                </select>
+                            </div>
+
+                            <div class="filter-item">
+                                <label for="inventorySearchInput"><i class="material-icons">search</i> Search:</label>
+                                <input type="text" id="inventorySearchInput" placeholder="Search products..."
+                                    class="inventory-search">
+                            </div>
+
+                            <div class="filter-item">
+                                <label for="inventoryStockFilter"><i class="material-icons">warning</i> Stock Status:</label>
+                                <select id="inventoryStockFilter">
+                                    <option value="all">All</option>
+                                    <option value="low">Low Stock</option>
+                                    <option value="out">Out of Stock</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="inventory-actions">
+                            <button id="refreshInventoryBtn" class="icon-button" aria-label="刷新库存">
+                                <i class="material-icons" aria-hidden="true">refresh</i>
+                            </button>
+                            <button id="addProductBtn" class="action-button" aria-label="添加新产品">
+                                <i class="material-icons" aria-hidden="true">add</i>
+                                <span>Add Product</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="inventory-table-container">
-                    <table id="inventoryTable">
+
+                <div class="premium-table-container">
+                    <table id="inventoryTable" class="premium-table">
                         <thead>
                             <tr>
                                 <th>Product ID</th>
@@ -511,12 +648,20 @@
                     </table>
                 </div>
             </div>
-            
+
             <!-- Stock History View -->
             <div id="stockHistoryView" class="view">
-                <div class="stock-history-header">
-                    <h2><i class="material-icons">local_shipping</i> <span id="stockHistoryTitle">Today's Stock Receipts</span></h2>
-                    <div class="stock-history-filters">
+                <div class="view-page-header">
+                    <div class="view-page-header-left">
+                        <div class="view-header-icon" style="background:linear-gradient(135deg,#f39c12,#e67e22);">
+                            <i class="material-icons">local_shipping</i>
+                        </div>
+                        <div>
+                            <h2 class="view-header-title"><span id="stockHistoryTitle">Today's Stock Receipts</span></h2>
+                            <p class="view-header-subtitle">Track incoming inventory</p>
+                        </div>
+                    </div>
+                    <div class="view-header-actions">
                         <div class="date-filter-group">
                             <label for="stockHistoryDatePicker">
                                 <i class="material-icons">event</i>
@@ -529,9 +674,9 @@
                         </button>
                     </div>
                 </div>
-                
+
                 <div class="stock-history-summary">
-                    <div class="summary-card">
+                    <div class="summary-card stk-card-1">
                         <div class="summary-icon"><i class="material-icons">inventory</i></div>
                         <div class="summary-content">
                             <h3>Total Items Received</h3>
@@ -539,8 +684,8 @@
                             <div class="summary-subtitle">Different products</div>
                         </div>
                     </div>
-                    
-                    <div class="summary-card">
+
+                    <div class="summary-card stk-card-2">
                         <div class="summary-icon"><i class="material-icons">add_shopping_cart</i></div>
                         <div class="summary-content">
                             <h3>Total Quantity</h3>
@@ -548,8 +693,8 @@
                             <div class="summary-subtitle" id="totalQuantitySubtitle">Units received</div>
                         </div>
                     </div>
-                    
-                    <div class="summary-card">
+
+                    <div class="summary-card stk-card-3">
                         <div class="summary-icon"><i class="material-icons">schedule</i></div>
                         <div class="summary-content">
                             <h3>Last Receipt</h3>
@@ -558,9 +703,9 @@
                         </div>
                     </div>
                 </div>
-                
-                <div class="stock-history-table-container">
-                    <table id="stockHistoryTable">
+
+                <div class="premium-table-container">
+                    <table id="stockHistoryTable" class="premium-table">
                         <thead>
                             <tr>
                                 <th>Time</th>
@@ -578,27 +723,36 @@
                         <tbody id="stockHistoryTableBody">
                             <tr>
                                 <td colspan="10" style="text-align: center; padding: 20px;">
-                                    <div class="loading"><i class="material-icons">hourglass_empty</i> Loading today's stock receipts...</div>
+                                    <div class="loading"><i class="material-icons">hourglass_empty</i> Loading today's
+                                        stock receipts...</div>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-            
+
             <!-- Pending Transfers View -->
             <div id="pendingTransfersView" class="view">
-                <div class="pending-transfers-header">
-                    <h2><i class="material-icons">swap_horiz</i> Pending Transfer Requests</h2>
-                    <div class="pending-transfers-actions">
+                <div class="view-page-header">
+                    <div class="view-page-header-left">
+                        <div class="view-header-icon" style="background:linear-gradient(135deg,#9b59b6,#6c5ce7);">
+                            <i class="material-icons">swap_horiz</i>
+                        </div>
+                        <div>
+                            <h2 class="view-header-title">Pending Transfers</h2>
+                            <p class="view-header-subtitle">Review &amp; approve incoming stock requests</p>
+                        </div>
+                    </div>
+                    <div class="view-header-actions">
                         <button id="refreshPendingTransfersBtn" class="icon-button" aria-label="刷新待处理转移">
                             <i class="material-icons" aria-hidden="true">refresh</i>
                         </button>
                     </div>
                 </div>
-                
-                <div class="pending-transfers-table-container">
-                    <table id="pendingTransfersTable">
+
+                <div class="premium-table-container">
+                    <table id="pendingTransfersTable" class="premium-table premium-table--purple">
                         <thead>
                             <tr>
                                 <th>Time</th>
@@ -615,7 +769,8 @@
                         <tbody id="pendingTransfersTableBody">
                             <tr>
                                 <td colspan="9" style="text-align: center; padding: 20px;">
-                                    <div class="loading"><i class="material-icons">hourglass_empty</i> Loading pending transfers...</div>
+                                    <div class="loading"><i class="material-icons">hourglass_empty</i> Loading pending
+                                        transfers...</div>
                                 </td>
                             </tr>
                         </tbody>
@@ -624,7 +779,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Checkout Success Modal -->
     <div id="checkoutSuccessModal" class="modal">
         <div class="modal-content">
@@ -633,16 +788,16 @@
             <p>Order has been submitted successfully!</p>
             <div id="receiptDetails"></div>
             <button id="printReceiptBtn" aria-label="打印收据">
-                <i class="material-icons" aria-hidden="true">print</i> 
+                <i class="material-icons" aria-hidden="true">print</i>
                 <span>Print Receipt</span>
             </button>
             <button id="newSaleBtn" aria-label="开始新交易">
-                <i class="material-icons" aria-hidden="true">add_shopping_cart</i> 
+                <i class="material-icons" aria-hidden="true">add_shopping_cart</i>
                 <span>New Transaction</span>
             </button>
         </div>
     </div>
-    
+
     <!-- Sale Details Modal -->
     <div id="saleDetailModal" class="modal">
         <div class="modal-content">
@@ -651,13 +806,13 @@
             <div id="saleDetailContent"></div>
             <div class="modal-footer">
                 <button id="deleteSaleBtn" aria-label="删除销售记录">
-                    <i class="material-icons" aria-hidden="true">delete</i> 
+                    <i class="material-icons" aria-hidden="true">delete</i>
                     <span>Delete</span>
                 </button>
             </div>
         </div>
     </div>
-    
+
     <!-- Edit Sale Modal -->
     <div id="editSaleModal" class="modal">
         <div class="modal-content">
@@ -671,17 +826,17 @@
             </div>
             <div class="modal-footer">
                 <button id="updateSaleBtn" aria-label="更新销售记录">
-                    <i class="material-icons" aria-hidden="true">save</i> 
+                    <i class="material-icons" aria-hidden="true">save</i>
                     <span>Update Sale</span>
                 </button>
                 <button id="cancelEditBtn" aria-label="取消编辑">
-                    <i class="material-icons" aria-hidden="true">cancel</i> 
+                    <i class="material-icons" aria-hidden="true">cancel</i>
                     <span>Cancel</span>
                 </button>
             </div>
         </div>
     </div>
-    
+
     <!-- Update Stock Modal -->
     <div id="updateStockModal" class="modal">
         <div class="modal-content">
@@ -689,22 +844,22 @@
             <h2><i class="material-icons">edit</i> Update Stock</h2>
             <form id="updateStockForm">
                 <input type="hidden" id="updateProductId">
-                
+
                 <div class="form-group">
                     <label for="wupdateProductName">Product Name:</label>
                     <input type="text" id="updateProductName" readonly>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="updateCurrentStock">Current Stock:</label>
                     <input type="number" id="updateCurrentStock" readonly>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="updateQuantity">Quantity:</label>
                     <input type="number" id="updateQuantity" min="1" value="1" required>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="updateReason">Reason:</label>
                     <select id="updateReason" onchange="toggleOtherReason()">
@@ -716,7 +871,7 @@
                         <option value="other">Other</option>
                     </select>
                 </div>
-                
+
                 <div class="form-group" id="storeTransferContainer" style="display: none;">
                     <label for="transferStoreSelect">Transfer To Store:</label>
                     <select id="transferStoreSelect">
@@ -724,22 +879,22 @@
                         <!-- Store options will be loaded dynamically -->
                     </select>
                 </div>
-                
+
                 <div class="form-group" id="otherReasonContainer" style="display: none;">
                     <label for="otherReason">Specify Reason:</label>
                     <input type="text" id="otherReason">
                 </div>
-                
+
                 <div class="form-group">
                     <label for="updateNotes">Notes:</label>
                     <textarea id="updateNotes" rows="3"></textarea>
                 </div>
-                
+
                 <button type="submit" class="btn-primary"><i class="material-icons">save</i> Update Stock</button>
             </form>
         </div>
     </div>
-    
+
     <!-- Stock History Modal -->
     <div id="stockHistoryModal" class="modal">
         <div class="modal-content stock-history-modal-content">
@@ -750,7 +905,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Add Product Modal -->
     <div id="addProductModal" class="modal">
         <div class="modal-content">
@@ -788,13 +943,13 @@
             </form>
         </div>
     </div>
-    
+
     <!-- Hot Items Management Modal -->
     <div id="hotItemsManageModal" class="modal">
         <div class="modal-content" style="max-width: 800px;">
             <span class="close">&times;</span>
             <h2><i class="material-icons">whatshot</i> Manage Hot Items</h2>
-            
+
             <div class="hot-items-management">
                 <div class="current-hot-items">
                     <h3>Current Hot Items</h3>
@@ -802,7 +957,7 @@
                         <!-- Current hot items list -->
                     </div>
                 </div>
-                
+
                 <div class="available-products">
                     <h3>Available Products</h3>
                     <div class="search-box" style="margin-bottom: 15px;">
@@ -814,20 +969,20 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="modal-footer">
                 <button id="saveHotItemsBtn" aria-label="Save hot items settings">
-                    <i class="material-icons" aria-hidden="true">save</i> 
+                    <i class="material-icons" aria-hidden="true">save</i>
                     <span>Save Settings</span>
                 </button>
                 <button id="closeHotItemsManageBtn" aria-label="Close">
-                    <i class="material-icons" aria-hidden="true">close</i> 
+                    <i class="material-icons" aria-hidden="true">close</i>
                     <span>Close</span>
                 </button>
             </div>
         </div>
     </div>
-    
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -837,18 +992,18 @@
     <script src="../js/pos.js"></script>
     <script>
         // 根据班次更新收银员名字显示样式
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const cashierNameForm = document.getElementById('cashierNameForm');
             const cashierNameDisplay = document.getElementById('cashierNameDisplay');
             const cashierShiftDisplay = document.getElementById('cashierShiftDisplay');
-            
+
             // 从本地存储中获取当前班次信息
             function updateCashierNameStyle() {
                 const currentShift = localStorage.getItem('cashierShift');
-                
+
                 // 移除所有样式类
                 cashierNameDisplay.classList.remove('first-shift-name', 'second-shift-name');
-                
+
                 // 根据班次添加相应的样式类
                 if (currentShift === '1st Shift') {
                     cashierNameDisplay.classList.add('first-shift-name');
@@ -856,36 +1011,86 @@
                     cashierNameDisplay.classList.add('second-shift-name');
                 }
             }
-            
+
             // 初始化时应用样式
             updateCashierNameStyle();
-            
+
             // 当提交收银员信息表单时
             if (cashierNameForm) {
-                cashierNameForm.addEventListener('submit', function(e) {
+                cashierNameForm.addEventListener('submit', function (e) {
                     // 原有的表单处理逻辑会在pos.js中执行
-                    
+
                     // 在表单提交后延迟一点应用样式，确保localStorage已更新
                     setTimeout(updateCashierNameStyle, 100);
                 });
             }
-            
+
             // 监听本地存储变化
-            window.addEventListener('storage', function(e) {
+            window.addEventListener('storage', function (e) {
                 if (e.key === 'cashierShift' || e.key === 'cashierName') {
                     updateCashierNameStyle();
                 }
             });
-            
+
             // 添加一个变更收银员按钮的事件监听器
             const changeCashierBtn = document.getElementById('changeCashierBtn');
             if (changeCashierBtn) {
-                changeCashierBtn.addEventListener('click', function() {
+                changeCashierBtn.addEventListener('click', function () {
                     // 按钮点击后延迟应用样式，确保modal处理完成
                     setTimeout(updateCashierNameStyle, 500);
                 });
             }
         });
     </script>
+
+    <!-- 屏幕迷你软键盘 (Custom Virtual Keyboard) -->
+    <div id="virtualKeyboard" class="virtual-keyboard-overlay hidden">
+        <div class="virtual-keyboard-header" id="virtualKeyboardHeader">
+            <div class="kb-drag-handle" title="Drag to move"><i class="material-icons">drag_indicator</i></div>
+            <span class="kb-title">Product Search</span>
+            <div class="kb-controls">
+                <button id="kbShrinkBtn" class="kb-size-btn" title="Shrink"><i class="material-icons">remove</i></button>
+                <button id="kbEnlargeBtn" class="kb-size-btn" title="Enlarge"><i class="material-icons">add</i></button>
+                <button id="closeKeyboardBtn" class="close-kb-btn"><i class="material-icons">keyboard_hide</i></button>
+            </div>
+        </div>
+        <div class="keyboard-row">
+            <button class="kb-key" data-key="Q">Q</button>
+            <button class="kb-key" data-key="W">W</button>
+            <button class="kb-key" data-key="E">E</button>
+            <button class="kb-key" data-key="R">R</button>
+            <button class="kb-key" data-key="T">T</button>
+            <button class="kb-key" data-key="Y">Y</button>
+            <button class="kb-key" data-key="U">U</button>
+            <button class="kb-key" data-key="I">I</button>
+            <button class="kb-key" data-key="O">O</button>
+            <button class="kb-key" data-key="P">P</button>
+        </div>
+        <div class="keyboard-row">
+            <button class="kb-key" data-key="A">A</button>
+            <button class="kb-key" data-key="S">S</button>
+            <button class="kb-key" data-key="D">D</button>
+            <button class="kb-key" data-key="F">F</button>
+            <button class="kb-key" data-key="G">G</button>
+            <button class="kb-key" data-key="H">H</button>
+            <button class="kb-key" data-key="J">J</button>
+            <button class="kb-key" data-key="K">K</button>
+            <button class="kb-key" data-key="L">L</button>
+        </div>
+        <div class="keyboard-row">
+            <button class="kb-key" data-key="Z">Z</button>
+            <button class="kb-key" data-key="X">X</button>
+            <button class="kb-key" data-key="C">C</button>
+            <button class="kb-key" data-key="V">V</button>
+            <button class="kb-key" data-key="B">B</button>
+            <button class="kb-key" data-key="N">N</button>
+            <button class="kb-key" data-key="M">M</button>
+            <button class="kb-key special-key bksp" id="kbBackspace"><i class="material-icons">backspace</i></button>
+        </div>
+        <div class="keyboard-row">
+            <button class="kb-key special-key space-bar" data-key=" ">SPACE</button>
+            <button class="kb-key special-key clear-key" id="kbClear">CLEAR</button>
+        </div>
+    </div>
 </body>
-</html> 
+</html>
