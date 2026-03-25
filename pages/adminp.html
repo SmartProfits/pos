@@ -74,6 +74,122 @@
             --ios-shadow-3: 0 16px 48px rgba(37, 99, 235, 0.18), 0 8px 16px rgba(0, 0, 0, 0.1);
         }
 
+        /* ===== Night Mode Overrides ===== */
+        body.night-mode {
+            /* Better contrast grays */
+            --ios-label: #FFFFFF;
+            --ios-secondary-label: #E5E7EB;
+            --ios-tertiary-label: #D1D5DB;
+            --ios-background: #0F172A;
+            --ios-secondary-background: #1E293B;
+            --ios-tertiary-background: #334155;
+            --grad-bg: linear-gradient(160deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
+            --ios-gray-6: #1E293B;
+            --ios-gray-5: #334155;
+            --ios-gray-4: #475569;
+            
+            /* Enhanced Night Mode Brand Colors for better readability */
+            --ios-blue: #60A5FA;
+            --ios-green: #34D399;
+            --ios-orange: #FBBF24;
+            --ios-red: #F87171;
+            --ios-purple: #A78BFA;
+            --ios-teal: #2DD4BF;
+            --ios-pink: #F472B6;
+
+            /* Brighter Night Mode Gradients */
+            --grad-blue: linear-gradient(135deg, #60A5FA 0%, #A78BFA 100%);
+            --grad-green: linear-gradient(135deg, #059669 0%, #34D399 100%);
+            --grad-orange: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+            --grad-purple: linear-gradient(135deg, #A78BFA 0%, #F472B6 100%);
+            --grad-teal: linear-gradient(135deg, #0891B2 0%, #2DD4BF 100%);
+        }
+
+        /* Override hardcoded specific font and background colors in night mode */
+        body.night-mode .product-category {
+            color: #C084FC !important;
+            background: rgba(192, 132, 252, 0.15) !important;
+        }
+        
+        body.night-mode .product-price {
+            color: #4ADE80 !important; 
+        }
+
+        body.night-mode .product-stock-badge.stock {
+            background: rgba(96, 165, 250, 0.15) !important;
+            color: #60A5FA !important;
+        }
+
+        body.night-mode .product-stock-badge.low {
+            background: rgba(251, 191, 36, 0.15) !important;
+            color: #FBBF24 !important;
+        }
+
+        body.night-mode .product-stock-badge.out {
+            background: rgba(248, 113, 113, 0.15) !important;
+            color: #F87171 !important;
+        }
+
+        /* Fixed inline styled colors targeting IDs/Classes */
+        body.night-mode #storeDetailTotalSales {
+            color: #60A5FA !important;
+        }
+        
+        body.night-mode #shift1Sales {
+            color: #FBBF24 !important;
+        }
+        
+        body.night-mode #shift2Sales {
+            color: #C084FC !important;
+        }
+        
+        /* Make sure ranking medals aren't too dark */
+        body.night-mode .top3-rank.r1 {
+            color: #7a3c00 !important;
+        }
+
+        body.night-mode .app-container::before {
+            background: linear-gradient(-45deg,
+                    rgba(17, 24, 39, 0.95) 0%,
+                    rgba(31, 41, 55, 0.95) 25%,
+                    rgba(15, 23, 42, 0.95) 50%,
+                    rgba(31, 41, 55, 0.95) 75%,
+                    rgba(17, 24, 39, 0.95) 100%);
+        }
+
+        body.night-mode .stat-card,
+        body.night-mode .store-card,
+        body.night-mode .summary-card,
+        body.night-mode .shirt-card,
+        body.night-mode .sales-record-item,
+        body.night-mode .detail-stat,
+        body.night-mode .date-picker,
+        body.night-mode .modal-content,
+        body.night-mode .product-item {
+            background: rgba(31, 41, 55, 0.75) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        body.night-mode .nav-bar,
+        body.night-mode .tab-bar,
+        body.night-mode .stock-dashboard,
+        body.night-mode .store-detail-nav {
+            background: rgba(17, 24, 39, 0.85) !important;
+            border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+            border-top-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        body.night-mode .search-bar input {
+            color: #F9FAFB;
+        }
+
+        body.night-mode .nav-title {
+            background: var(--grad-teal) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -878,7 +994,7 @@
         /* Bottom Tab Bar */
         .tab-bar {
             position: fixed;
-            bottom: -10px;
+            bottom: 0;
             left: 50%;
             transform: translateX(-50%);
             width: 100%;
@@ -888,8 +1004,9 @@
             -webkit-backdrop-filter: blur(24px);
             border-top: 1px solid rgba(37, 99, 235, 0.08);
             display: flex;
-            padding: 8px 0 25px;
+            padding: 8px 0 16px;
             box-shadow: 0 -4px 20px rgba(37, 99, 235, 0.08);
+            z-index: 100;
         }
 
         .tab-item {
@@ -927,6 +1044,280 @@
 
         .tab-item.active .label {
             color: var(--ios-blue);
+        }
+
+        /* ===== Slide-up Menu Panel ===== */
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.35);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 500;
+            animation: overlayFadeIn 0.25s ease;
+        }
+        .menu-overlay.open { display: block; }
+
+        @keyframes overlayFadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        .slide-menu {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            width: 100%;
+            max-width: 414px;
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(30px) saturate(200%);
+            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            border-radius: 24px 24px 0 0;
+            padding: 12px 0 32px;
+            z-index: 501;
+            transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 -8px 32px rgba(37,99,235,0.12);
+        }
+        .slide-menu.open {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        body.night-mode .slide-menu {
+            background: rgba(17,24,39,0.96) !important;
+        }
+
+        .slide-menu-handle {
+            width: 36px;
+            height: 4px;
+            background: var(--ios-gray-3);
+            border-radius: 4px;
+            margin: 0 auto 16px;
+        }
+
+        .slide-menu-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--ios-gray-1);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 0 20px 10px;
+        }
+
+        .slide-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 20px;
+            cursor: pointer;
+            transition: background 0.18s;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--ios-label);
+        }
+        .slide-menu-item:hover {
+            background: var(--ios-gray-6);
+        }
+        .slide-menu-item:active {
+            background: var(--ios-gray-5);
+        }
+        .slide-menu-item .menu-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        .slide-menu-item.logout-item .menu-icon {
+            background: rgba(239,68,68,0.12);
+            color: var(--ios-red);
+        }
+        .slide-menu-item.logout-item {
+            color: var(--ios-red);
+        }
+        .slide-menu-separator {
+            height: 0.5px;
+            background: var(--ios-gray-4);
+            margin: 4px 20px;
+        }
+
+        /* ===== Premium Slide Menu Internals ===== */
+
+        /* Hero card */
+        .sm-hero {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 4px 20px 16px;
+        }
+        .sm-hero-logo {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            font-weight: 900;
+            color: #fff;
+            box-shadow: 0 6px 18px rgba(37,99,235,0.35);
+            flex-shrink: 0;
+            letter-spacing: -1px;
+        }
+        .sm-hero-info { flex: 1; min-width: 0; }
+        .sm-hero-name {
+            font-size: 18px;
+            font-weight: 800;
+            background: linear-gradient(90deg, #2563EB, #7C3AED);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+        .sm-hero-tagline {
+            font-size: 12px;
+            color: var(--ios-gray-1);
+            font-weight: 500;
+            margin-top: 1px;
+        }
+        .sm-version-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: linear-gradient(135deg, rgba(37,99,235,0.12) 0%, rgba(124,58,237,0.12) 100%);
+            border: 1px solid rgba(37,99,235,0.2);
+            color: var(--ios-blue);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+            letter-spacing: 0.3px;
+        }
+        .sm-version-badge:active { transform: scale(0.92); }
+        .sm-version-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--ios-green);
+            display: inline-block;
+            animation: smDotPulse 2s ease-in-out infinite;
+        }
+        @keyframes smDotPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.4; transform: scale(0.7); }
+        }
+
+        /* Stats strip */
+        .sm-stats-strip {
+            display: flex;
+            gap: 6px;
+            padding: 0 20px 14px;
+            flex-wrap: wrap;
+        }
+        .sm-stat-chip {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--ios-gray-6);
+            border: 1px solid var(--ios-gray-4);
+            border-radius: 20px;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--ios-label);
+        }
+        .sm-stat-chip .material-icons { font-size: 13px; color: var(--ios-blue); }
+        .sm-online-chip {
+            background: rgba(16,185,129,0.10);
+            border-color: rgba(16,185,129,0.3);
+            color: var(--ios-green);
+        }
+        .sm-pulse-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--ios-green);
+            display: inline-block;
+            animation: smPulseDot 1.5s ease-in-out infinite;
+        }
+        @keyframes smPulseDot {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+            50%       { box-shadow: 0 0 0 5px rgba(16,185,129,0); }
+        }
+
+        /* Night mode toggle row */
+        .sm-night-icon {
+            background: rgba(37,99,235,0.12);
+            color: var(--ios-blue);
+        }
+        .sm-toggle-pill {
+            width: 44px;
+            height: 26px;
+            border-radius: 13px;
+            background: var(--ios-gray-4);
+            position: relative;
+            transition: background 0.3s;
+            flex-shrink: 0;
+        }
+        .sm-toggle-pill.on { background: var(--ios-blue); }
+        .sm-toggle-thumb {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            transition: left 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .sm-toggle-pill.on .sm-toggle-thumb { left: 21px; }
+
+        /* Footer */
+        .sm-footer {
+            margin: 8px 20px 0;
+            padding: 14px 16px;
+            background: var(--ios-gray-6);
+            border-radius: 14px;
+            text-align: center;
+        }
+        .sm-footer-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            font-size: 11px;
+            color: var(--ios-gray-1);
+            font-weight: 500;
+        }
+        .sm-footer-sep { opacity: 0.4; }
+.sm-build-num {
+    font-weight: 700;
+    color: #800080; /* 初始紫色 */
+    animation: breathe-purple-gold 13s ease-in-out infinite;
+}
+
+@keyframes breathe-purple-gold {
+    0%   { color: #800080; }  /* 深紫色 */
+    50%  { color: #FFD700; }  /* 金色 */
+    100% { color: #800080; }  /* 回到深紫色 */
+}
+        /* Night mode overrides for menu internals */
+        body.night-mode .sm-stat-chip {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.1);
+        }
+        body.night-mode .sm-footer {
+            background: rgba(255,255,255,0.05);
         }
 
         /* Modal */
@@ -2329,10 +2720,17 @@
 
         <!-- Navigation Bar -->
         <div class="nav-bar">
-            <div class="nav-title" id="navTitle">
-                Sales<br>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div class="nav-title" id="navTitle">
+                        Sales<br>
+                    </div>
+                    <div class="nav-subtitle" id="navSubtitle">Today's Performance</div>
+                </div>
+                <button id="themeToggleBtn" onclick="toggleNightMode()" style="background:rgba(37, 99, 235, 0.1); border:none; cursor:pointer; color: var(--ios-blue); padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15); transition: all 0.3s; width: 40px; height: 40px; margin-right: -4px;">
+                    <i class="material-icons" id="themeIcon">dark_mode</i>
+                </button>
             </div>
-            <div class="nav-subtitle" id="navSubtitle">Today's Performance</div>
         </div>
 
 
@@ -2508,17 +2906,99 @@
 
         <!-- Tab Bar -->
         <div class="tab-bar">
+            <!-- Left: Menu -->
+            <div class="tab-item" id="menuTabBtn" onclick="openSlideMenu()">
+                <i class="material-icons icon">menu</i>
+                <span class="label">Menu</span>
+            </div>
+            <!-- Centre: Sales -->
             <div class="tab-item active" data-view="sales">
                 <i class="material-icons icon">trending_up</i>
                 <span class="label">Sales</span>
             </div>
+            <!-- Right: Stock -->
             <div class="tab-item" data-view="stock">
                 <i class="material-icons icon">inventory_2</i>
                 <span class="label">Stock</span>
             </div>
-            <div class="tab-item" onclick="logout()">
-                <i class="material-icons icon">logout</i>
-                <span class="label">Logout</span>
+        </div>
+
+        <!-- Slide-up Menu Overlay -->
+        <div class="menu-overlay" id="menuOverlay" onclick="closeSlideMenu()"></div>
+
+        <!-- Slide-up Menu Panel -->
+        <div class="slide-menu" id="slideMenu">
+            <div class="slide-menu-handle"></div>
+
+            <!-- ===== App Hero Card ===== -->
+            <div class="sm-hero">
+                <div class="sm-hero-logo">
+                    <span>S</span>
+                </div>
+                <div class="sm-hero-info">
+                    <div class="sm-hero-name">SmartProfits</div>
+                    <div class="sm-hero-tagline">Admin Dashboard</div>
+                </div>
+                <div class="sm-version-badge" id="smVersionBadge" onclick="versionEasterEgg(event)">
+                    <span class="sm-version-dot"></span>
+                    v1.3.1
+                </div>
+            </div>
+
+            <!-- ===== Live Stats Strip ===== -->
+            <div class="sm-stats-strip">
+    <div class="sm-stat-chip">
+        <i class="material-icons">schedule</i>
+        <span id="smLiveClock">--:--</span>
+    </div>
+    <div class="sm-stat-chip">
+        <i class="material-icons">calendar_today</i>
+        <span id="smLiveDate">---</span>
+    </div>
+    <div class="sm-stat-chip sm-airport-chip">
+        <i class="material-icons">flight</i>
+        <span>Airport</span>
+    </div>
+</div>
+
+            <div class="slide-menu-separator" style="margin-top:4px;"></div>
+
+            <!-- ===== Actions ===== -->
+            <div class="slide-menu-item" onclick="closeSlideMenu(); toggleNightMode();" id="smNightRow">
+                <div class="menu-icon sm-night-icon">
+                    <i class="material-icons" id="smNightIcon">dark_mode</i>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-weight:700;">Night Mode</div>
+                    <div style="font-size:11px;color:var(--ios-gray-1);font-weight:500;">Switch display theme</div>
+                </div>
+                <div class="sm-toggle-pill" id="smNightToggle">
+                    <div class="sm-toggle-thumb"></div>
+                </div>
+            </div>
+
+            <div class="slide-menu-separator"></div>
+
+            <div class="slide-menu-item logout-item" onclick="closeSlideMenu(); logout();">
+                <div class="menu-icon"><i class="material-icons">logout</i></div>
+                <div style="flex:1;">
+                    <div style="font-weight:700;">Logout</div>
+                    <div style="font-size:11px;color:rgba(239,68,68,0.7);font-weight:500;">Sign out of account</div>
+                </div>
+                <i class="material-icons" style="font-size:18px;color:var(--ios-red);opacity:0.5;">chevron_right</i>
+            </div>
+
+            <!-- ===== Footer ===== -->
+            <div class="sm-footer">
+                <div class="sm-footer-row">
+                    <span>SmartProfits &copy; 2025</span>
+                    <span class="sm-footer-sep">&middot;</span>
+                    <span>Build <span class="sm-build-num" id="smBuildNum">by Mark</span></span>
+                </div>
+                <div class="sm-footer-row" style="margin-top:3px;">
+                    <span style="font-size:12px;">✈️</span>
+                    <span style="opacity:0.7;font-weight:600;">Precision Sales Tracking for Airport Stores</span>
+                </div>
             </div>
         </div>
     </div>
@@ -2863,6 +3343,148 @@
             setTimeout(() => { soundSuccess(); showToast('✨ SmartProfits Dashboard ready!'); }, 900);
 
         })();
+
+        // Theme Toggle Logic
+        function toggleNightMode() {
+            const body = document.body;
+            const isNight = body.classList.toggle('night-mode');
+            const icon = document.getElementById('themeIcon');
+            const btn = document.getElementById('themeToggleBtn');
+            
+            if (isNight) {
+                icon.textContent = 'light_mode';
+                btn.style.color = '#F59E0B';
+                btn.style.background = 'rgba(245, 158, 11, 0.15)';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                icon.textContent = 'dark_mode';
+                btn.style.color = 'var(--ios-blue)';
+                btn.style.background = 'rgba(37, 99, 235, 0.1)';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Initialize Theme from localStorage
+        (function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('night-mode');
+                const icon = document.getElementById('themeIcon');
+                const btn = document.getElementById('themeToggleBtn');
+                if (icon && btn) {
+                    icon.textContent = 'light_mode';
+                    btn.style.color = '#F59E0B';
+                    btn.style.background = 'rgba(245, 158, 11, 0.15)';
+                }
+            }
+        })();
+
+        // ===== Slide-up Menu =====
+        function openSlideMenu() {
+            document.getElementById('menuOverlay').classList.add('open');
+            document.getElementById('slideMenu').classList.add('open');
+            syncNightToggle();
+        }
+        function closeSlideMenu() {
+            document.getElementById('menuOverlay').classList.remove('open');
+            document.getElementById('slideMenu').classList.remove('open');
+        }
+
+        // Sync the in-menu night toggle pill with actual theme state
+        function syncNightToggle() {
+            const isNight = document.body.classList.contains('night-mode');
+            const pill    = document.getElementById('smNightToggle');
+            const icon    = document.getElementById('smNightIcon');
+            if (!pill) return;
+            if (isNight) {
+                pill.classList.add('on');
+                if (icon) icon.textContent = 'light_mode';
+            } else {
+                pill.classList.remove('on');
+                if (icon) icon.textContent = 'dark_mode';
+            }
+        }
+
+        // Override toggleNightMode to also keep the in-menu pill in sync
+        const _origToggle = toggleNightMode;
+        toggleNightMode = function() {
+            _origToggle();
+            syncNightToggle();
+        };
+
+        // ===== Live Clock & Date =====
+        (function startClock() {
+            const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+            const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            function tick() {
+                const now  = new Date();
+                const raw  = now.getHours();
+                const ampm = raw >= 12 ? 'PM' : 'AM';
+                const h12  = raw % 12 || 12;
+                const m    = String(now.getMinutes()).padStart(2,'0');
+                const s    = String(now.getSeconds()).padStart(2,'0');
+                const clk  = document.getElementById('smLiveClock');
+                const dt   = document.getElementById('smLiveDate');
+                if (clk) clk.innerHTML = h12 + ':' + m + ':' + s + '&thinsp;<span style="font-size:9px;font-weight:800;opacity:0.7;">' + ampm + '</span>';
+                if (dt)  dt.textContent = DAYS[now.getDay()] + ', ' + MONTHS[now.getMonth()] + ' ' + now.getDate();
+            }
+            tick();
+            setInterval(tick, 1000);
+        })();
+
+        // ===== Build number from current date =====
+        (function setBuild() {
+            const now = new Date();
+            const bn  = document.getElementById('smBuildNum');
+            if (bn) bn.textContent = now.getFullYear() + '.' + String(now.getMonth()+1).padStart(2,'0') + '.' + String(now.getDate()).padStart(2,'0');
+        })();
+
+
+
+        // ===== Version badge Easter Egg =====
+        function versionEasterEgg(e) {
+            // Coin burst from badge
+            const rect = e.currentTarget.getBoundingClientRect();
+            const cx   = rect.left + rect.width / 2;
+            const cy   = rect.top  + rect.height / 2;
+            for (let i = 0; i < 12; i++) {
+                const coin  = document.createElement('div');
+                const angle = (Math.PI * 2 / 12) * i;
+                const dist  = 50 + Math.random() * 60;
+                coin.style.cssText = [
+                    'position:fixed',
+                    'width:10px', 'height:10px', 'border-radius:50%',
+                    'background:radial-gradient(circle at 35% 35%,#FFD700,#FFA500)',
+                    'pointer-events:none', 'z-index:99999',
+                    'left:' + cx + 'px', 'top:' + cy + 'px',
+                    'animation:coinBurst 0.9s ease-out forwards',
+                    '--tx:' + (Math.cos(angle) * dist) + 'px',
+                    '--ty:' + (Math.sin(angle) * dist - 40) + 'px'
+                ].join(';');
+                document.body.appendChild(coin);
+                setTimeout(() => coin.remove(), 950);
+            }
+            // Rainbow shimmer on version badge
+            const badge = document.getElementById('smVersionBadge');
+            if (badge) {
+                badge.style.transition = 'all 0.3s';
+                badge.style.background = 'linear-gradient(135deg,#FFD700,#FF6B6B,#A78BFA,#2DD4BF)';
+                badge.style.color      = '#fff';
+                badge.style.border     = '1px solid transparent';
+                setTimeout(() => {
+                    badge.style.background = '';
+                    badge.style.color      = '';
+                    badge.style.border     = '';
+                }, 1500);
+            }
+            // Use existing showToast if available
+            if (typeof showToast === 'function') {
+                showToast('🚀 SmartProfits v1.0.0 – Up & running!');
+            }
+        }
+
+        // Keep in-menu toggle in sync on init
+        syncNightToggle();
     </script>
 </body>
 
