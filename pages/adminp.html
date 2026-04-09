@@ -187,6 +187,7 @@
         body.night-mode .nav-title {
             background: var(--grad-teal) !important;
             -webkit-background-clip: text !important;
+            background-clip: text !important;
             -webkit-text-fill-color: transparent !important;
         }
 
@@ -2759,10 +2760,10 @@
                             <div class="value" id="totalRevenue">RM 0</div>
                             <div class="label">Revenue</div>
                         </div>
-                        <div class="stat-card">
-                            <div class="icon">📊</div>
-                            <div class="value" id="totalSales">0</div>
-                            <div class="label">Sales</div>
+                        <div class="stat-card" id="flightsCardBtn" onclick="openFlightsModal()" style="cursor:pointer;">
+                            <div class="icon">✈️</div>
+                            <div class="value" id="totalFlights">0</div>
+                            <div class="label" style="font-size: 11px;">Flights</div>
                         </div>
                         <div class="stat-card" onclick="openTop3Modal('qty')" style="cursor:pointer;">
                             <div class="label" style="margin-bottom:4px;">Today's Top Qty</div>
@@ -3150,6 +3151,113 @@
                 flex:1;
                 -ms-overflow-style:none; scrollbar-width:none;
             "></div>
+        </div>
+    </div>
+
+    <!-- Flights Modal -->
+    <div id="flightsModal" style="
+        display:none; position:fixed; z-index:2000;
+        top:0; left:0; width:100%; height:100%;
+        background:rgba(0,0,0,0.45);
+        backdrop-filter:blur(16px);
+        -webkit-backdrop-filter:blur(16px);
+        align-items:center; justify-content:center;
+        padding:20px;
+        animation:modalFadeIn 0.25s ease;
+    ">
+        <div style="
+            background:var(--ios-tertiary-background);
+            border-radius:20px;
+            width:100%; max-width:380px;
+            max-height:85vh;
+            display:flex; flex-direction:column;
+            box-shadow:0 20px 60px rgba(0,0,0,0.3);
+            overflow:hidden;
+            animation:modalSlideUp 0.3s cubic-bezier(0.175,0.885,0.32,1.275);
+        ">
+            <!-- Header -->
+            <div style="
+                display:flex; align-items:center; justify-content:space-between;
+                padding:18px 20px 14px;
+                border-bottom:0.5px solid var(--ios-gray-5);
+                flex-shrink:0;
+            ">
+                <div style="font-size:17px; font-weight:700; color:var(--ios-label); letter-spacing:-0.3px;">✈️ Departures (BKI)</div>
+                <button onclick="closeFlightsModal()" style="
+                    background:var(--ios-gray-6); border:none;
+                    width:30px; height:30px; border-radius:15px;
+                    display:flex; align-items:center; justify-content:center;
+                    cursor:pointer; color:var(--ios-gray-1);
+                    font-size:16px; transition:all 0.2s;
+                ">&times;</button>
+            </div>
+
+            <!-- Stats Strip -->
+            <div id="flightStatsStrip" style="
+                display:flex; gap:0; flex-shrink:0;
+                border-bottom:0.5px solid var(--ios-gray-5);
+                background:var(--ios-secondary-background);
+            ">
+                <div style="flex:1; text-align:center; padding:12px 8px;">
+                    <div id="statTotal" style="font-size:22px; font-weight:800; color:var(--ios-label);">--</div>
+                    <div style="font-size:10px; font-weight:600; color:var(--ios-gray-1); margin-top:2px;">Total</div>
+                </div>
+                <div style="width:0.5px; background:var(--ios-gray-5); margin:8px 0;"></div>
+                <div style="flex:1; text-align:center; padding:12px 8px;">
+                    <div id="statDomestic" style="font-size:22px; font-weight:800; color:#34C759;">--</div>
+                    <div style="font-size:10px; font-weight:600; color:var(--ios-gray-1); margin-top:2px;">Domestic</div>
+                </div>
+                <div style="width:0.5px; background:var(--ios-gray-5); margin:8px 0;"></div>
+                <div style="flex:1; text-align:center; padding:12px 8px;">
+                    <div id="statIntl" style="font-size:22px; font-weight:800; color:#007AFF;">--</div>
+                    <div style="font-size:10px; font-weight:600; color:var(--ios-gray-1); margin-top:2px;">International</div>
+                </div>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div id="flightFilterTabs" style="
+                display:flex; gap:8px; padding:12px 16px 0;
+                flex-shrink:0;
+            ">
+                <button onclick="filterFlights('all')" id="ftab-all" style="
+                    flex:1; padding:8px 4px; border-radius:10px; border:none; cursor:pointer;
+                    font-size:12px; font-weight:700; transition:all 0.2s;
+                    background:var(--ios-blue); color:#fff;
+                ">All</button>
+                <button onclick="filterFlights('domestic')" id="ftab-domestic" style="
+                    flex:1; padding:8px 4px; border-radius:10px; border:none; cursor:pointer;
+                    font-size:12px; font-weight:700; transition:all 0.2s;
+                    background:var(--ios-gray-6); color:var(--ios-label);
+                ">Domestic</button>
+                <button onclick="filterFlights('intl')" id="ftab-intl" style="
+                    flex:1; padding:8px 4px; border-radius:10px; border:none; cursor:pointer;
+                    font-size:12px; font-weight:700; transition:all 0.2s;
+                    background:var(--ios-gray-6); color:var(--ios-label);
+                ">International</button>
+            </div>
+
+            <!-- Body -->
+            <div id="flightsModalBody" style="
+                overflow-y:auto; padding:12px 16px 16px;
+                flex:1;
+                -ms-overflow-style:none; scrollbar-width:none;
+            ">
+                <div id="flightsList" style="display:flex; flex-direction:column; gap:0;">
+                    <div class="loading"><div class="spinner"></div>Loading flights...</div>
+                </div>
+            </div>
+            <!-- Footer for Last Updated -->
+            <div style="
+                padding:10px 20px;
+                background:var(--ios-secondary-background);
+                border-top:0.5px solid var(--ios-gray-5);
+                text-align:center;
+                font-size:11px;
+                color:var(--ios-gray-1);
+                font-weight:500;
+            " id="flightsLastUpdated">
+                最后更新时间：--
+            </div>
         </div>
     </div>
 
