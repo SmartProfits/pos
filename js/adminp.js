@@ -249,6 +249,9 @@ async function loadDashboardData() {
         hideLoading();
         showError('Failed to load dashboard data. Please refresh the page.');
     }
+
+    // Initialize the Flights API system independently so it never gets blocked by other failures
+    initFlightsSystem();
 }
 
 // Load stores data
@@ -2086,5 +2089,401 @@ function openTop3Modal(type) {
 // Close the Top 3 modal
 function closeTop3Modal() {
     const modal = document.getElementById('top3Modal');
+    if (modal) modal.style.display = 'none';
+}
+
+// ==== FLIGHTS SYSTEM IMPLEMENTATION ==== //
+const FLIGHTS_API_KEY = '7ee0840acff6b9a98ff3c72c58743656';
+const AIRPORT_IATA = 'BKI';
+
+async function initFlightsSystem() {
+    const todayStr = getCurrentDate();
+    const flightCacheRef = firebase.database().ref('flight_cache');
+
+    try {
+        const snapshot = await flightCacheRef.once('value');
+        const cacheData = snapshot.val() || {};
+        const lastFetchDate = cacheData.last_fetch_date || '';
+
+        if (lastFetchDate !== todayStr) {
+            // 今天还没抓过 → 抓取（每天只抓一次，节省 API 配额）
+            await fetchAviationstackFlights(flightCacheRef, todayStr);
+        } else {
+            // 今天已抓过 → 直接读 Firebase 缓存，不再消耗 API 次数
+            renderFlightsUI(cacheData.flights_data || [], cacheData.last_update_timestamp || '--');
+        }
+    } catch (err) {
+        console.error('Flights system err:', err);
+    }
+}
+
+async function fetchAviationstackFlights(firebaseRef, todayStr) {
+    try {
+        // ── Step 1: 分两页抓取，共最多 200 条原始数据 ─────────────────────
+        const allRaw = [];
+        for (const offset of [0, 100]) {
+            try {
+                const rawUrl = `http://api.aviationstack.com/v1/flights?access_key=${FLIGHTS_API_KEY}&dep_iata=${AIRPORT_IATA}&limit=100&offset=${offset}`;
+                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rawUrl)}`;
+                const res = await fetch(proxyUrl);
+                const json = await res.json();
+                const batch = (json && json.data) ? json.data : (Array.isArray(json) ? json : null);
+                if (!batch || batch.length === 0) { console.log(`[Flights] offset=${offset} 无更多条目`); break; }
+                console.log(`[Flights] offset=${offset} → ${batch.length} 条`);
+                allRaw.push(...batch);
+            } catch (e) {
+                console.warn(`[Flights] offset=${offset} 失败，跳过`, e);
+                break;
+            }
+        }
+
+        if (allRaw.length === 0) throw new Error('No flight data returned');
+
+        // ── Step 2: 只保留非 codeshare 的真实航班，并按航班号去重 ─────────
+        const seenIata = new Set();
+        const flightsData = allRaw
+            .filter(f => {
+                if (f.flight && f.flight.codeshared) return false; // codeshare 全部丢弃
+                const iata = f.flight?.iata;
+                if (iata) {
+                    if (seenIata.has(iata)) return false;           // 去重
+                    seenIata.add(iata);
+                }
+                return true;
+            })
+            .map(f => {
+                const flightIata = f.flight?.iata || '';
+                // 尝试获取航空公司的 IATA 代码（如果没有，则从航班号前缀提取，例如 AK510 -> AK）
+                let airlineIata = f.airline?.iata;
+                if (!airlineIata && flightIata.length >= 2) {
+                    airlineIata = flightIata.substring(0, 2).toUpperCase();
+                }
+
+                return {
+                    flight_date: f.flight_date || '',
+                    flight_status: f.flight_status || '',
+                    airline: f.airline?.name || 'Unknown',
+                    airline_iata: airlineIata || '',
+                    flight_iata: flightIata,
+                    departure_iata: f.departure?.iata || '',
+                    departure_airport: f.departure?.airport || '',
+                    destination: f.arrival?.iata || '?',
+                    dest_name: f.arrival?.airport || 'Unknown',
+                    timezone: f.arrival?.timezone || '',
+                    scheduled: f.departure?.scheduled || ''
+                };
+            });
+
+        // ── Step 3: 按计划出发时间排序 ────────────────────────────────────
+        flightsData.sort((a, b) => {
+            const ta = a.scheduled ? String(a.scheduled).substring(11, 16) : '99:99';
+            const tb = b.scheduled ? String(b.scheduled).substring(11, 16) : '99:99';
+            return ta.localeCompare(tb);
+        });
+
+        console.log(`[Flights] 原始 ${allRaw.length} 条 → 去除 codeshare 后 ${flightsData.length} 班次`);
+
+        // ── Step 4: 存入 Firebase ─────────────────────────────────────────
+        const now = new Date();
+        const timestamp =
+            now.getFullYear() + '-' +
+            String(now.getMonth() + 1).padStart(2, '0') + '-' +
+            String(now.getDate()).padStart(2, '0') + ' ' +
+            String(now.getHours()).padStart(2, '0') + ':' +
+            String(now.getMinutes()).padStart(2, '0');
+
+        await firebaseRef.set({
+            last_fetch_date: todayStr,
+            last_update_timestamp: timestamp,
+            flights_data: flightsData
+        });
+
+        renderFlightsUI(flightsData, timestamp);
+        if (window.showToast) window.showToast(`✅ ${flightsData.length} flights loaded`);
+
+    } catch (e) {
+        console.error('[Flights] 抓取失败，读取旧缓存:', e);
+        if (window.showToast) window.showToast('⚠️ 获取航班失败，读取旧数据');
+        const snapshot = await firebaseRef.once('value');
+        if (snapshot.exists()) {
+            const d = snapshot.val();
+            renderFlightsUI(d.flights_data || [], d.last_update_timestamp || '--');
+        } else {
+            renderFlightsUI([], '--');
+        }
+    }
+}
+
+
+// 全局存储，供 filterFlights 使用
+// 每个条目为 { html, timeStr, departed } 对象
+let _flightsDomestic = [];
+let _flightsIntl = [];
+let _flightsAll = [];
+
+function renderFlightsUI(flightsData, lastUpdateStr) {
+    // 数据在 fetch 阶段已去除 codeshare，这里只需验证 departure_iata
+    const departingFlights = (flightsData || []).filter(f => {
+        if (f.departure_iata) return f.departure_iata === 'BKI';
+        return f.destination && f.destination !== 'BKI';
+    });
+
+    // ── 1. 顶部卡片计数器（动画） ──────────────────────────────────
+    const flightCountEl = document.getElementById('totalFlights');
+    if (flightCountEl) {
+        let cur = 0;
+        const target = departingFlights.length;
+        const speed = Math.ceil(target / 30) || 1;
+        const anim = setInterval(() => {
+            cur += speed;
+            if (cur >= target) { cur = target; clearInterval(anim); }
+            flightCountEl.innerText = cur;
+        }, 30);
+    }
+
+    // ── 2. 按时间排序 ──────────────────────────────────────────────
+    departingFlights.sort((a, b) => {
+        const tA = a.scheduled ? String(a.scheduled).substring(11, 16) : '99:99';
+        const tB = b.scheduled ? String(b.scheduled).substring(11, 16) : '99:99';
+        return tA.localeCompare(tB);
+    });
+
+    // ── 3. 建立 domestic / intl 分组 ──────────────────────────────
+    const MY_AIRPORTS = ['KUL', 'SZB', 'PEN', 'JHB', 'KCH', 'BKI', 'MYY', 'TWU', 'SDK',
+        'BTU', 'SBW', 'LDU', 'MYD', 'KBR', 'TGG', 'AOR', 'LGK', 'KUA', 'IPH', 'MKZ'];
+
+    _flightsDomestic = [];
+    _flightsIntl = [];
+    _flightsAll = [];
+
+    // 当前本地时间（HH:MM）用于判断是否已起飞
+    const _now = new Date();
+    const _nowMins = _now.getHours() * 60 + _now.getMinutes();
+
+    departingFlights.forEach(f => {
+        let isDom = false;
+        if (f.timezone && (f.timezone.includes('Kuala_Lumpur') || f.timezone.includes('Kuching'))) {
+            isDom = true;
+        } else if (MY_AIRPORTS.includes(f.destination)) {
+            isDom = true;
+        }
+
+        let timeStr = '--:--';
+        if (f.scheduled) timeStr = String(f.scheduled).substring(11, 16);
+
+        // ── 判断是否已起飞（scheduled time < 当前时间，或 status 为 landed/active/cancelled） ──
+        let flightMins = 9999;
+        if (timeStr !== '--:--') {
+            const parts = timeStr.split(':');
+            flightMins = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+        }
+        const hasDeparted = (f.flight_status === 'landed' || f.flight_status === 'active')
+            || (f.flight_status !== 'cancelled' && flightMins < _nowMins);
+
+        // 状态颜色
+        let sColor = '#34C759';
+        if (f.flight_status === 'cancelled') sColor = '#FF3B30';
+        else if (f.flight_status === 'delayed') sColor = '#FF9500';
+        else if (f.flight_status === 'landed') sColor = '#8E8E93';
+        else if (f.flight_status === 'active') sColor = '#007AFF';
+
+        const arrAirport = f.dest_name || f.destination;
+
+        // ── 已起飞：整张卡片淡化 + 时间加删除线 + 右侧小角标 ──────
+        const cardStyle = hasDeparted
+            ? `background:var(--ios-tertiary-background); padding:9px 12px;
+               border-radius:10px; border:0.5px solid var(--ios-gray-5);
+               display:flex; align-items:center; gap:10px; margin-bottom:6px;
+               opacity:0.45; position:relative;`
+            : `background:var(--ios-tertiary-background); padding:9px 12px;
+               border-radius:10px; border:0.5px solid var(--ios-gray-4);
+               display:flex; align-items:center; gap:10px; margin-bottom:6px;
+               position:relative;`;
+
+        const timeStyle = hasDeparted
+            ? `font-weight:800; font-size:14px; color:var(--ios-gray-1); line-height:1.1; text-decoration:line-through;`
+            : `font-weight:800; font-size:14px; color:var(--ios-label); line-height:1.1;`;
+
+        const departedBadge = hasDeparted
+            ? `<div style="position:absolute; top:5px; right:7px;
+                           font-size:9px; font-weight:700; letter-spacing:0.5px;
+                           color:#8E8E93; opacity:0.75;">DEPARTED</div>`
+            : '';
+
+        const cardHtml = `
+            <div class="flight-card${hasDeparted ? ' flight-departed' : ' flight-upcoming'}"
+                 data-time="${timeStr}"
+                 style="${cardStyle}">
+                ${departedBadge}
+                <!-- 时间 + 航班号 -->
+                <div style="flex-shrink:0; min-width:52px; text-align:center;">
+                    <div style="${timeStyle}">${timeStr}</div>
+                    <div style="font-size:10px; font-weight:600; color:${hasDeparted ? 'var(--ios-gray-1)' : 'var(--ios-blue)'}; margin-top:1px;">${f.flight_iata || '---'}</div>
+                </div>
+                <!-- 分隔线 -->
+                <div style="width:0.5px; height:32px; background:var(--ios-gray-5); flex-shrink:0;"></div>
+                <!-- 目的地 + 航空公司 -->
+                <div style="flex:1; min-width:0; display:flex; align-items:center; gap:8px;">
+                    ${f.airline_iata ? `
+                    <div style="flex-shrink:0; width:28px; height:28px; background:#fff; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.05); display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                        <img src="https://images.kiwi.com/airlines/64x64/${f.airline_iata}.png" style="width:24px; height:24px; object-fit:contain;" onerror="this.parentElement.style.display='none';">
+                    </div>` : ''}
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-size:13px; font-weight:700; color:var(--ios-label); white-space:nowrap;
+                                    overflow:hidden; text-overflow:ellipsis;">${arrAirport}</div>
+                        <div style="font-size:10px; color:var(--ios-gray-1); margin-top:1px; white-space:nowrap;
+                                    overflow:hidden; text-overflow:ellipsis;">${f.airline} · ${f.departure_iata || 'BKI'} → ${f.destination}</div>
+                    </div>
+                </div>
+                <!-- 状态 -->
+                <div style="flex-shrink:0; margin-top:${hasDeparted ? '0' : '0'}px;">
+                    <div style="font-size:10px; font-weight:700; padding:3px 7px; border-radius:8px;
+                                background:${sColor}20; color:${sColor}; text-transform:uppercase; white-space:nowrap;">
+                        ${f.flight_status || 'unknown'}
+                    </div>
+                </div>
+            </div>`;
+
+        const entry = { html: cardHtml, timeStr, departed: hasDeparted };
+
+        if (isDom) _flightsDomestic.push(entry);
+        else _flightsIntl.push(entry);
+        _flightsAll.push(entry);
+    });
+
+    // ── 4. 更新统计栏 ──────────────────────────────────────────────
+    const statTotal = document.getElementById('statTotal');
+    const statDomestic = document.getElementById('statDomestic');
+    const statIntl = document.getElementById('statIntl');
+    // Show only upcoming count in stats strip
+    const upcomingAll = _flightsAll.filter(e => !e.departed).length;
+    const upcomingDom = _flightsDomestic.filter(e => !e.departed).length;
+    const upcomingIntl = _flightsIntl.filter(e => !e.departed).length;
+    if (statTotal) statTotal.textContent = departingFlights.length;
+    if (statDomestic) statDomestic.textContent = _flightsDomestic.length;
+    if (statIntl) statIntl.textContent = _flightsIntl.length;
+
+    // ── 5. 初始渲染（默认 All） ────────────────────────────────────
+    filterFlights('all');
+
+    // ── 6. 更新最后更新时间 + 数据覆盖范围诊断 ────────────────────
+    const lastUpdateEl = document.getElementById('flightsLastUpdated');
+    if (lastUpdateEl) {
+        // 计算数据中最早 / 最晚的 scheduled 时间
+        const times = departingFlights
+            .map(f => f.scheduled ? String(f.scheduled).substring(11, 16) : null)
+            .filter(Boolean)
+            .sort();
+        const coverageStr = times.length >= 2
+            ? `（覆盖 ${times[0]} – ${times[times.length - 1]}）`
+            : '';
+        lastUpdateEl.innerHTML =
+            `最后更新时间：${lastUpdateStr}` +
+            (coverageStr
+                ? `<br><span style="font-size:10px;color:var(--ios-gray-1);">📊 数据覆盖 ${times[0]} – ${times[times.length - 1]}，共 ${departingFlights.length} 班</span>`
+                : '');
+    }
+}
+
+// ── 辅助：渲染航班列表，并在 DOM 更新后自动滚动到第一个未起飞的航班 ──
+function _renderFlightCards(entries, headerHtml) {
+    const flightsList = document.getElementById('flightsList');
+    if (!flightsList) return;
+
+    let html = headerHtml || '';
+    entries.forEach(e => { html += e.html; });
+    flightsList.innerHTML = html;
+
+    // 自动滚动到第一个未起飞航班（.flight-upcoming）
+    requestAnimationFrame(() => {
+        const firstUpcoming = flightsList.querySelector('.flight-upcoming');
+        if (firstUpcoming) {
+            const body = document.getElementById('flightsModalBody');
+            if (body) {
+                // header offset inside body
+                const bodyTop = body.getBoundingClientRect().top;
+                const cardTop = firstUpcoming.getBoundingClientRect().top;
+                const offset = cardTop - bodyTop + body.scrollTop - 8; // 8px padding buffer
+                body.scrollTo({ top: offset, behavior: 'smooth' });
+            }
+        }
+    });
+}
+
+// ── Filter Tab 切换 ────────────────────────────────────────────────
+let _currentFlightFilter = 'all';
+function filterFlights(type) {
+    _currentFlightFilter = type;
+
+    // 更新 Tab 样式
+    ['all', 'domestic', 'intl'].forEach(t => {
+        const btn = document.getElementById('ftab-' + t);
+        if (!btn) return;
+        if (t === type) {
+            btn.style.background = 'var(--ios-blue)';
+            btn.style.color = '#fff';
+        } else {
+            btn.style.background = 'var(--ios-gray-6)';
+            btn.style.color = 'var(--ios-label)';
+        }
+    });
+
+    // 渲染列表
+    const flightsList = document.getElementById('flightsList');
+    if (!flightsList) return;
+
+    const total = _flightsDomestic.length + _flightsIntl.length;
+
+    if (total === 0) {
+        flightsList.innerHTML = '<div style="text-align:center; padding:40px 0; color:var(--ios-gray-1); font-size:14px;">No departing flights found.</div>';
+        return;
+    }
+
+    if (type === 'all') {
+        if (_flightsAll.length === 0) {
+            flightsList.innerHTML = '<div style="text-align:center; padding:40px 0; color:var(--ios-gray-1); font-size:14px;">No departing flights found.</div>';
+            return;
+        }
+        _renderFlightCards(_flightsAll);
+    } else if (type === 'domestic') {
+        if (_flightsDomestic.length === 0) {
+            flightsList.innerHTML = '<div style="text-align:center; padding:40px 0; color:var(--ios-gray-1); font-size:14px;">No domestic flights found.</div>';
+            return;
+        }
+        _renderFlightCards(_flightsDomestic, `<div style="font-size:12px; font-weight:700; color:var(--ios-gray-1); padding:8px 4px 6px;">Domestic (${_flightsDomestic.length})</div>`);
+    } else if (type === 'intl') {
+        if (_flightsIntl.length === 0) {
+            flightsList.innerHTML = '<div style="text-align:center; padding:40px 0; color:var(--ios-gray-1); font-size:14px;">No international flights found.</div>';
+            return;
+        }
+        _renderFlightCards(_flightsIntl, `<div style="font-size:12px; font-weight:700; color:var(--ios-gray-1); padding:8px 4px 6px;">International (${_flightsIntl.length})</div>`);
+    }
+}
+
+function openFlightsModal() {
+    const modal = document.getElementById('flightsModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.onclick = function (e) {
+            if (e.target === modal) closeFlightsModal();
+        };
+        // 打开 modal 后重新触发滚动，确保 modal 已经可见才能正确计算 getBoundingClientRect
+        requestAnimationFrame(() => {
+            const flightsList = document.getElementById('flightsList');
+            const body = document.getElementById('flightsModalBody');
+            if (!flightsList || !body) return;
+            const firstUpcoming = flightsList.querySelector('.flight-upcoming');
+            if (firstUpcoming) {
+                const bodyTop = body.getBoundingClientRect().top;
+                const cardTop = firstUpcoming.getBoundingClientRect().top;
+                const offset = cardTop - bodyTop + body.scrollTop - 8;
+                body.scrollTo({ top: offset, behavior: 'smooth' });
+            }
+        });
+    }
+}
+
+function closeFlightsModal() {
+    const modal = document.getElementById('flightsModal');
     if (modal) modal.style.display = 'none';
 }
