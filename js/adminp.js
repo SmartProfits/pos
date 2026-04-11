@@ -2093,7 +2093,8 @@ function closeTop3Modal() {
 }
 
 // ==== FLIGHTS SYSTEM IMPLEMENTATION ==== //
-const FLIGHTS_API_KEY = '7ee0840acff6b9a98ff3c72c58743656';
+const AERODATABOX_API_KEY  = 'c69d3f33bamshf7767ebd0b81927p146247jsn01d73a7a775b';
+const AERODATABOX_API_HOST = 'aerodatabox.p.rapidapi.com';
 const AIRPORT_IATA = 'BKI';
 
 async function initFlightsSystem() {
@@ -2107,7 +2108,7 @@ async function initFlightsSystem() {
 
         if (lastFetchDate !== todayStr) {
             // 今天还没抓过 → 抓取（每天只抓一次，节省 API 配额）
-            await fetchAviationstackFlights(flightCacheRef, todayStr);
+            await fetchAeroDataBoxFlights(flightCacheRef, todayStr);
         } else {
             // 今天已抓过 → 直接读 Firebase 缓存，不再消耗 API 次数
             renderFlightsUI(cacheData.flights_data || [], cacheData.last_update_timestamp || '--');
@@ -2117,60 +2118,113 @@ async function initFlightsSystem() {
     }
 }
 
-async function fetchAviationstackFlights(firebaseRef, todayStr) {
+// 将 AeroDataBox 的 status 字符串映射到我们内部的 status 值
+function _mapAeroStatus(s) {
+    switch (s) {
+        case 'Departed':               return 'active';
+        case 'EnRoute':                return 'active';
+        case 'Landed':                 return 'landed';
+        case 'Arrived':                return 'landed';
+        case 'Canceled':               return 'cancelled';
+        case 'Delayed':                return 'delayed';
+        case 'GateClosed':             return 'scheduled';
+        case 'CheckIn':                return 'scheduled';
+        case 'Expected':               return 'scheduled';
+        case 'Scheduled':              return 'scheduled';
+        default:                       return (s || 'unknown').toLowerCase();
+    }
+}
+
+async function fetchAeroDataBoxFlights(firebaseRef, todayStr) {
     try {
-        // ── Step 1: 分两页抓取，共最多 200 条原始数据 ─────────────────────
+        // ── Step 1: 分两个时间窗抓取全天数据 ─────────────────────────────
+        // AeroDataBox 每次请求最多 12 小时，所以分两段覆盖全天
+        // 直接调用 RapidAPI（RapidAPI 所有 API 均支持浏览器 CORS）
+        const timeWindows = [
+            { from: `${todayStr}T00:00`, to: `${todayStr}T11:59` },
+            { from: `${todayStr}T12:00`, to: `${todayStr}T23:59` }
+        ];
         const allRaw = [];
-        for (const offset of [0, 100]) {
+
+        for (const slot of timeWindows) {
             try {
-                const rawUrl = `http://api.aviationstack.com/v1/flights?access_key=${FLIGHTS_API_KEY}&dep_iata=${AIRPORT_IATA}&limit=100&offset=${offset}`;
-                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rawUrl)}`;
-                const res = await fetch(proxyUrl);
+                const url = `https://aerodatabox.p.rapidapi.com/flights/airports/iata/${AIRPORT_IATA}/${slot.from}/${slot.to}?withLeg=true&direction=Departure&withCancelled=false&withCodeshared=false&withCargo=false&withPrivate=false&withLocation=false`;
+                const res = await fetch(url, {
+                    headers: {
+                        'X-RapidAPI-Key':  AERODATABOX_API_KEY,
+                        'X-RapidAPI-Host': AERODATABOX_API_HOST
+                    }
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const json = await res.json();
-                const batch = (json && json.data) ? json.data : (Array.isArray(json) ? json : null);
-                if (!batch || batch.length === 0) { console.log(`[Flights] offset=${offset} 无更多条目`); break; }
-                console.log(`[Flights] offset=${offset} → ${batch.length} 条`);
+                const batch = json?.departures || [];
+                console.log(`[Flights] AeroDataBox ${slot.from}→${slot.to}: ${batch.length} 班次`);
                 allRaw.push(...batch);
+
+                // 添加 1.2 秒的延迟，防止触发 RapidAPI 每秒速率限制报错
+                await new Promise(r => setTimeout(r, 1200));
             } catch (e) {
-                console.warn(`[Flights] offset=${offset} 失败，跳过`, e);
-                break;
+                console.warn(`[Flights] 时间窗 ${slot.from} 失败:`, e);
+                // 第二段失败不影响第一段已有的数据
             }
         }
 
         if (allRaw.length === 0) throw new Error('No flight data returned');
 
-        // ── Step 2: 只保留非 codeshare 的真实航班，并按航班号去重 ─────────
-        const seenIata = new Set();
-        const flightsData = allRaw
-            .filter(f => {
-                if (f.flight && f.flight.codeshared) return false; // codeshare 全部丢弃
-                const iata = f.flight?.iata;
-                if (iata) {
-                    if (seenIata.has(iata)) return false;           // 去重
-                    seenIata.add(iata);
-                }
-                return true;
-            })
+        // ── Step 2: 过滤 + 去重 ──────────────────────────────────────────
+        // AeroDataBox 的过滤参数已在 URL 中指定 (withCodeshared=false, withCargo=false)
+        const seenPhysicalFlights = new Set();
+        const finalMap = new Map(); // 用 Map 做唯一航班号的终极覆盖去重
+
+        allRaw.forEach(f => {
+            if (f.isCargo === true) return;
+            if (f.codeshareStatus === 'IsCodeshare') return;
+            if (f.status === 'Canceled' || f.status === 'Cancelled') return;
+
+            // 过滤那些连目的地或航空公司都不属于(Unknown)的 "测试/无效航班"
+            if (!f.arrival?.airport?.name && !f.arrival?.airport?.iata) return;
+            if (!f.airline?.name && !f.airline?.iata) return;
+
+            const iata = (f.number || '').replace(/\s+/g, ''); // "AK 5110" → "AK5110"
+            if (!iata) return;
+
+            // 终极拦截隐藏的 Codeshare：同一时间飞同一目的地
+            const scheduledTime = f.departure?.scheduledTime?.local || '';
+            const arrivalDest = f.arrival?.airport?.iata || f.arrival?.airport?.name || '';
+            const physicalKey = `${scheduledTime}_${arrivalDest}`;
+            
+            if (seenPhysicalFlights.has(physicalKey) && !finalMap.has(iata)) {
+                return; // 重复物理航班
+            }
+            seenPhysicalFlights.add(physicalKey);
+
+            // 如果有同一个航班号出现了两次（比如航空公司修改了时间，发了两次数据），覆盖保留最后一条
+            finalMap.set(iata, f);
+        });
+
+        const flightsData = Array.from(finalMap.values())
             .map(f => {
-                const flightIata = f.flight?.iata || '';
-                // 尝试获取航空公司的 IATA 代码（如果没有，则从航班号前缀提取，例如 AK510 -> AK）
-                let airlineIata = f.airline?.iata;
-                if (!airlineIata && flightIata.length >= 2) {
-                    airlineIata = flightIata.substring(0, 2).toUpperCase();
-                }
+                const flightIata   = (f.number || '').replace(/\s+/g, '');
+                const airlineIata  = f.airline?.iata || flightIata.substring(0, 2).toUpperCase() || '';
+                const scheduledRaw = f.departure?.scheduledTime?.local || '';
+                // AeroDataBox local time: "2024-04-10 08:10+08:00"
+                // substring(11,16) → "08:10"，和我们的渲染逻辑完全兼容
+
+                // 状态映射
+                const flight_status = _mapAeroStatus(f.status);
 
                 return {
-                    flight_date: f.flight_date || '',
-                    flight_status: f.flight_status || '',
-                    airline: f.airline?.name || 'Unknown',
-                    airline_iata: airlineIata || '',
-                    flight_iata: flightIata,
-                    departure_iata: f.departure?.iata || '',
-                    departure_airport: f.departure?.airport || '',
-                    destination: f.arrival?.iata || '?',
-                    dest_name: f.arrival?.airport || 'Unknown',
-                    timezone: f.arrival?.timezone || '',
-                    scheduled: f.departure?.scheduled || ''
+                    flight_date:       todayStr,
+                    flight_status:     flight_status,
+                    airline:           f.airline?.name || 'Unknown',
+                    airline_iata:      airlineIata,
+                    flight_iata:       flightIata,
+                    departure_iata:    f.departure?.airport?.iata    || AIRPORT_IATA,
+                    departure_airport: f.departure?.airport?.name    || '',
+                    destination:       f.arrival?.airport?.iata      || '?',
+                    dest_name:         f.arrival?.airport?.shortName || f.arrival?.airport?.name || 'Unknown',
+                    timezone:          '',
+                    scheduled:         scheduledRaw
                 };
             });
 
@@ -2249,8 +2303,14 @@ function renderFlightsUI(flightsData, lastUpdateStr) {
     });
 
     // ── 3. 建立 domestic / intl 分组 ──────────────────────────────
-    const MY_AIRPORTS = ['KUL', 'SZB', 'PEN', 'JHB', 'KCH', 'BKI', 'MYY', 'TWU', 'SDK',
-        'BTU', 'SBW', 'LDU', 'MYD', 'KBR', 'TGG', 'AOR', 'LGK', 'KUA', 'IPH', 'MKZ'];
+    const MY_AIRPORTS = [
+        // 半岛马来西亚
+        'KUL', 'SZB', 'PEN', 'JHB', 'KBR', 'TGG', 'AOR', 'LGK', 'KUA', 'IPH', 'MKZ',
+        // 沙巴 Sabah
+        'BKI', 'SDK', 'TWU', 'LDU', 'MYD', 'GSA', 'PAY', 'KGU', 'SPT',
+        // 沙捞越 Sarawak
+        'KCH', 'MYY', 'BTU', 'SBW', 'LMN', 'LBU', 'MZV', 'ODN', 'BBN', 'BKM', 'SMM', 'RPH'
+    ];
 
     _flightsDomestic = [];
     _flightsIntl = [];
@@ -2289,20 +2349,13 @@ function renderFlightsUI(flightsData, lastUpdateStr) {
 
         const arrAirport = f.dest_name || f.destination;
 
-        // ── 已起飞：整张卡片淡化 + 时间加删除线 + 右侧小角标 ──────
-        const cardStyle = hasDeparted
-            ? `background:var(--ios-tertiary-background); padding:9px 12px;
-               border-radius:10px; border:0.5px solid var(--ios-gray-5);
-               display:flex; align-items:center; gap:10px; margin-bottom:6px;
-               opacity:0.45; position:relative;`
-            : `background:var(--ios-tertiary-background); padding:9px 12px;
-               border-radius:10px; border:0.5px solid var(--ios-gray-4);
-               display:flex; align-items:center; gap:10px; margin-bottom:6px;
-               position:relative;`;
+        // ── 取消了卡片的淡化(opacity)和删除线，保持清晰可见 ──────
+        const cardStyle = `background:var(--ios-tertiary-background); padding:9px 12px;
+                           border-radius:10px; border:0.5px solid var(--ios-gray-4);
+                           display:flex; align-items:center; gap:10px; margin-bottom:6px;
+                           position:relative;`;
 
-        const timeStyle = hasDeparted
-            ? `font-weight:800; font-size:14px; color:var(--ios-gray-1); line-height:1.1; text-decoration:line-through;`
-            : `font-weight:800; font-size:14px; color:var(--ios-label); line-height:1.1;`;
+        const timeStyle = `font-weight:800; font-size:14px; color:var(--ios-label); line-height:1.1;`;
 
         const departedBadge = hasDeparted
             ? `<div style="position:absolute; top:5px; right:7px;
@@ -2318,7 +2371,7 @@ function renderFlightsUI(flightsData, lastUpdateStr) {
                 <!-- 时间 + 航班号 -->
                 <div style="flex-shrink:0; min-width:52px; text-align:center;">
                     <div style="${timeStyle}">${timeStr}</div>
-                    <div style="font-size:10px; font-weight:600; color:${hasDeparted ? 'var(--ios-gray-1)' : 'var(--ios-blue)'}; margin-top:1px;">${f.flight_iata || '---'}</div>
+                    <div style="font-size:10px; font-weight:600; color:var(--ios-blue); margin-top:1px;">${f.flight_iata || '---'}</div>
                 </div>
                 <!-- 分隔线 -->
                 <div style="width:0.5px; height:32px; background:var(--ios-gray-5); flex-shrink:0;"></div>
@@ -2486,4 +2539,32 @@ function openFlightsModal() {
 function closeFlightsModal() {
     const modal = document.getElementById('flightsModal');
     if (modal) modal.style.display = 'none';
+}
+
+// ==========================================
+// 🚀 Refresh Flights Action
+// ==========================================
+window.refreshFlightsAction = async function () {
+    if (window.showToast) window.showToast('↻ 正在强制刷新航班数据...');
+    const btn = document.querySelector('button[title="Refresh Flights"]');
+    if (btn) btn.style.opacity = '0.5';
+
+    try {
+        const flightsList = document.getElementById('flightsList');
+        if (flightsList) flightsList.innerHTML = '<div class="loading"><div class="spinner"></div>Loading new flights...</div>';
+        
+        // 删除当天的缓存，强制让系统重新请求 API
+        await firebase.database().ref('flight_cache').remove();
+        
+        // 我们需要把本地维护的标志清空，才会触发 initFlightsSystem 请求数据并保存
+        // 它的机制是读取缓存时间，如果等于今天就不抓。
+        await initFlightsSystem();
+        
+        if (window.showToast) window.showToast('✅ 航班数据已更新！');
+    } catch (e) {
+        console.error('Refresh Failed:', e);
+        if (window.showToast) window.showToast('❌ 刷新失败，请稍后再试');
+    } finally {
+        if (btn) btn.style.opacity = '1';
+    }
 }
