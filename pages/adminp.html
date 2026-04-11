@@ -3183,13 +3183,22 @@
                 flex-shrink:0;
             ">
                 <div style="font-size:17px; font-weight:700; color:var(--ios-label); letter-spacing:-0.3px;">✈️ Departures (BKI)</div>
-                <button onclick="closeFlightsModal()" style="
-                    background:var(--ios-gray-6); border:none;
-                    width:30px; height:30px; border-radius:15px;
-                    display:flex; align-items:center; justify-content:center;
-                    cursor:pointer; color:var(--ios-gray-1);
-                    font-size:16px; transition:all 0.2s;
-                ">&times;</button>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="refreshFlightsAction()" title="Refresh Flights" style="
+                        background:rgba(37, 99, 235, 0.1); border:none;
+                        width:30px; height:30px; border-radius:15px;
+                        display:flex; align-items:center; justify-content:center;
+                        cursor:pointer; color:var(--ios-blue);
+                        font-size:14px; transition:all 0.2s;
+                    ">↻</button>
+                    <button onclick="closeFlightsModal()" style="
+                        background:var(--ios-gray-6); border:none;
+                        width:30px; height:30px; border-radius:15px;
+                        display:flex; align-items:center; justify-content:center;
+                        cursor:pointer; color:var(--ios-gray-1);
+                        font-size:16px; transition:all 0.2s;
+                    ">&times;</button>
+                </div>
             </div>
 
             <!-- Stats Strip -->
