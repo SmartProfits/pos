@@ -1590,8 +1590,9 @@ function renderProducts(searchQuery = '', categoryFilter = 'all', promotionFilte
         
         // 搜索过滤
         if (searchQuery) {
+        const displayId = product.original_id || productId;
         // 搜索匹配（商品ID、名称、类别或店铺名）
-        return productId.toLowerCase().includes(searchQuery) || 
+        return displayId.toLowerCase().includes(searchQuery) || 
                product.name.toLowerCase().includes(searchQuery) || 
                (product.category || '').toLowerCase().includes(searchQuery) ||
                storeName.toLowerCase().includes(searchQuery);
@@ -1610,6 +1611,7 @@ function renderProducts(searchQuery = '', categoryFilter = 'all', promotionFilte
         const storeName = stores[product.store_id]?.name || product.store_id;
         // 使用stock值，如果不存在则使用quantity，确保兼容旧数据
         const stockDisplay = product.stock !== undefined ? product.stock : (product.quantity || 0);
+        const displayId = product.original_id || productId;
         
         // 计算显示价格（如果启用促销价格则显示促销价格，否则显示正常价格）
         const displayPrice = (product.promotionEnabled && product.promotionPrice !== null && product.promotionPrice !== undefined) 
@@ -1621,7 +1623,7 @@ function renderProducts(searchQuery = '', categoryFilter = 'all', promotionFilte
         
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${productId}</td>
+            <td>${displayId}</td>
             <td>${product.name}${product.promotionEnabled ? ' <span style="color: #f44336; font-size: 0.85em;"><i class="material-icons" style="font-size: 14px; vertical-align: middle;">local_offer</i></span>' : ''}</td>
             <td>${priceDisplay}</td>
             <td>${stockDisplay}</td>
@@ -1697,6 +1699,7 @@ function handleAddProduct(e) {
     const productStoreIdInput = document.getElementById('productStoreId');
     const productPromotionEnabledInput = document.getElementById('productPromotionEnabled');
     const productPromotionPriceInput = document.getElementById('productPromotionPrice');
+    const productSaleUnitInput = document.getElementById('saleUnit');
     
     const productId = productIdInput.value.trim();
     const name = productNameInput.value.trim();
@@ -1706,6 +1709,7 @@ function handleAddProduct(e) {
     const storeId = productStoreIdInput.value;
     const promotionEnabled = productPromotionEnabledInput ? productPromotionEnabledInput.checked : false;
     const promotionPrice = promotionEnabled && productPromotionPriceInput ? parseFloat(productPromotionPriceInput.value) : null;
+    const saleUnit = productSaleUnitInput ? productSaleUnitInput.value : 'piece';
     
     if (!productId || !name || isNaN(price) || !storeId) {
         alert('Please fill in all required fields');
@@ -1718,7 +1722,7 @@ function handleAddProduct(e) {
     }
     
     // 添加商品到数据库
-    addProduct(productId, name, price, stock, category, storeId, promotionEnabled, promotionPrice)
+    addProduct(productId, name, price, stock, category, storeId, promotionEnabled, promotionPrice, saleUnit)
         .then(() => {
             hideModal(addProductModal);
             loadProducts();
@@ -1734,6 +1738,7 @@ function handleAddProduct(e) {
 function editProduct(productId) {
     const product = products[productId];
     if (!product) return;
+    const actualProductId = product.original_id || productId;
     
     // 创建编辑模态框
     const editModal = document.createElement('div');
@@ -1747,7 +1752,7 @@ function editProduct(productId) {
             <form id="editProductForm">
                 <div class="form-group">
                     <label for="editProductId"><i class="material-icons">tag</i> Product ID:</label>
-                    <input type="text" id="editProductId" value="${productId}" required>
+                    <input type="text" id="editProductId" value="${actualProductId}" required>
                 </div>
                 <div class="form-group">
                     <label for="editProductName"><i class="material-icons">inventory</i> Product Name:</label>
@@ -1774,6 +1779,13 @@ function editProduct(productId) {
                 <div class="form-group">
                     <label for="editProductCategory"><i class="material-icons">category</i> Category:</label>
                     <input type="text" id="editProductCategory" value="${product.category || ''}">
+                </div>
+                <div class="form-group">
+                    <label for="editSaleUnit"><i class="material-icons">straighten</i> Sale Unit:</label>
+                    <select id="editSaleUnit" required onchange="updateAdminStockInputStep('editProductStock', 'editSaleUnit')">
+                        <option value="piece" ${product.saleUnit === 'piece' ? 'selected' : ''}>By Piece/Quantity</option>
+                        <option value="weight" ${product.saleUnit === 'weight' ? 'selected' : ''}>By Weight (kg)</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="editProductStoreId"><i class="material-icons">store</i> Store:</label>
@@ -1835,6 +1847,7 @@ function editProduct(productId) {
         const newStoreId = document.getElementById('editProductStoreId').value;
         const newPromotionEnabled = document.getElementById('editProductPromotionEnabled') ? document.getElementById('editProductPromotionEnabled').checked : false;
         const newPromotionPrice = newPromotionEnabled && document.getElementById('editProductPromotionPrice') ? parseFloat(document.getElementById('editProductPromotionPrice').value) : null;
+        const newSaleUnit = document.getElementById('editSaleUnit') ? document.getElementById('editSaleUnit').value : 'piece';
         
         if (!newProductId || !newName || isNaN(newPrice) || !newStoreId) {
             alert('Please fill in all required fields');
@@ -1847,13 +1860,13 @@ function editProduct(productId) {
         }
         
         // 检查新产品ID是否已存在（如果ID有变化）
-        if (newProductId !== productId && products[newProductId]) {
-            alert('Product ID already exists. Please choose a different ID.');
+        if (newProductId !== actualProductId && products[newProductId] && products[newProductId].store_id === newStoreId) {
+            alert('Product ID already exists in that store. Please choose a different ID.');
             return;
         }
         
         // 更新商品
-        updateProduct(productId, newProductId, newName, newPrice, newStock, newCategory, newStoreId, product.store_id, newPromotionEnabled, newPromotionPrice)
+        updateProduct(actualProductId, newProductId, newName, newPrice, newStock, newCategory, newStoreId, product.store_id, newPromotionEnabled, newPromotionPrice, newSaleUnit)
             .then(() => {
                 hideModal(editModal);
                 // 移除模态框
@@ -1871,7 +1884,7 @@ function editProduct(productId) {
 }
 
 // 更新商品
-function updateProduct(oldProductId, newProductId, name, price, stock, category, newStoreId, oldStoreId, promotionEnabled = false, promotionPrice = null) {
+function updateProduct(oldProductId, newProductId, name, price, stock, category, newStoreId, oldStoreId, promotionEnabled = false, promotionPrice = null, saleUnit = 'piece') {
     const productData = {
         name,
         price,
@@ -1880,7 +1893,8 @@ function updateProduct(oldProductId, newProductId, name, price, stock, category,
         store_id: newStoreId,
         stock: stock, // 确保更新stock字段
         promotionEnabled: promotionEnabled || false,
-        promotionPrice: promotionEnabled ? (promotionPrice || null) : null
+        promotionPrice: promotionEnabled ? (promotionPrice || null) : null,
+        saleUnit: saleUnit || 'piece'
     };
     
     // 如果产品ID发生变化
@@ -1904,8 +1918,9 @@ function updateProduct(oldProductId, newProductId, name, price, stock, category,
 function deleteProduct(productId) {
     const product = products[productId];
     if (!product) return;
+    const actualProductId = product.original_id || productId;
     
-    if (!confirm(`Are you sure you want to delete product ${productId}?`)) {
+    if (!confirm(`Are you sure you want to delete product ${actualProductId}?`)) {
         return;
     }
     
@@ -2178,7 +2193,7 @@ function getAllStores() {
 }
 
 // 添加商品
-function addProduct(productId, name, price, quantity, category, storeId, promotionEnabled = false, promotionPrice = null) {
+function addProduct(productId, name, price, quantity, category, storeId, promotionEnabled = false, promotionPrice = null, saleUnit = 'piece') {
     const productData = {
         name,
         price,
@@ -2187,16 +2202,32 @@ function addProduct(productId, name, price, quantity, category, storeId, promoti
         store_id: storeId,
         stock: quantity || 0, // 添加stock字段，与POS页面保持一致
         promotionEnabled: promotionEnabled || false,
-        promotionPrice: promotionEnabled ? (promotionPrice || null) : null
+        promotionPrice: promotionEnabled ? (promotionPrice || null) : null,
+        saleUnit: saleUnit || 'piece'
     };
     return database.ref(`store_products/${storeId}/${productId}`).set(productData);
+}
+
+// 更新库存输入框的step属性
+function updateAdminStockInputStep(quantityId, saleUnitId) {
+    const saleUnitInput = document.getElementById(saleUnitId);
+    const productQuantityInput = document.getElementById(quantityId);
+
+    if (saleUnitInput && productQuantityInput) {
+        if (saleUnitInput.value === 'weight') {
+            productQuantityInput.step = '0.001'; // 允许输入三位小数
+        } else {
+            productQuantityInput.step = '1';
+        }
+    }
 }
 
 // 删除商品
 function removeProduct(productId) {
     const product = products[productId];
     if (!product) return Promise.reject(new Error('Product not found'));
-    return database.ref(`store_products/${product.store_id}/${productId}`).remove();
+    const actualProductId = product.original_id || productId;
+    return database.ref(`store_products/${product.store_id}/${actualProductId}`).remove();
 }
 
 // 获取所有商品
@@ -2210,12 +2241,13 @@ function getAllProducts() {
             Object.entries(storeProducts).forEach(([storeId, storeProductList]) => {
                 if (storeProductList) {
                     Object.entries(storeProductList).forEach(([productId, product]) => {
-                        // 明确地将store_id添加到每个产品对象
-                        allProducts[productId] = {
+                        const compositeKey = `${storeId}_${productId}`;
+                        allProducts[compositeKey] = {
                             ...product,
-                            store_id: storeId
+                            store_id: storeId,
+                            original_id: productId
                         };
-                        console.log(`Added product ${productId} from store ${storeId}`);
+                        console.log(`Added product ${productId} from store ${storeId} as ${compositeKey}`);
                     });
                 }
             });
@@ -2573,6 +2605,7 @@ function renderInventory(productsEntries) {
     productsEntries.forEach(([productId, product]) => {
         const storeName = stores[product.store_id]?.name || product.store_id;
         const stock = product.stock !== undefined ? product.stock : (product.quantity || 0);
+        const displayId = product.original_id || productId;
         let statusClass, statusText;
         if (stock <= 0) {
             statusClass = 'status-out';
@@ -2588,7 +2621,7 @@ function renderInventory(productsEntries) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td><input type="checkbox" class="inventory-select" data-id="${productId}"></td>
-            <td>${productId}</td>
+            <td>${displayId}</td>
             <td>${product.name}</td>
             <td>${product.category || '-'}</td>
             <td>RM${product.price.toFixed(2)}</td>
@@ -2703,7 +2736,8 @@ function showStockHistory(productId) {
     showModal(historyModal);
     
     // 加载历史记录
-    getStockHistory(product.store_id, productId)
+    const actualProductId = product.original_id || productId;
+    getStockHistory(product.store_id, actualProductId)
         .then(history => {
             const container = historyModal.querySelector('.stock-history-container');
             if (Object.keys(history).length === 0) {
@@ -2904,13 +2938,14 @@ function toggleBulkOtherReason() {
 function updateProductStock(productId, newStock, operation, quantity, reason, notes) {
     const product = products[productId];
     if (!product) return Promise.reject(new Error('Product not found'));
+    const actualProductId = product.original_id || productId;
     
     // 创建更新对象
     const updates = {};
     
     // 更新库存
-    updates[`store_products/${product.store_id}/${productId}/stock`] = newStock;
-    updates[`store_products/${product.store_id}/${productId}/quantity`] = newStock; // 为了兼容性也更新quantity
+    updates[`store_products/${product.store_id}/${actualProductId}/stock`] = newStock;
+    updates[`store_products/${product.store_id}/${actualProductId}/quantity`] = newStock; // 为了兼容性也更新quantity
     
     // 记录库存变更历史
     const historyEntry = {
