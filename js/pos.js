@@ -958,30 +958,69 @@ function loadSalesHistory() {
 
 // 更新销售汇总信息显示
 function updateSalesSummary(summary, existingSales = null) {
-    // 更新销售总额
-    document.getElementById('totalSalesAmount').textContent = `RM${(summary.total_sales || 0).toFixed(2)}`;
-    document.getElementById('totalTransactions').textContent = summary.transaction_count || 0;
+    if (existingSales) {
+        // 直接从获取到的销售记录（数据源的真理）计算汇总信息，避免从race-condition-prone的daily_sales获取不准的数据
+        let totalSales = 0;
+        let transactionCount = 0;
+        let firstShiftSales = 0;
+        let firstShiftCount = 0;
+        let secondShiftSales = 0;
+        let secondShiftCount = 0;
+        let discountCount = 0;
+        let discountAmount = 0;
 
-    // 更新班次销售额
-    const firstShiftData = summary.shifts && summary.shifts['1st Shift'] ? summary.shifts['1st Shift'] : { total_sales: 0, transaction_count: 0 };
-    const secondShiftData = summary.shifts && summary.shifts['2nd Shift'] ? summary.shifts['2nd Shift'] : { total_sales: 0, transaction_count: 0 };
+        Object.values(existingSales).forEach(sale => {
+            const amount = Number(sale.total_amount || 0);
+            totalSales += amount;
+            transactionCount++;
 
-    document.getElementById('firstShiftSalesAmount').textContent = `RM${(firstShiftData.total_sales || 0).toFixed(2)}`;
-    document.getElementById('firstShiftTransactions').textContent = firstShiftData.transaction_count || 0;
+            // 按班次统计
+            if (sale.cashierShift === '1st Shift') {
+                firstShiftSales += amount;
+                firstShiftCount++;
+            } else if (sale.cashierShift === '2nd Shift') {
+                secondShiftSales += amount;
+                secondShiftCount++;
+            }
 
-    document.getElementById('secondShiftSalesAmount').textContent = `RM${(secondShiftData.total_sales || 0).toFixed(2)}`;
-    document.getElementById('secondShiftTransactions').textContent = secondShiftData.transaction_count || 0;
-
-    // 计算折扣销售信息（使用现有销售数据避免重复下载）
-    const currentDate = getCurrentDate();
-    getDailySalesDiscountInfo(localStorage.getItem('store_id'), currentDate, existingSales)
-        .then(discountInfo => {
-            document.getElementById('discountedSalesCount').textContent = discountInfo.count;
-            document.getElementById('totalDiscountAmount').textContent = `RM${discountInfo.amount.toFixed(2)}`;
-        })
-        .catch(error => {
-            console.error("加载折扣信息失败:", error);
+            // 计算折扣
+            if ((sale.discountPercent && sale.discountPercent > 0) ||
+                (sale.discountAmount && sale.discountAmount > 0)) {
+                discountCount++;
+                if (sale.discountType === 'percent' && sale.discountPercent) {
+                    discountAmount += (sale.subtotal * sale.discountPercent / 100);
+                } else if (sale.discountType === 'amount' && sale.discountAmount) {
+                    discountAmount += sale.discountAmount;
+                }
+            }
         });
+
+        document.getElementById('totalSalesAmount').textContent = `RM${totalSales.toFixed(2)}`;
+        document.getElementById('totalTransactions').textContent = transactionCount;
+
+        document.getElementById('firstShiftSalesAmount').textContent = `RM${firstShiftSales.toFixed(2)}`;
+        document.getElementById('firstShiftTransactions').textContent = firstShiftCount;
+
+        document.getElementById('secondShiftSalesAmount').textContent = `RM${secondShiftSales.toFixed(2)}`;
+        document.getElementById('secondShiftTransactions').textContent = secondShiftCount;
+
+        document.getElementById('discountedSalesCount').textContent = discountCount;
+        document.getElementById('totalDiscountAmount').textContent = `RM${discountAmount.toFixed(2)}`;
+    } else {
+        // 回退逻辑，如果没有传入existingSales才使用summary
+        document.getElementById('totalSalesAmount').textContent = `RM${(summary.total_sales || 0).toFixed(2)}`;
+        document.getElementById('totalTransactions').textContent = summary.transaction_count || 0;
+
+        // 更新班次销售额
+        const firstShiftData = summary.shifts && summary.shifts['1st Shift'] ? summary.shifts['1st Shift'] : { total_sales: 0, transaction_count: 0 };
+        const secondShiftData = summary.shifts && summary.shifts['2nd Shift'] ? summary.shifts['2nd Shift'] : { total_sales: 0, transaction_count: 0 };
+
+        document.getElementById('firstShiftSalesAmount').textContent = `RM${(firstShiftData.total_sales || 0).toFixed(2)}`;
+        document.getElementById('firstShiftTransactions').textContent = firstShiftData.transaction_count || 0;
+
+        document.getElementById('secondShiftSalesAmount').textContent = `RM${(secondShiftData.total_sales || 0).toFixed(2)}`;
+        document.getElementById('secondShiftTransactions').textContent = secondShiftData.transaction_count || 0;
+    }
 }
 
 // 获取每日折扣销售信息
