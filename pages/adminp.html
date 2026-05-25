@@ -87,7 +87,7 @@
             --ios-gray-6: #1E293B;
             --ios-gray-5: #334155;
             --ios-gray-4: #475569;
-            
+
             /* Enhanced Night Mode Brand Colors for better readability */
             --ios-blue: #60A5FA;
             --ios-green: #34D399;
@@ -110,9 +110,9 @@
             color: #C084FC !important;
             background: rgba(192, 132, 252, 0.15) !important;
         }
-        
+
         body.night-mode .product-price {
-            color: #4ADE80 !important; 
+            color: #4ADE80 !important;
         }
 
         body.night-mode .product-stock-badge.stock {
@@ -134,15 +134,15 @@
         body.night-mode #storeDetailTotalSales {
             color: #60A5FA !important;
         }
-        
+
         body.night-mode #shift1Sales {
             color: #FBBF24 !important;
         }
-        
+
         body.night-mode #shift2Sales {
             color: #C084FC !important;
         }
-        
+
         /* Make sure ranking medals aren't too dark */
         body.night-mode .top3-rank.r1 {
             color: #7a3c00 !important;
@@ -195,6 +195,20 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        /* 允许输入框和可编辑区域中的文本被选择 */
+        input,
+        textarea,
+        [contenteditable="true"] {
+            user-select: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
         }
 
         body {
@@ -805,191 +819,283 @@
             /* Space for compact fixed dashboard */
         }
 
-        /* Product List - Optimized for more cards */
-        .product-list {
+        /* ===== UI Layout Selector Styles ===== */
+        .layout-control {
             display: flex;
-            flex-direction: column;
-            gap: 0px;
-            padding: 0 6px;
-        }
-
-        .product-item {
-            background: var(--ios-tertiary-background);
-            border-radius: var(--ios-corner-radius-medium);
-            padding: 14px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            box-shadow: var(--ios-shadow-1);
-            border: 0.5px solid var(--ios-gray-5);
-            transition: all 0.2s ease;
-            min-height: 80px;
-        }
-
-        .product-item:hover {
-            box-shadow: var(--ios-shadow-2);
-            transform: translateY(-1px);
-        }
-
-        .product-item:active {
             background: var(--ios-gray-6);
+            border-radius: 6px;
+            padding: 1px;
+            border: 0.5px solid var(--ios-gray-4);
+            height: 28px;
+            align-items: center;
+            width: fit-content;
         }
 
-        .product-item:first-child {
-            border-top-left-radius: var(--ios-corner-radius-medium);
-            border-top-right-radius: var(--ios-corner-radius-medium);
+        body.night-mode .layout-control {
+            border-color: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
         }
 
-        .product-item:last-child {
-            border-bottom-left-radius: var(--ios-corner-radius-medium);
-            border-bottom-right-radius: var(--ios-corner-radius-medium);
-        }
-
-        .product-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: var(--ios-corner-radius-small);
-            background: var(--ios-blue);
+        .layout-btn {
+            border: none;
+            background: transparent;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #ffffff;
-            font-size: 20px;
-            overflow: hidden;
-            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--ios-gray-1);
             transition: all 0.2s ease;
-            border: 1px solid var(--ios-gray-5);
-            position: relative;
-            flex-shrink: 0;
+            height: 100%;
         }
 
-        .product-icon:hover {
-            transform: scale(1.05);
+        .layout-btn.active {
+            background: var(--ios-tertiary-background) !important;
+            color: var(--ios-blue) !important;
+            box-shadow: var(--ios-shadow-1);
+        }
+
+        body.night-mode .layout-btn.active {
+            background: rgba(255, 255, 255, 0.15) !important;
+            color: #60A5FA !important;
+        }
+
+        /* Product List Base */
+        .product-list {
+            padding: 0 12px 20px;
+            transition: all 0.3s ease;
+        }
+
+        /* ----- Grid Layout (2 Columns on Mobile, more on Desktop) ----- */
+        .product-list.grid-layout {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .product-list.grid-layout .product-item {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 10px;
+            border-radius: 14px;
+            background: var(--ios-tertiary-background);
+            box-shadow: var(--ios-shadow-1);
+            border: 0.5px solid var(--ios-gray-5);
+            transition: all 0.25s ease;
+            min-height: 165px;
+            text-align: left;
+            position: relative;
+            display: flex;
+            gap: 8px;
+        }
+
+        .product-list.grid-layout .product-item:hover {
+            transform: translateY(-2px);
             box-shadow: var(--ios-shadow-2);
         }
 
-        .product-image-container {
-            background: var(--ios-gray-6) !important;
-            border: 0px solid var(--ios-gray-4);
+        .product-list.grid-layout .product-icon {
+            width: 100%;
+            height: 105px;
+            border-radius: 10px;
+            border: 0.5px solid var(--ios-gray-5);
+            background: var(--ios-secondary-background);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
         }
 
+        .product-list.grid-layout .product-details {
+            flex: none;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+            padding: 0 2px;
+            width: 100%;
+        }
+
+        .product-list.grid-layout .product-name {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--ios-label);
+            margin-bottom: 3px;
+            line-height: 1.3;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            min-height: 35px;
+            width: 100%;
+            text-align: left;
+        }
+
+        .product-list.grid-layout .product-category {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            font-weight: 600;
+            background: rgba(124, 58, 237, 0.08);
+            color: var(--ios-purple);
+        }
+
+        .product-list.grid-layout .product-price-stock {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: auto;
+            gap: 4px;
+        }
+
+        .product-list.grid-layout .product-price {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: #22c55e;
+        }
+
+        .product-list.grid-layout .price-stock-separator {
+            display: none;
+        }
+
+        .product-list.grid-layout .product-stock-badge {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-weight: 700;
+        }
+
+        /* Global Product Image Styling - Showing full image without clipping */
         .product-image {
             width: 100% !important;
             height: 100% !important;
-            object-fit: cover;
-            border-radius: var(--ios-corner-radius-small);
-            transition: all 0.2s ease;
+            object-fit: contain !important;
+            /* 显示完整图片，不裁剪 */
+            border-radius: 8px;
+            transition: all 0.25s ease;
             display: block !important;
             position: absolute;
             top: 0;
             left: 0;
             z-index: 2;
+            padding: 4px;
+            /* 让图片在容器内轻微收缩 */
+            background: #ffffff;
+            /* 白底，使各类商品底色统一 */
         }
 
-        /* Ensure images load properly */
-        .product-image-container img {
-            background: #646465;
-            opacity: 1 !important;
-            visibility: visible !important;
+        body.night-mode .product-image {
+            background: #1E293B;
+            /* 暗黑模式下的图片背景色 */
         }
 
-        .product-details {
+        /* ----- List Layout (Premium Strip/Row Layout) ----- */
+        .product-list.list-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 0 12px 20px;
+        }
+
+        .product-list.list-layout .product-item {
+            flex-direction: row;
+            align-items: center;
+            padding: 10px 14px;
+            border-radius: 16px;
+            background: var(--ios-tertiary-background);
+            box-shadow: var(--ios-shadow-1);
+            border: 0.5px solid var(--ios-gray-5);
+            transition: all 0.25s ease;
+            min-height: 84px;
+            gap: 14px;
+        }
+
+        .product-list.list-layout .product-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--ios-shadow-2);
+        }
+
+        .product-list.list-layout .product-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 10px;
+            background: var(--ios-secondary-background);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 0.5px solid var(--ios-gray-5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-list.list-layout .product-details {
             flex: 1;
             display: flex;
             flex-direction: column;
+            align-items: flex-start;
             justify-content: center;
-            align-items: center;
             min-width: 0;
-            height: 100%;
-            text-align: center;
+            text-align: left;
+            gap: 4px;
         }
 
-        .product-name {
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--ios-label);
-            margin-bottom: 6px;
-            letter-spacing: -0.2px;
-            line-height: 1.2;
-            text-align: center;
-        }
-
-        .product-category {
-            font-size: 11px;
-            color: #7e22ce;
-            background: #f3e8ff;
-            padding: 3px 8px;
-            border-radius: 10px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: inline-block;
-            width: fit-content;
-            text-align: center;
-        }
-
-        .product-price-stock {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            flex-wrap: nowrap;
-            text-align: center;
-        }
-
-        .product-price {
+        .product-list.list-layout .product-name {
             font-size: 14px;
             font-weight: 700;
-            color: #22c55e;
+            color: var(--ios-label);
+            margin-bottom: 0;
+            line-height: 1.3;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+            text-align: left;
         }
 
-        .price-stock-separator {
-            color: var(--ios-gray-3);
-            font-weight: 300;
-            flex-shrink: 0;
-        }
-
-        .product-stock-badge {
+        .product-list.list-layout .product-category {
             font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            margin-bottom: 0;
             font-weight: 600;
-            padding: 3px 8px;
-            border-radius: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.2px;
+            background: rgba(124, 58, 237, 0.08);
+            color: var(--ios-purple);
+            display: inline-block;
+            white-space: nowrap;
         }
 
-        .product-stock-badge.stock {
-            background: rgba(0, 122, 255, 0.1);
-            color: #007AFF;
-        }
-
-        .product-stock-badge.low {
-            background: rgba(255, 149, 0, 0.1);
-            color: #FF9500;
-        }
-
-        .product-stock-badge.out {
-            background: rgba(255, 59, 48, 0.1);
-            color: #FF3B30;
-        }
-
-        .stock-status {
+        .product-list.list-layout .product-price-stock {
             display: flex;
             align-items: center;
-            gap: 4px;
-            font-size: var(--ios-footnote);
-            font-weight: 500;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 2px;
+            gap: 6px;
         }
 
-        .stock-status.low {
-            color: var(--ios-orange);
+        .product-list.list-layout .product-price {
+            font-size: 14px;
+            font-weight: 800;
+            color: #22c55e;
+            white-space: nowrap;
         }
 
-        .stock-status.normal {
-            color: var(--ios-green);
+        .product-list.list-layout .price-stock-separator {
+            display: none;
         }
 
-        .stock-status.out {
-            color: var(--ios-red);
+        .product-list.list-layout .product-stock-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-weight: 700;
+            white-space: nowrap;
         }
 
         /* Bottom Tab Bar */
@@ -1052,17 +1158,25 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.35);
+            background: rgba(0, 0, 0, 0.35);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             z-index: 500;
             animation: overlayFadeIn 0.25s ease;
         }
-        .menu-overlay.open { display: block; }
+
+        .menu-overlay.open {
+            display: block;
+        }
 
         @keyframes overlayFadeIn {
-            from { opacity: 0; }
-            to   { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         .slide-menu {
@@ -1072,21 +1186,22 @@
             transform: translateX(-50%) translateY(100%);
             width: 100%;
             max-width: 414px;
-            background: rgba(255,255,255,0.96);
+            background: rgba(255, 255, 255, 0.96);
             backdrop-filter: blur(30px) saturate(200%);
             -webkit-backdrop-filter: blur(30px) saturate(200%);
             border-radius: 24px 24px 0 0;
             padding: 12px 0 32px;
             z-index: 501;
             transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            box-shadow: 0 -8px 32px rgba(37,99,235,0.12);
+            box-shadow: 0 -8px 32px rgba(37, 99, 235, 0.12);
         }
+
         .slide-menu.open {
             transform: translateX(-50%) translateY(0);
         }
 
         body.night-mode .slide-menu {
-            background: rgba(17,24,39,0.96) !important;
+            background: rgba(17, 24, 39, 0.96) !important;
         }
 
         .slide-menu-handle {
@@ -1117,12 +1232,15 @@
             font-weight: 600;
             color: var(--ios-label);
         }
+
         .slide-menu-item:hover {
             background: var(--ios-gray-6);
         }
+
         .slide-menu-item:active {
             background: var(--ios-gray-5);
         }
+
         .slide-menu-item .menu-icon {
             width: 40px;
             height: 40px;
@@ -1133,13 +1251,16 @@
             font-size: 20px;
             flex-shrink: 0;
         }
+
         .slide-menu-item.logout-item .menu-icon {
-            background: rgba(239,68,68,0.12);
+            background: rgba(239, 68, 68, 0.12);
             color: var(--ios-red);
         }
+
         .slide-menu-item.logout-item {
             color: var(--ios-red);
         }
+
         .slide-menu-separator {
             height: 0.5px;
             background: var(--ios-gray-4);
@@ -1155,6 +1276,7 @@
             gap: 12px;
             padding: 4px 20px 16px;
         }
+
         .sm-hero-logo {
             width: 52px;
             height: 52px;
@@ -1166,11 +1288,16 @@
             font-size: 26px;
             font-weight: 900;
             color: #fff;
-            box-shadow: 0 6px 18px rgba(37,99,235,0.35);
+            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
             flex-shrink: 0;
             letter-spacing: -1px;
         }
-        .sm-hero-info { flex: 1; min-width: 0; }
+
+        .sm-hero-info {
+            flex: 1;
+            min-width: 0;
+        }
+
         .sm-hero-name {
             font-size: 18px;
             font-weight: 800;
@@ -1180,18 +1307,20 @@
             background-clip: text;
             letter-spacing: -0.5px;
         }
+
         .sm-hero-tagline {
             font-size: 12px;
             color: var(--ios-gray-1);
             font-weight: 500;
             margin-top: 1px;
         }
+
         .sm-version-badge {
             display: flex;
             align-items: center;
             gap: 5px;
-            background: linear-gradient(135deg, rgba(37,99,235,0.12) 0%, rgba(124,58,237,0.12) 100%);
-            border: 1px solid rgba(37,99,235,0.2);
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(124, 58, 237, 0.12) 100%);
+            border: 1px solid rgba(37, 99, 235, 0.2);
             color: var(--ios-blue);
             font-size: 11px;
             font-weight: 700;
@@ -1203,7 +1332,11 @@
             flex-shrink: 0;
             letter-spacing: 0.3px;
         }
-        .sm-version-badge:active { transform: scale(0.92); }
+
+        .sm-version-badge:active {
+            transform: scale(0.92);
+        }
+
         .sm-version-dot {
             width: 6px;
             height: 6px;
@@ -1212,9 +1345,19 @@
             display: inline-block;
             animation: smDotPulse 2s ease-in-out infinite;
         }
+
         @keyframes smDotPulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50%       { opacity: 0.4; transform: scale(0.7); }
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.4;
+                transform: scale(0.7);
+            }
         }
 
         /* Stats strip */
@@ -1224,6 +1367,7 @@
             padding: 0 20px 14px;
             flex-wrap: wrap;
         }
+
         .sm-stat-chip {
             display: flex;
             align-items: center;
@@ -1236,12 +1380,18 @@
             font-weight: 600;
             color: var(--ios-label);
         }
-        .sm-stat-chip .material-icons { font-size: 13px; color: var(--ios-blue); }
+
+        .sm-stat-chip .material-icons {
+            font-size: 13px;
+            color: var(--ios-blue);
+        }
+
         .sm-online-chip {
-            background: rgba(16,185,129,0.10);
-            border-color: rgba(16,185,129,0.3);
+            background: rgba(16, 185, 129, 0.10);
+            border-color: rgba(16, 185, 129, 0.3);
             color: var(--ios-green);
         }
+
         .sm-pulse-dot {
             width: 7px;
             height: 7px;
@@ -1250,16 +1400,25 @@
             display: inline-block;
             animation: smPulseDot 1.5s ease-in-out infinite;
         }
+
         @keyframes smPulseDot {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
-            50%       { box-shadow: 0 0 0 5px rgba(16,185,129,0); }
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+            }
+
+            50% {
+                box-shadow: 0 0 0 5px rgba(16, 185, 129, 0);
+            }
         }
 
         /* Night mode toggle row */
         .sm-night-icon {
-            background: rgba(37,99,235,0.12);
+            background: rgba(37, 99, 235, 0.12);
             color: var(--ios-blue);
         }
+
         .sm-toggle-pill {
             width: 44px;
             height: 26px;
@@ -1269,7 +1428,11 @@
             transition: background 0.3s;
             flex-shrink: 0;
         }
-        .sm-toggle-pill.on { background: var(--ios-blue); }
+
+        .sm-toggle-pill.on {
+            background: var(--ios-blue);
+        }
+
         .sm-toggle-thumb {
             position: absolute;
             top: 3px;
@@ -1278,10 +1441,13 @@
             height: 20px;
             border-radius: 50%;
             background: #fff;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-            transition: left 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            transition: left 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        .sm-toggle-pill.on .sm-toggle-thumb { left: 21px; }
+
+        .sm-toggle-pill.on .sm-toggle-thumb {
+            left: 21px;
+        }
 
         /* Footer */
         .sm-footer {
@@ -1291,6 +1457,7 @@
             border-radius: 14px;
             text-align: center;
         }
+
         .sm-footer-row {
             display: flex;
             align-items: center;
@@ -1300,25 +1467,44 @@
             color: var(--ios-gray-1);
             font-weight: 500;
         }
-        .sm-footer-sep { opacity: 0.4; }
-.sm-build-num {
-    font-weight: 700;
-    color: #800080; /* 初始紫色 */
-    animation: breathe-purple-gold 13s ease-in-out infinite;
-}
 
-@keyframes breathe-purple-gold {
-    0%   { color: #800080; }  /* 深紫色 */
-    50%  { color: #FFD700; }  /* 金色 */
-    100% { color: #800080; }  /* 回到深紫色 */
-}
+        .sm-footer-sep {
+            opacity: 0.4;
+        }
+
+        .sm-build-num {
+            font-weight: 700;
+            color: #800080;
+            /* 初始紫色 */
+            animation: breathe-purple-gold 13s ease-in-out infinite;
+        }
+
+        @keyframes breathe-purple-gold {
+            0% {
+                color: #800080;
+            }
+
+            /* 深紫色 */
+            50% {
+                color: #FFD700;
+            }
+
+            /* 金色 */
+            100% {
+                color: #800080;
+            }
+
+            /* 回到深紫色 */
+        }
+
         /* Night mode overrides for menu internals */
         body.night-mode .sm-stat-chip {
-            background: rgba(255,255,255,0.06);
-            border-color: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.1);
         }
+
         body.night-mode .sm-footer {
-            background: rgba(255,255,255,0.05);
+            background: rgba(255, 255, 255, 0.05);
         }
 
         /* Modal */
@@ -1564,22 +1750,91 @@
             box-shadow: 0 2px 10px rgba(37, 99, 235, 0.06);
         }
 
-        .back-btn {
-            background: none;
-            border: none;
-            color: var(--ios-blue);
-            font-size: 16px;
-            cursor: pointer;
-            padding: 1px;
-            border-radius: var(--ios-corner-radius-small);
-            transition: all 0.2s;
+        .back-btn-container {
             display: flex;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: center;
+            flex-shrink: 0;
         }
 
+        .back-btn {
+            background: rgba(37, 99, 235, 0.08) !important;
+            border: 1px solid rgba(37, 99, 235, 0.12) !important;
+            color: var(--ios-blue) !important;
+            font-size: 13.5px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 6px 14px 6px 10px !important;
+            border-radius: 20px !important;
+            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.04);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+            width: fit-content;
+        }
+
+        .back-btn i {
+            font-size: 18px !important;
+            transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+            font-weight: bold;
+            color: var(--ios-blue) !important;
+            margin-left: -2px;
+        }
+
+        .back-btn span {
+            font-size: 13px !important;
+            font-weight: 700 !important;
+            color: var(--ios-blue) !important;
+        }
+
+        /* Hover & Active Micro-interactions */
         .back-btn:hover {
-            background: var(--ios-gray-6);
+            background: rgba(37, 99, 235, 0.14) !important;
+            border-color: rgba(37, 99, 235, 0.25) !important;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+            transform: translateY(-0.5px);
+        }
+
+        /* Micro-animation: arrow shifts left on hover */
+        .back-btn:hover i {
+            transform: translateX(-2px);
+        }
+
+        .back-btn:active {
+            transform: scale(0.95) translateY(0) !important;
+            background: rgba(37, 99, 235, 0.2) !important;
+            box-shadow: 0 1px 4px rgba(37, 99, 235, 0.06);
+        }
+
+        /* Night Mode Overrides */
+        body.night-mode .back-btn {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            color: #60A5FA !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        body.night-mode .back-btn i {
+            color: #60A5FA !important;
+        }
+
+        body.night-mode .back-btn span {
+            color: #60A5FA !important;
+        }
+
+        body.night-mode .back-btn:hover {
+            background: rgba(255, 255, 255, 0.14) !important;
+            border-color: rgba(255, 255, 255, 0.25) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        body.night-mode .back-btn:active {
+            background: rgba(255, 255, 255, 0.2) !important;
         }
 
         .store-detail-title {
@@ -2087,10 +2342,15 @@
                 grid-template-columns: repeat(3, 1fr);
             }
 
-            .product-list {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
+            .product-list.grid-layout {
+                grid-template-columns: repeat(3, 1fr);
                 gap: 12px;
+                padding: 0 16px;
+            }
+
+            .product-list.list-layout {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px 16px;
                 padding: 0 16px;
             }
 
@@ -2100,9 +2360,14 @@
         }
 
         @media (min-width: 1024px) {
-            .product-list {
-                grid-template-columns: repeat(3, 1fr);
+            .product-list.grid-layout {
+                grid-template-columns: repeat(4, 1fr);
                 gap: 16px;
+            }
+
+            .product-list.list-layout {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px 16px;
             }
         }
 
@@ -2728,7 +2993,8 @@
                     </div>
                     <div class="nav-subtitle" id="navSubtitle">Today's Performance</div>
                 </div>
-                <button id="themeToggleBtn" onclick="toggleNightMode()" style="background:rgba(37, 99, 235, 0.1); border:none; cursor:pointer; color: var(--ios-blue); padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15); transition: all 0.3s; width: 40px; height: 40px; margin-right: -4px;">
+                <button id="themeToggleBtn" onclick="toggleNightMode()"
+                    style="background:rgba(37, 99, 235, 0.1); border:none; cursor:pointer; color: var(--ios-blue); padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15); transition: all 0.3s; width: 40px; height: 40px; margin-right: -4px;">
                     <i class="material-icons" id="themeIcon">dark_mode</i>
                 </button>
             </div>
@@ -2795,7 +3061,7 @@
                 <div class="stock-dashboard">
                     <!-- Store & Category Row -->
                     <div class="dashboard-row">
-                        <div class="dashboard-item">
+                        <div class="dashboard-item" style="flex: 1.2;">
                             <div class="dashboard-label">
                                 <i class="material-icons">store</i>
                                 <span>Store</span>
@@ -2804,7 +3070,7 @@
                                 <!-- Store options will be loaded dynamically -->
                             </select>
                         </div>
-                        <div class="dashboard-item">
+                        <div class="dashboard-item" style="flex: 1.2;">
                             <div class="dashboard-label">
                                 <i class="material-icons">category</i>
                                 <span>Category</span>
@@ -2813,6 +3079,23 @@
                                 <option value="all">All Categories</option>
                                 <!-- Category options will be loaded dynamically -->
                             </select>
+                        </div>
+                        <div class="dashboard-item" style="flex: 0.6; align-items: flex-end;">
+                            <div class="dashboard-label"
+                                style="align-self: center; display: flex; align-items: center; gap: 4px;">
+                                <i class="material-icons" style="font-size: 12px;">pageview</i>
+                                <span>UI</span>
+                            </div>
+                            <div class="layout-control">
+                                <button id="layoutGridBtn" class="layout-btn active" onclick="setProductLayout('grid')"
+                                    title="Grid View">
+                                    <i class="material-icons" style="font-size: 15px; display: block;">grid_view</i>
+                                </button>
+                                <button id="layoutListBtn" class="layout-btn" onclick="setProductLayout('list')"
+                                    title="Compact List View">
+                                    <i class="material-icons" style="font-size: 15px; display: block;">view_list</i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -2833,7 +3116,7 @@
                 </div>
 
                 <!-- Product List -->
-                <div class="product-list" id="productList">
+                <div class="product-list grid-layout" id="productList">
                     <!-- Product items will be loaded dynamically -->
                 </div>
             </div>
@@ -2842,10 +3125,12 @@
             <div id="storeDetailView" class="view">
                 <!-- Store Detail Navigation -->
                 <div class="store-detail-nav">
-                    <button class="back-btn" onclick="goBackToSales()">
-                        <i class="material-icons">arrow_back_ios</i>
-                        <span class="back-btn">Back</span>
-                    </button>
+                    <div class="back-btn-container">
+                        <button class="back-btn" onclick="goBackToSales()">
+                            <i class="material-icons">chevron_left</i>
+                            <span>Back</span>
+                        </button>
+                    </div>
                     <div class="store-detail-title" id="storeDetailTitle"></div>
                 </div>
 
@@ -2948,19 +3233,19 @@
 
             <!-- ===== Live Stats Strip ===== -->
             <div class="sm-stats-strip">
-    <div class="sm-stat-chip">
-        <i class="material-icons">schedule</i>
-        <span id="smLiveClock">--:--</span>
-    </div>
-    <div class="sm-stat-chip">
-        <i class="material-icons">calendar_today</i>
-        <span id="smLiveDate">---</span>
-    </div>
-    <div class="sm-stat-chip sm-airport-chip">
-        <i class="material-icons">flight</i>
-        <span>Airport</span>
-    </div>
-</div>
+                <div class="sm-stat-chip">
+                    <i class="material-icons">schedule</i>
+                    <span id="smLiveClock">--:--</span>
+                </div>
+                <div class="sm-stat-chip">
+                    <i class="material-icons">calendar_today</i>
+                    <span id="smLiveDate">---</span>
+                </div>
+                <div class="sm-stat-chip sm-airport-chip">
+                    <i class="material-icons">flight</i>
+                    <span>Airport</span>
+                </div>
+            </div>
 
             <div class="slide-menu-separator" style="margin-top:4px;"></div>
 
@@ -2994,7 +3279,7 @@
                 <div class="sm-footer-row">
                     <span>SmartProfits &copy; 2025</span>
                     <span class="sm-footer-sep">&middot;</span>
-                    <span>Build <span class="sm-build-num" >by Mark</span></span>
+                    <span>Build <span class="sm-build-num">by Mark</span></span>
                 </div>
                 <div class="sm-footer-row" style="margin-top:3px;">
                     <span style="font-size:12px;">✈️</span>
@@ -3182,7 +3467,8 @@
                 border-bottom:0.5px solid var(--ios-gray-5);
                 flex-shrink:0;
             ">
-                <div style="font-size:17px; font-weight:700; color:var(--ios-label); letter-spacing:-0.3px;">✈️ Departures (BKI)</div>
+                <div style="font-size:17px; font-weight:700; color:var(--ios-label); letter-spacing:-0.3px;">✈️
+                    Departures (BKI)</div>
                 <div style="display:flex; gap:10px;">
                     <button onclick="refreshFlightsAction()" title="Refresh Flights" style="
                         background:rgba(37, 99, 235, 0.1); border:none;
@@ -3214,12 +3500,14 @@
                 <div style="width:0.5px; background:var(--ios-gray-5); margin:8px 0;"></div>
                 <div style="flex:1; text-align:center; padding:12px 8px;">
                     <div id="statDomestic" style="font-size:22px; font-weight:800; color:#34C759;">--</div>
-                    <div style="font-size:10px; font-weight:600; color:var(--ios-gray-1); margin-top:2px;">Domestic</div>
+                    <div style="font-size:10px; font-weight:600; color:var(--ios-gray-1); margin-top:2px;">Domestic
+                    </div>
                 </div>
                 <div style="width:0.5px; background:var(--ios-gray-5); margin:8px 0;"></div>
                 <div style="flex:1; text-align:center; padding:12px 8px;">
                     <div id="statIntl" style="font-size:22px; font-weight:800; color:#007AFF;">--</div>
-                    <div style="font-size:10px; font-weight:600; color:var(--ios-gray-1); margin-top:2px;">International</div>
+                    <div style="font-size:10px; font-weight:600; color:var(--ios-gray-1); margin-top:2px;">International
+                    </div>
                 </div>
             </div>
 
@@ -3252,7 +3540,9 @@
                 -ms-overflow-style:none; scrollbar-width:none;
             ">
                 <div id="flightsList" style="display:flex; flex-direction:column; gap:0;">
-                    <div class="loading"><div class="spinner"></div>Loading flights...</div>
+                    <div class="loading">
+                        <div class="spinner"></div>Loading flights...
+                    </div>
                 </div>
             </div>
             <!-- Footer for Last Updated -->
@@ -3467,7 +3757,7 @@
             const isNight = body.classList.toggle('night-mode');
             const icon = document.getElementById('themeIcon');
             const btn = document.getElementById('themeToggleBtn');
-            
+
             if (isNight) {
                 icon.textContent = 'light_mode';
                 btn.style.color = '#F59E0B';
@@ -3510,8 +3800,8 @@
         // Sync the in-menu night toggle pill with actual theme state
         function syncNightToggle() {
             const isNight = document.body.classList.contains('night-mode');
-            const pill    = document.getElementById('smNightToggle');
-            const icon    = document.getElementById('smNightIcon');
+            const pill = document.getElementById('smNightToggle');
+            const icon = document.getElementById('smNightIcon');
             if (!pill) return;
             if (isNight) {
                 pill.classList.add('on');
@@ -3524,26 +3814,26 @@
 
         // Override toggleNightMode to also keep the in-menu pill in sync
         const _origToggle = toggleNightMode;
-        toggleNightMode = function() {
+        toggleNightMode = function () {
             _origToggle();
             syncNightToggle();
         };
 
         // ===== Live Clock & Date =====
         (function startClock() {
-            const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-            const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             function tick() {
-                const now  = new Date();
-                const raw  = now.getHours();
+                const now = new Date();
+                const raw = now.getHours();
                 const ampm = raw >= 12 ? 'PM' : 'AM';
-                const h12  = raw % 12 || 12;
-                const m    = String(now.getMinutes()).padStart(2,'0');
-                const s    = String(now.getSeconds()).padStart(2,'0');
-                const clk  = document.getElementById('smLiveClock');
-                const dt   = document.getElementById('smLiveDate');
+                const h12 = raw % 12 || 12;
+                const m = String(now.getMinutes()).padStart(2, '0');
+                const s = String(now.getSeconds()).padStart(2, '0');
+                const clk = document.getElementById('smLiveClock');
+                const dt = document.getElementById('smLiveDate');
                 if (clk) clk.innerHTML = h12 + ':' + m + ':' + s + '&thinsp;<span style="font-size:9px;font-weight:800;opacity:0.7;">' + ampm + '</span>';
-                if (dt)  dt.textContent = DAYS[now.getDay()] + ', ' + MONTHS[now.getMonth()] + ' ' + now.getDate();
+                if (dt) dt.textContent = DAYS[now.getDay()] + ', ' + MONTHS[now.getMonth()] + ' ' + now.getDate();
             }
             tick();
             setInterval(tick, 1000);
@@ -3552,8 +3842,8 @@
         // ===== Build number from current date =====
         (function setBuild() {
             const now = new Date();
-            const bn  = document.getElementById('smBuildNum');
-            if (bn) bn.textContent = now.getFullYear() + '.' + String(now.getMonth()+1).padStart(2,'0') + '.' + String(now.getDate()).padStart(2,'0');
+            const bn = document.getElementById('smBuildNum');
+            if (bn) bn.textContent = now.getFullYear() + '.' + String(now.getMonth() + 1).padStart(2, '0') + '.' + String(now.getDate()).padStart(2, '0');
         })();
 
 
@@ -3562,12 +3852,12 @@
         function versionEasterEgg(e) {
             // Coin burst from badge
             const rect = e.currentTarget.getBoundingClientRect();
-            const cx   = rect.left + rect.width / 2;
-            const cy   = rect.top  + rect.height / 2;
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
             for (let i = 0; i < 12; i++) {
-                const coin  = document.createElement('div');
+                const coin = document.createElement('div');
                 const angle = (Math.PI * 2 / 12) * i;
-                const dist  = 50 + Math.random() * 60;
+                const dist = 50 + Math.random() * 60;
                 coin.style.cssText = [
                     'position:fixed',
                     'width:10px', 'height:10px', 'border-radius:50%',
@@ -3586,12 +3876,12 @@
             if (badge) {
                 badge.style.transition = 'all 0.3s';
                 badge.style.background = 'linear-gradient(135deg,#FFD700,#FF6B6B,#A78BFA,#2DD4BF)';
-                badge.style.color      = '#fff';
-                badge.style.border     = '1px solid transparent';
+                badge.style.color = '#fff';
+                badge.style.border = '1px solid transparent';
                 setTimeout(() => {
                     badge.style.background = '';
-                    badge.style.color      = '';
-                    badge.style.border     = '';
+                    badge.style.color = '';
+                    badge.style.border = '';
                 }, 1500);
             }
             // Use existing showToast if available
