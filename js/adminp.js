@@ -1266,6 +1266,11 @@ async function loadStockData() {
         // Populate category filter after loading products
         populateCategoryFilter();
 
+        // 同步并应用布局设置
+        if (typeof window.syncProductLayout === 'function') {
+            window.syncProductLayout();
+        }
+
         filterProducts();
     } catch (error) {
         console.error('Failed to load stock data:', error);
@@ -2567,4 +2572,60 @@ window.refreshFlightsAction = async function () {
     } finally {
         if (btn) btn.style.opacity = '1';
     }
-}
+};
+
+// ==========================================
+// 🚀 Product Stock Layout Selector
+// ==========================================
+window.productLayout = localStorage.getItem('productLayout') || 'grid';
+
+window.setProductLayout = function (layout) {
+    window.productLayout = layout;
+    localStorage.setItem('productLayout', layout);
+    
+    const gridBtn = document.getElementById('layoutGridBtn');
+    const listBtn = document.getElementById('layoutListBtn');
+    const productList = document.getElementById('productList');
+    
+    if (!productList) return;
+    
+    if (layout === 'grid') {
+        gridBtn?.classList.add('active');
+        listBtn?.classList.remove('active');
+        productList.classList.add('grid-layout');
+        productList.classList.remove('list-layout');
+    } else {
+        gridBtn?.classList.remove('active');
+        listBtn?.classList.add('active');
+        productList.classList.add('list-layout');
+        productList.classList.remove('grid-layout');
+    }
+    
+    if (typeof hapticFeedback === 'function') hapticFeedback();
+    
+    // Re-filter products to ensure correct render
+    filterProducts();
+};
+
+window.syncProductLayout = function () {
+    const layout = localStorage.getItem('productLayout') || 'grid';
+    window.productLayout = layout;
+    
+    const gridBtn = document.getElementById('layoutGridBtn');
+    const listBtn = document.getElementById('layoutListBtn');
+    const productList = document.getElementById('productList');
+    
+    if (!productList) return;
+    
+    if (layout === 'grid') {
+        gridBtn?.classList.add('active');
+        listBtn?.classList.remove('active');
+        productList.classList.add('grid-layout');
+        productList.classList.remove('list-layout');
+    } else {
+        gridBtn?.classList.remove('active');
+        listBtn?.classList.add('active');
+        productList.classList.add('list-layout');
+        productList.classList.remove('grid-layout');
+    }
+};
