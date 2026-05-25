@@ -3752,6 +3752,27 @@
 
         })();
 
+        // Dynamic Mobile Status/Title Bar Color Controller
+        function updateMetaThemeColor(isNight) {
+            let meta = document.querySelector('meta[name="theme-color"]');
+            if (!meta) {
+                meta = document.createElement('meta');
+                meta.setAttribute('name', 'theme-color');
+                document.head.appendChild(meta);
+            }
+            // 明亮模式用纯白，暗黑模式用深黑蓝，完美贴合界面，绝不突兀
+            meta.setAttribute('content', isNight ? '#0F172A' : '#FFFFFF');
+            
+            let iosMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+            if (!iosMeta) {
+                iosMeta = document.createElement('meta');
+                iosMeta.setAttribute('name', 'apple-mobile-web-app-status-bar-style');
+                document.head.appendChild(iosMeta);
+            }
+            // iOS standalone 模式下：明亮模式采用系统默认（白色底黑色字），暗黑模式采用黑色背景（黑色底白色字）
+            iosMeta.setAttribute('content', isNight ? 'black' : 'default');
+        }
+
         // Theme Toggle Logic
         function toggleNightMode() {
             const body = document.body;
@@ -3770,13 +3791,18 @@
                 btn.style.background = 'rgba(37, 99, 235, 0.1)';
                 localStorage.setItem('theme', 'light');
             }
+            
+            // 实时同步更新顶部状态栏颜色
+            updateMetaThemeColor(isNight);
         }
 
         // Initialize Theme from localStorage
         (function initTheme() {
             const savedTheme = localStorage.getItem('theme');
+            let isNight = false;
             if (savedTheme === 'dark') {
                 document.body.classList.add('night-mode');
+                isNight = true;
                 const icon = document.getElementById('themeIcon');
                 const btn = document.getElementById('themeToggleBtn');
                 if (icon && btn) {
@@ -3785,6 +3811,8 @@
                     btn.style.background = 'rgba(245, 158, 11, 0.15)';
                 }
             }
+            // 页面加载时自动应用对应的主题状态栏色值
+            updateMetaThemeColor(isNight);
         })();
 
         // ===== Slide-up Menu =====
