@@ -5487,4 +5487,371 @@ document.addEventListener('DOMContentLoaded', function () {
     setupPendingTransfersListener();
     initDarkMode();
     initVirtualKeyboard();
+    
+    // Add Bulk Stock Transfer listeners
+    const stockTransferBtn = document.getElementById('stockTransferBtn');
+    const closeStockTransferModalBtn = document.getElementById('closeStockTransferModalBtn');
+    const cancelBulkTransferBtn = document.getElementById('cancelBulkTransferBtn');
+    const submitBulkTransferBtn = document.getElementById('submitBulkTransferBtn');
+    const bulkTransferSearch = document.getElementById('bulkTransferSearch');
+    const bulkTransferCategory = document.getElementById('bulkTransferCategory');
+
+    if (stockTransferBtn) {
+        stockTransferBtn.addEventListener('click', openBulkTransferModal);
+    }
+    if (closeStockTransferModalBtn) {
+        closeStockTransferModalBtn.addEventListener('click', closeBulkTransferModal);
+    }
+    if (cancelBulkTransferBtn) {
+        cancelBulkTransferBtn.addEventListener('click', closeBulkTransferModal);
+    }
+    const bulkTransferStoreSelect = document.getElementById('bulkTransferStoreSelect');
+    if (bulkTransferStoreSelect) {
+        bulkTransferStoreSelect.addEventListener('change', () => {
+            renderBulkTransferProducts();
+        });
+    }
+    if (submitBulkTransferBtn) {
+        submitBulkTransferBtn.addEventListener('click', submitBulkTransfer);
+    }
+    if (bulkTransferSearch) {
+        bulkTransferSearch.addEventListener('input', filterBulkTransferProducts);
+    }
+    if (bulkTransferCategory) {
+        bulkTransferCategory.addEventListener('change', filterBulkTransferProducts);
+    }
+
+    // Add Bulk Transfer Confirmation Modal listeners
+    const closeBulkTransferConfirmModalBtn = document.getElementById('closeBulkTransferConfirmModalBtn');
+    const cancelBulkTransferConfirmBtn = document.getElementById('cancelBulkTransferConfirmBtn');
+    const bulkTransferConfirmModal = document.getElementById('bulkTransferConfirmModal');
+
+    if (closeBulkTransferConfirmModalBtn) {
+        closeBulkTransferConfirmModalBtn.addEventListener('click', () => {
+            if (bulkTransferConfirmModal) bulkTransferConfirmModal.style.display = 'none';
+        });
+    }
+    if (cancelBulkTransferConfirmBtn) {
+        cancelBulkTransferConfirmBtn.addEventListener('click', () => {
+            if (bulkTransferConfirmModal) bulkTransferConfirmModal.style.display = 'none';
+        });
+    }
 });
+
+// Bulk Stock Transfer Global Variables
+let bulkTransferQuantities = {};
+
+function openBulkTransferModal() {
+    const stockTransferModal = document.getElementById('stockTransferModal');
+    const transferOwnStoreDisplay = document.getElementById('transferOwnStoreDisplay');
+    const bulkTransferStoreSelect = document.getElementById('bulkTransferStoreSelect');
+    const bulkTransferCategory = document.getElementById('bulkTransferCategory');
+    const bulkTransferSearch = document.getElementById('bulkTransferSearch');
+
+    if (stockTransferModal) {
+        stockTransferModal.style.display = 'block';
+    }
+
+    bulkTransferQuantities = {}; // Clear quantities on open
+
+    const userStoreId = localStorage.getItem('store_id');
+    if (transferOwnStoreDisplay) {
+        transferOwnStoreDisplay.innerHTML = `<i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">store</i>Own Store: ${userStoreId}`;
+    }
+
+    getAllStores().then(stores => {
+        const sourceStoreName = stores[userStoreId]?.name || userStoreId;
+        if (transferOwnStoreDisplay) {
+            transferOwnStoreDisplay.innerHTML = `<i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">store</i>Own Store: <strong>${sourceStoreName}</strong>`;
+        }
+
+        if (bulkTransferStoreSelect) {
+            bulkTransferStoreSelect.innerHTML = '<option value="">Select target store...</option>';
+            Object.entries(stores).forEach(([storeId, store]) => {
+                if (storeId !== userStoreId) {
+                    const option = document.createElement('option');
+                    option.value = storeId;
+                    option.textContent = store.name || storeId;
+                    bulkTransferStoreSelect.appendChild(option);
+                }
+            });
+        }
+    }).catch(error => {
+        console.error('Failed to load stores for transfer:', error);
+    });
+
+    if (bulkTransferCategory) {
+        bulkTransferCategory.innerHTML = '<option value="all">All Categories</option>';
+        const cats = [];
+        Object.values(products).forEach(p => {
+            if (p.category && !cats.includes(p.category)) {
+                cats.push(p.category);
+                const option = document.createElement('option');
+                option.value = p.category;
+                option.textContent = p.category;
+                bulkTransferCategory.appendChild(option);
+            }
+        });
+    }
+
+    if (bulkTransferSearch) bulkTransferSearch.value = '';
+    if (bulkTransferStoreSelect) bulkTransferStoreSelect.value = '';
+
+    renderBulkTransferProducts();
+}
+
+function closeBulkTransferModal() {
+    const stockTransferModal = document.getElementById('stockTransferModal');
+    if (stockTransferModal) {
+        stockTransferModal.style.display = 'none';
+    }
+    bulkTransferQuantities = {};
+}
+
+function filterBulkTransferProducts() {
+    renderBulkTransferProducts();
+}
+
+function renderBulkTransferProducts() {
+    const bulkTransferTableBody = document.getElementById('bulkTransferTableBody');
+    const bulkTransferSearch = document.getElementById('bulkTransferSearch');
+    const bulkTransferCategory = document.getElementById('bulkTransferCategory');
+    const bulkTransferStoreSelect = document.getElementById('bulkTransferStoreSelect');
+
+    if (!bulkTransferTableBody) return;
+
+    const targetStoreId = bulkTransferStoreSelect ? bulkTransferStoreSelect.value : '';
+    const isStoreSelected = targetStoreId !== '';
+
+    // Enable/Disable submit button based on store selection
+    const submitBulkTransferBtn = document.getElementById('submitBulkTransferBtn');
+    if (submitBulkTransferBtn) {
+        if (!isStoreSelected) {
+            submitBulkTransferBtn.disabled = true;
+            submitBulkTransferBtn.style.opacity = '0.5';
+            submitBulkTransferBtn.style.cursor = 'not-allowed';
+            submitBulkTransferBtn.title = 'Please select a target store first';
+        } else {
+            submitBulkTransferBtn.disabled = false;
+            submitBulkTransferBtn.style.opacity = '1';
+            submitBulkTransferBtn.style.cursor = 'pointer';
+            submitBulkTransferBtn.title = '';
+        }
+    }
+
+    const searchTerm = bulkTransferSearch ? bulkTransferSearch.value.trim().toLowerCase() : '';
+    const selectedCategory = bulkTransferCategory ? bulkTransferCategory.value : 'all';
+
+    bulkTransferTableBody.innerHTML = '';
+
+    const filtered = Object.entries(products).filter(([productId, product]) => {
+        if (searchTerm && !product.name.toLowerCase().includes(searchTerm) &&
+            !productId.toLowerCase().includes(searchTerm) &&
+            !(product.category && product.category.toLowerCase().includes(searchTerm))) {
+            return false;
+        }
+        if (selectedCategory !== 'all' && product.category !== selectedCategory) {
+            return false;
+        }
+        return true;
+    });
+
+    if (filtered.length === 0) {
+        bulkTransferTableBody.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 20px;">
+                    <div class="no-data" style="color: #7f8c8d; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="material-icons">info</i> No products found
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    filtered.sort((a, b) => a[1].name.localeCompare(b[1].name));
+
+    filtered.forEach(([productId, product]) => {
+        const stock = product.stock !== undefined ? product.stock : (product.quantity || 0);
+        const qtyValue = bulkTransferQuantities[productId] !== undefined ? bulkTransferQuantities[productId] : '';
+        const price = parseFloat(product.price) || 0;
+        const isWeight = product.saleUnit === 'weight';
+        const displayStock = isWeight ? parseFloat(stock).toFixed(3) : stock;
+        const step = isWeight ? '0.001' : '1';
+        const unit = isWeight ? 'kg' : 'pcs';
+
+        const disabledAttr = !isStoreSelected ? 'disabled' : '';
+        const disabledStyle = !isStoreSelected ? 'opacity: 0.5; cursor: not-allowed; background-color: rgba(0,0,0,0.05);' : '';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><code>${productId}</code></td>
+            <td><strong>${product.name}</strong></td>
+            <td><span class="category-badge" style="background: rgba(155, 89, 182, 0.1); color: #9b59b6; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">${product.category || '-'}</span></td>
+            <td>RM${price.toFixed(2)}</td>
+            <td><span style="font-weight: 600; color: ${stock <= 0 ? '#ef4444' : (stock < 5 ? '#f59e0b' : '#10b981')}">${displayStock} ${unit}</span></td>
+            <td style="text-align: center;">
+                <div style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
+                    <input type="number" 
+                           class="transfer-qty-input" 
+                           data-product-id="${productId}" 
+                           value="${qtyValue}" 
+                           min="0" 
+                           step="${step}" 
+                           placeholder="0"
+                           ${disabledAttr}
+                           style="width: 90px; ${disabledStyle}"
+                    >
+                    <span style="font-size: 13px; color: #7f8c8d; width: 24px; text-align: left; ${!isStoreSelected ? 'opacity: 0.5;' : ''}">${unit}</span>
+                </div>
+            </td>
+        `;
+
+        const input = tr.querySelector('.transfer-qty-input');
+        input.addEventListener('input', (e) => {
+            const val = e.target.value;
+            const parsedVal = parseFloat(val);
+
+            if (val === '' || isNaN(parsedVal) || parsedVal <= 0) {
+                delete bulkTransferQuantities[productId];
+                input.classList.remove('invalid-qty');
+            } else if (parsedVal > stock) {
+                bulkTransferQuantities[productId] = parsedVal;
+                input.classList.add('invalid-qty');
+            } else {
+                bulkTransferQuantities[productId] = parsedVal;
+                input.classList.remove('invalid-qty');
+            }
+        });
+
+        bulkTransferTableBody.appendChild(tr);
+    });
+}
+
+async function submitBulkTransfer() {
+    const bulkTransferStoreSelect = document.getElementById('bulkTransferStoreSelect');
+
+    const targetStoreId = bulkTransferStoreSelect ? bulkTransferStoreSelect.value : '';
+    const notes = ''; // Notes field removed from UI
+
+    if (!targetStoreId) {
+        alert('Please select a store to transfer to');
+        return;
+    }
+
+    const transferItems = [];
+    let hasValidationError = false;
+
+    for (const [productId, qty] of Object.entries(bulkTransferQuantities)) {
+        if (qty <= 0) continue;
+
+        const product = products[productId];
+        if (!product) continue;
+
+        const stock = product.stock !== undefined ? product.stock : (product.quantity || 0);
+
+        if (qty > stock) {
+            alert(`Error: Transfer quantity for "${product.name}" (${qty}) exceeds available stock (${stock}).`);
+            hasValidationError = true;
+            break;
+        }
+
+        transferItems.push({
+            productId: productId,
+            quantity: qty,
+            product: product
+        });
+    }
+
+    if (hasValidationError) return;
+
+    if (transferItems.length === 0) {
+        alert('Please enter a transfer quantity greater than 0 for at least one product.');
+        return;
+    }
+
+    // Open confirmation checklist instead of simple alert dialog
+    showBulkTransferConfirmModal(transferItems, targetStoreId, notes);
+}
+
+function showBulkTransferConfirmModal(transferItems, targetStoreId, notes) {
+    const bulkTransferConfirmModal = document.getElementById('bulkTransferConfirmModal');
+    const confirmTransferFromStore = document.getElementById('confirmTransferFromStore');
+    const confirmTransferToStore = document.getElementById('confirmTransferToStore');
+    const bulkTransferConfirmTableBody = document.getElementById('bulkTransferConfirmTableBody');
+    const confirmBulkTransferFinalBtn = document.getElementById('confirmBulkTransferFinalBtn');
+
+    if (!bulkTransferConfirmModal) return;
+
+    // Show modal
+    bulkTransferConfirmModal.style.display = 'block';
+
+    // Populate stores info
+    const userStoreId = localStorage.getItem('store_id');
+    confirmTransferFromStore.textContent = 'Loading...';
+    confirmTransferToStore.textContent = 'Loading...';
+
+    getAllStores().then(stores => {
+        const sourceName = stores[userStoreId]?.name || userStoreId;
+        const targetName = stores[targetStoreId]?.name || targetStoreId;
+        confirmTransferFromStore.textContent = sourceName;
+        confirmTransferToStore.textContent = targetName;
+    }).catch(err => {
+        confirmTransferFromStore.textContent = userStoreId;
+        confirmTransferToStore.textContent = targetStoreId;
+    });
+
+    // Populate table summary
+    if (bulkTransferConfirmTableBody) {
+        bulkTransferConfirmTableBody.innerHTML = '';
+        transferItems.forEach(item => {
+            const isWeight = item.product.saleUnit === 'weight';
+            const displayQty = isWeight ? parseFloat(item.quantity).toFixed(3) : item.quantity;
+            const unit = isWeight ? 'kg' : 'pcs';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="padding: 10px; border-bottom: 1px solid rgba(0,0,0,0.05);"><code>${item.productId}</code></td>
+                <td style="padding: 10px; border-bottom: 1px solid rgba(0,0,0,0.05);"><strong>${item.product.name}</strong></td>
+                <td style="padding: 10px; border-bottom: 1px solid rgba(0,0,0,0.05); text-align: center; font-weight: 600; color: #9b59b6;">${displayQty} ${unit}</td>
+            `;
+            bulkTransferConfirmTableBody.appendChild(tr);
+        });
+    }
+
+    // Set up final submit action (re-create to remove old event listeners)
+    const newFinalBtn = confirmBulkTransferFinalBtn.cloneNode(true);
+    confirmBulkTransferFinalBtn.parentNode.replaceChild(newFinalBtn, confirmBulkTransferFinalBtn);
+
+    newFinalBtn.addEventListener('click', async () => {
+        const originalBtnText = newFinalBtn.innerHTML;
+        newFinalBtn.disabled = true;
+        newFinalBtn.innerHTML = '<i class="material-icons">hourglass_empty</i> Processing...';
+
+        try {
+            const stores = await getAllStores();
+            const targetStore = stores[targetStoreId];
+            const targetStoreName = targetStore ? targetStore.name : targetStoreId;
+            const reason = `Bulk Stock Transfer to ${targetStoreName}`;
+
+            const promises = transferItems.map(item => {
+                return createPendingTransferRequest(userStoreId, targetStoreId, item.productId, item.quantity, reason, notes, item.product);
+            });
+
+            await Promise.all(promises);
+
+            alert(`Successfully created transfer requests for ${transferItems.length} items! The target store will receive a notification.`);
+            
+            // Close both modals
+            bulkTransferConfirmModal.style.display = 'none';
+            closeBulkTransferModal();
+            loadInventory();
+        } catch (error) {
+            console.error('Failed to execute bulk transfer:', error);
+            alert('Failed to process bulk stock transfer. Please try again.');
+        } finally {
+            newFinalBtn.disabled = false;
+            newFinalBtn.innerHTML = originalBtnText;
+        }
+    });
+}

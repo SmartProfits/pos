@@ -3508,56 +3508,271 @@ let currentSalesData = {}; // 存储原始销售数据
 let summaryChart = null; // Chart.js 实例
 let currentViewMode = 'table'; // 当前视图模式
 
-// 显示销售汇总
-function showSalesSummary() {
-    const date = dateFilter.value || selectedDate;
-    const storeId = selectedStoreId;
+// 获取两个日期之间的所有日期
+function getDatesInRange(startDateStr, endDateStr) {
+    const dates = [];
+    let curr = new Date(startDateStr);
+    let end = new Date(endDateStr);
     
-    // 显示模态框
-    showModal(salesSummaryModal);
+    // 如果日期大小写反了，自动调换
+    if (curr > end) {
+        const temp = curr;
+        curr = end;
+        end = temp;
+    }
     
-    // 显示加载状态
+    while (curr <= end) {
+        const y = curr.getFullYear();
+        const month = String(curr.getMonth() + 1).padStart(2, '0');
+        const day = String(curr.getDate()).padStart(2, '0');
+        dates.push(`${y}-${month}-${day}`);
+        curr.setDate(curr.getDate() + 1);
+    }
+    return dates;
+}
+
+// 获取特定店铺在日期范围内的所有销售明细
+function getStoreSaleDetailsForRange(storeId, startDateStr, endDateStr) {
+    const dates = getDatesInRange(startDateStr, endDateStr);
+    const promises = dates.map(date => getStoreSaleDetails(storeId, date));
+    return Promise.all(promises).then(results => {
+        let allSales = {};
+        results.forEach(daySales => {
+            if (daySales) {
+                allSales = { ...allSales, ...daySales };
+            }
+        });
+        return allSales;
+    });
+}
+
+// 并发加载所有店铺在日期范围内的销售数据
+function loadAllStoresSalesForSummaryRange(startDateStr, endDateStr) {
+    return getAllStores().then(storeList => {
+        const storeIds = Object.keys(storeList);
+        const dates = getDatesInRange(startDateStr, endDateStr);
+        const promises = [];
+        
+        storeIds.forEach(storeId => {
+            dates.forEach(date => {
+                const datePath = getDatePathFromString(date);
+                promises.push(
+                    database.ref(`sales/${storeId}/${datePath.path}`).once('value')
+                        .then(snapshot => {
+                            const sales = snapshot.val() || {};
+                            const salesWithStoreId = {};
+                            Object.keys(sales).forEach(saleId => {
+                                if (sales[saleId]) {
+                                    salesWithStoreId[saleId] = {
+                                        ...sales[saleId],
+                                        store_id: sales[saleId].store_id || storeId
+                                    };
+                                }
+                            });
+                            return salesWithStoreId;
+                        })
+                );
+            });
+        });
+        
+        return Promise.all(promises).then(results => {
+            let allSales = {};
+            results.forEach(storeDaySales => {
+                if (storeDaySales) {
+                    allSales = { ...allSales, ...storeDaySales };
+                }
+            });
+            return allSales;
+        });
+    });
+}
+
+// 动态载入店铺列表至销售总结弹窗
+// Update the dropdown trigger button label to reflect current selection
+function updateStoreDropdownLabel() {
+    const label = document.getElementById('storeDropdownLabel');
+    if (!label) return;
+    const allCb = document.getElementById('summaryStoreAll');
+    if (allCb && allCb.checked) {
+        label.textContent = 'All Stores';
+        return;
+    }
+    const checked = document.querySelectorAll('#summaryStoreCheckboxList .store-checkbox-individual:checked');
+    if (checked.length === 0) {
+        label.textContent = 'None selected';
+    } else if (checked.length === 1) {
+        label.textContent = checked[0].parentElement.querySelector('.store-checkbox-label').textContent;
+    } else {
+        label.textContent = `${checked.length} stores`;
+    }
+}
+
+// Populate store multi-select checkbox list
+function populateSummaryStoreCheckboxes() {
+    const list = document.getElementById('summaryStoreCheckboxList');
+    const allCheckbox = document.getElementById('summaryStoreAll');
+    const trigger = document.getElementById('storeDropdownTrigger');
+    const popup = document.getElementById('storeDropdownPopup');
+    if (!list) return;
+    
+    list.innerHTML = '';
+    
+    Object.keys(stores).forEach(storeId => {
+        const label = document.createElement('label');
+        label.className = 'store-checkbox-item';
+        
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = storeId;
+        cb.className = 'store-checkbox-individual';
+        cb.checked = true;
+        
+        const span = document.createElement('span');
+        span.className = 'store-checkbox-label';
+        span.textContent = stores[storeId].name || storeId;
+        
+        label.appendChild(cb);
+        label.appendChild(span);
+        list.appendChild(label);
+        
+        cb.addEventListener('change', () => {
+            const allCbs = list.querySelectorAll('.store-checkbox-individual');
+            const checkedCbs = list.querySelectorAll('.store-checkbox-individual:checked');
+            if (allCheckbox) {
+                allCheckbox.checked = checkedCbs.length === allCbs.length;
+                allCheckbox.indeterminate = checkedCbs.length > 0 && checkedCbs.length < allCbs.length;
+            }
+            updateStoreDropdownLabel();
+        });
+    });
+    
+    // "All Stores" master checkbox
+    if (allCheckbox) {
+        const newAllCb = allCheckbox.cloneNode(true);
+        allCheckbox.parentNode.replaceChild(newAllCb, allCheckbox);
+        newAllCb.addEventListener('change', () => {
+            list.querySelectorAll('.store-checkbox-individual').forEach(cb => {
+                cb.checked = newAllCb.checked;
+            });
+            updateStoreDropdownLabel();
+        });
+    }
+    
+    // Wire up the dropdown trigger button (only once)
+    if (trigger && popup && !trigger.dataset.wired) {
+        trigger.dataset.wired = '1';
+        
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = popup.classList.toggle('open');
+            trigger.classList.toggle('open', isOpen);
+        });
+        
+        // Close when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!trigger.contains(e.target) && !popup.contains(e.target)) {
+                popup.classList.remove('open');
+                trigger.classList.remove('open');
+            }
+        });
+    }
+    
+    updateStoreDropdownLabel();
+}
+
+
+// Get array of selected store IDs from checkboxes (empty array = all stores)
+function getSelectedSummaryStores() {
+    const allCheckbox = document.getElementById('summaryStoreAll');
+    if (allCheckbox && allCheckbox.checked) {
+        return []; // means "all"
+    }
+    const checked = document.querySelectorAll('#summaryStoreCheckboxList .store-checkbox-individual:checked');
+    return Array.from(checked).map(cb => cb.value);
+}
+
+// Refresh and reload sales summary data
+function refreshSalesSummary() {
+    const startDate = document.getElementById('summaryStartDate').value;
+    const endDate = document.getElementById('summaryEndDate').value;
+    const selectedStores = getSelectedSummaryStores(); // [] = all, [id,...] = specific
+    
+    if (!startDate || !endDate) {
+        alert('Please select a complete date range!');
+        return;
+    }
+    
     showSummaryLoadingState(true);
     
-    // 获取销售数据
     let salesPromise;
-    if (storeId === 'all') {
-        // 对于所有店铺，我们需要获取所有店铺的销售数据
-        salesPromise = loadAllStoresSalesForSummary(date);
+    if (selectedStores.length === 0) {
+        // All stores
+        salesPromise = loadAllStoresSalesForSummaryRange(startDate, endDate);
+    } else if (selectedStores.length === 1) {
+        salesPromise = getStoreSaleDetailsForRange(selectedStores[0], startDate, endDate);
     } else {
-        salesPromise = getStoreSaleDetails(storeId, date);
+        // Multiple specific stores — run in parallel and merge
+        const promises = selectedStores.map(sid => getStoreSaleDetailsForRange(sid, startDate, endDate));
+        salesPromise = Promise.all(promises).then(results => {
+            let merged = {};
+            results.forEach(r => { if (r) merged = { ...merged, ...r }; });
+            return merged;
+        });
     }
     
     salesPromise
         .then(sales => {
-            console.log('Sales data loaded for summary:', sales);
+            console.log('Sales data loaded for summary range:', sales);
             
-            // 如果没有真实数据，生成示例数据用于演示
-            if (Object.keys(sales).length === 0 && storeId === 'all') {
-                console.log('No real sales data found, generating sample data for demonstration');
-                sales = generateSampleSalesData();
+            if (Object.keys(sales).length === 0) {
+                console.log('No real sales data found, showing sample data');
+                sales = generateSampleSalesDataChinese(startDate, endDate);
+                
+                const existingTip = document.getElementById('sample-data-tip');
+                if (existingTip) existingTip.remove();
+                
+                const tipContainer = document.createElement('div');
+                tipContainer.id = 'sample-data-tip';
+                tipContainer.style = 'background:#fffbeb;border-left:4px solid #d97706;color:#b45309;padding:10px 18px;font-size:13px;font-weight:500;border-radius:8px;margin:12px 24px 0';
+                tipContainer.innerHTML = '💡 No real sales data found for this range — showing sample data for demonstration.';
+                
+                const scrollable = document.querySelector('.sales-summary-scrollable');
+                if (scrollable) scrollable.insertBefore(tipContainer, scrollable.querySelector('.summary-content-area'));
+            } else {
+                const existingTip = document.getElementById('sample-data-tip');
+                if (existingTip) existingTip.remove();
             }
             
             currentSalesData = sales;
-            // 生成销售汇总
             generateSalesSummary(sales);
             showSummaryLoadingState(false);
         })
         .catch(error => {
-            console.error('Failed to load sales data for summary:', error);
+            console.error('Failed to load sales data for summary range:', error);
+            const sampleSales = generateSampleSalesDataChinese(startDate, endDate);
+            currentSalesData = sampleSales;
+            generateSalesSummary(sampleSales);
             showSummaryLoadingState(false);
-            
-            // 如果加载失败且是All Stores，显示示例数据
-            if (storeId === 'all') {
-                console.log('Loading failed, showing sample data for All Stores');
-                const sampleSales = generateSampleSalesData();
-                currentSalesData = sampleSales;
-                generateSalesSummary(sampleSales);
-                showSummaryLoadingState(false);
-            } else {
-                showSummaryError('加载销售汇总数据失败');
-            }
         });
+}
+
+// Show the Sales Summary modal
+function showSalesSummary() {
+    const date = dateFilter.value || selectedDate || getCurrentDate();
+    
+    showModal(salesSummaryModal);
+    
+    // Sync dashboard date to modal date pickers
+    const startDateInput = document.getElementById('summaryStartDate');
+    const endDateInput = document.getElementById('summaryEndDate');
+    if (startDateInput) startDateInput.value = date;
+    if (endDateInput) endDateInput.value = date;
+    
+    // Build store checkboxes from global stores object
+    populateSummaryStoreCheckboxes();
+    
+    // Load data
+    refreshSalesSummary();
 }
 
 // 显示/隐藏加载状态
@@ -3619,6 +3834,9 @@ function generateSalesSummary(sales) {
         return;
     }
     
+    // Check group by preference
+    const groupBy = document.getElementById('summaryGroupBy')?.value || 'id';
+    
     // 按产品汇总销售数据
     const productSummary = {};
     const categories = new Set();
@@ -3630,44 +3848,63 @@ function generateSalesSummary(sales) {
         // 处理每个销售项目
         sale.items.forEach(item => {
             const productId = item.id;
-            const productName = item.name;
+            const productName = item.name || 'Unnamed Product';
             const quantity = item.quantity || 0;
             const unitPrice = item.price || 0;
             const subtotal = item.subtotal || (quantity * unitPrice);
             const category = item.category && item.category.trim() !== '' ? item.category : 'Uncategorized';
             
-            // 如果产品ID为空，则跳过
-            if (!productId) return;
+            // Determine the grouping key
+            const groupByKey = groupBy === 'name' ? productName.trim() : productId;
+            if (!groupByKey) return;
             
             categories.add(category);
             
             // 如果产品尚未在汇总中，初始化它
-            if (!productSummary[productId]) {
-                productSummary[productId] = {
-                    id: productId,
+            if (!productSummary[groupByKey]) {
+                productSummary[groupByKey] = {
+                    id: productId, // temporary placeholder, resolved later if grouping by name
                     name: productName,
                     category: category,
                     totalQuantity: 0,
                     totalRevenue: 0,
                     unitPrice: unitPrice,
-                    saleCount: 0
+                    saleCount: 0,
+                    ids: new Set() // track distinct product IDs grouped under this key
                 };
             }
             
+            if (productId) {
+                productSummary[groupByKey].ids.add(productId);
+            }
+            
             // 累加数量和收入
-            productSummary[productId].totalQuantity += quantity;
-            productSummary[productId].totalRevenue += subtotal;
-            productSummary[productId].saleCount += 1;
+            productSummary[groupByKey].totalQuantity += quantity;
+            productSummary[groupByKey].totalRevenue += subtotal;
+            productSummary[groupByKey].saleCount += 1;
             
             // 更新价格为最新价格
-            if (productSummary[productId].unitPrice !== unitPrice) {
-                productSummary[productId].unitPrice = unitPrice;
+            if (productSummary[groupByKey].unitPrice !== unitPrice) {
+                productSummary[groupByKey].unitPrice = unitPrice;
             }
         });
     });
     
-    // 转换为数组以便排序
-    currentSalesSummary = Object.values(productSummary);
+    // 转换为数组以便排序，并处理Product ID显示逻辑
+    currentSalesSummary = Object.values(productSummary).map(item => {
+        if (groupBy === 'name') {
+            const idArray = Array.from(item.ids);
+            if (idArray.length === 0) {
+                item.id = '-';
+            } else if (idArray.length === 1) {
+                item.id = idArray[0];
+            } else {
+                item.id = `Multiple (${idArray.length})`;
+            }
+        }
+        delete item.ids;
+        return item;
+    });
     
     // 更新分类选择器
     updateCategoryFilter(Array.from(categories));
@@ -3891,6 +4128,22 @@ function renderChart(canvas, data, chartType) {
     
     let chartConfig = {};
     
+    // 极具现代美感的高饱和配色调色板
+    const barColors = [
+        'rgba(59, 130, 246, 0.85)', // 宝蓝色
+        'rgba(16, 185, 129, 0.85)', // 翠绿色
+        'rgba(245, 158, 11, 0.85)', // 琥珀黄
+        'rgba(239, 68, 68, 0.85)',  // 珊瑚红
+        'rgba(139, 92, 246, 0.85)', // 罗兰紫
+        'rgba(236, 72, 153, 0.85)', // 玫瑰粉
+        'rgba(6, 182, 212, 0.85)',  // 青黛色
+        'rgba(100, 116, 139, 0.85)',// 黛灰色
+        'rgba(20, 184, 166, 0.85)', // 蓝绿色
+        'rgba(120, 113, 108, 0.85)' // 褐色
+    ];
+    
+    const barBorders = barColors.map(color => color.replace('0.85', '1'));
+    
     switch (chartType) {
         case 'bar':
             chartConfig = {
@@ -3898,19 +4151,33 @@ function renderChart(canvas, data, chartType) {
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: '销售数量',
+                        label: '销售数量 (件)',
                         data: quantities,
-                        backgroundColor: 'rgba(54, 162, 235, 0.8)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
+                        backgroundColor: barColors,
+                        borderColor: barBorders,
+                        borderWidth: 1.5,
+                        borderRadius: 6 // 精致柱状图圆角
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
                     scales: {
                         y: {
-                            beginAtZero: true
+                            beginAtZero: true,
+                            grid: {
+                                color: '#f1f5f9'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
                         }
                     }
                 }
@@ -3924,11 +4191,8 @@ function renderChart(canvas, data, chartType) {
                     labels: labels,
                     datasets: [{
                         data: revenues,
-                        backgroundColor: [
-                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
-                            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
-                            '#4BC0C0', '#FF6384'
-                        ]
+                        backgroundColor: barColors.slice(0, Math.min(data.length, barColors.length)),
+                        borderWidth: 1.5
                     }]
                 },
                 options: {
@@ -3936,7 +4200,13 @@ function renderChart(canvas, data, chartType) {
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            position: 'right'
+                            position: 'right',
+                            labels: {
+                                boxWidth: 12,
+                                font: {
+                                    size: 11
+                                }
+                            }
                         }
                     }
                 }
@@ -3949,11 +4219,14 @@ function renderChart(canvas, data, chartType) {
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: '销售收入',
+                        label: '销售额 (RM)',
                         data: revenues,
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        tension: 0.1
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                        pointRadius: 4
                     }]
                 },
                 options: {
@@ -3961,7 +4234,15 @@ function renderChart(canvas, data, chartType) {
                     maintainAspectRatio: false,
                     scales: {
                         y: {
-                            beginAtZero: true
+                            beginAtZero: true,
+                            grid: {
+                                color: '#f1f5f9'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
                         }
                     }
                 }
@@ -3972,79 +4253,78 @@ function renderChart(canvas, data, chartType) {
     summaryChart = new Chart(ctx, chartConfig);
 }
 
-// 初始化销售汇总事件监听器
+// Initialize sales summary event listeners
 function initSalesSummaryEventListeners() {
-    // 视图模式切换按钮
-    document.querySelectorAll('.view-mode-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            // 更新按钮状态
-            document.querySelectorAll('.view-mode-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            // 切换视图模式
-            currentViewMode = btn.dataset.mode;
-            switchSummaryView(currentViewMode);
-        });
-    });
+    // Date range inputs — validate and reload on change
+    const summaryStartDateInput = document.getElementById('summaryStartDate');
+    const summaryEndDateInput = document.getElementById('summaryEndDate');
     
-    // 排序选择变化
-    const sortSelect = document.getElementById('summarySortBy');
-    if (sortSelect) {
-        sortSelect.addEventListener('change', () => {
-            updateSummaryStats();
-            renderCurrentView();
+    if (summaryStartDateInput) {
+        summaryStartDateInput.addEventListener('change', () => {
+            if (summaryEndDateInput.value && summaryEndDateInput.value < summaryStartDateInput.value) {
+                summaryEndDateInput.value = summaryStartDateInput.value;
+            }
         });
     }
     
-    // 筛选条件变化
+    if (summaryEndDateInput) {
+        summaryEndDateInput.addEventListener('change', () => {
+            if (summaryStartDateInput.value && summaryStartDateInput.value > summaryEndDateInput.value) {
+                summaryStartDateInput.value = summaryEndDateInput.value;
+            }
+        });
+    }
+
+    // Apply / Query button
+    const applyFiltersBtn = document.getElementById('summaryApplyFiltersBtn');
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', () => {
+            refreshSalesSummary();
+        });
+    }
+
+    
+    // Sort
+    const sortSelect = document.getElementById('summarySortBy');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', () => renderCurrentView());
+    }
+    
+    // Group By
+    const groupBySelect = document.getElementById('summaryGroupBy');
+    if (groupBySelect) {
+        groupBySelect.addEventListener('change', () => {
+            if (currentSalesData) {
+                generateSalesSummary(currentSalesData);
+            }
+        });
+    }
+
+    
+    // Filters
     const categorySelect = document.getElementById('summaryCategory');
     const minQuantitySelect = document.getElementById('summaryMinQuantity');
     
     if (categorySelect) {
-        categorySelect.addEventListener('change', () => {
-            updateSummaryStats();
-            renderCurrentView();
-        });
+        categorySelect.addEventListener('change', () => renderCurrentView());
     }
     
     if (minQuantitySelect) {
-        minQuantitySelect.addEventListener('change', () => {
-            updateSummaryStats();
-            renderCurrentView();
-        });
+        minQuantitySelect.addEventListener('change', () => renderCurrentView());
     }
     
-    // 操作按钮事件
+    // Action buttons
     const screenshotBtn = document.getElementById('screenshotSummaryBtn');
     const exportBtn = document.getElementById('exportSummaryBtn');
     const printBtn = document.getElementById('printSummaryBtn');
     
-    if (screenshotBtn) {
-        screenshotBtn.addEventListener('click', screenshotSalesSummary);
-    }
-    
-    if (exportBtn) {
-        exportBtn.addEventListener('click', exportSalesSummary);
-    }
-    
-    if (printBtn) {
-        printBtn.addEventListener('click', printSalesSummary);
-    }
-    
-    // 图表标签切换
-    document.querySelectorAll('.chart-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            // 更新标签状态
-            document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            
-            // 重新渲染图表
-            if (currentViewMode === 'chart') {
-                renderChartView();
-            }
-        });
-    });
+    if (screenshotBtn) screenshotBtn.addEventListener('click', screenshotSalesSummary);
+    if (exportBtn)     exportBtn.addEventListener('click', exportSalesSummary);
+    if (printBtn)      printBtn.addEventListener('click', printSalesSummary);
 }
+
+
+
 
 // 切换汇总视图
 function switchSummaryView(viewMode) {
@@ -4640,6 +4920,111 @@ function loadAllStoresSalesForSummary(date) {
                 reject(error);
             });
     });
+}
+
+// 生成示例销售数据用于演示（支持日期范围和多天模拟）
+function generateSampleSalesDataChinese(startDateStr, endDateStr) {
+    console.log('Generating sample sales data for range:', startDateStr, 'to', endDateStr);
+    
+    const sampleProducts = [
+        { id: 'P001', name: 'Coca Cola 330ml', price: 2.50, category: 'Beverages' },
+        { id: 'P002', name: 'Pepsi 330ml', price: 2.50, category: 'Beverages' },
+        { id: 'P003', name: 'Mineral Water 500ml', price: 1.50, category: 'Beverages' },
+        { id: 'P004', name: 'Instant Noodles', price: 3.20, category: 'Food' },
+        { id: 'P005', name: 'Bread Loaf', price: 4.50, category: 'Food' },
+        { id: 'P006', name: 'Milk 1L', price: 6.80, category: 'Dairy' },
+        { id: 'P007', name: 'Eggs (12pcs)', price: 8.90, category: 'Dairy' },
+        { id: 'P008', name: 'Rice 5kg', price: 15.50, category: 'Food' },
+        { id: 'P009', name: 'Cooking Oil 1L', price: 7.20, category: 'Food' },
+        { id: 'P010', name: 'Shampoo 400ml', price: 12.90, category: 'Personal Care' }
+    ];
+    
+    const sampleSales = {};
+    const dates = getDatesInRange(startDateStr, endDateStr);
+    let counter = 1;
+    
+    dates.forEach(date => {
+        // Generate 3-8 sample transactions per day
+        const txCount = Math.floor(Math.random() * 6) + 3;
+        for (let i = 1; i <= txCount; i++) {
+            const saleId = `SAMPLE_SALE_${date.replace(/-/g, '')}_${i}`;
+            const billNumber = `BILL${String(counter++).padStart(4, '0')}`;
+            
+            // Randomly pick 1-4 items
+            const numItems = Math.floor(Math.random() * 4) + 1;
+            const items = [];
+            let totalAmount = 0;
+            
+            // Randomly decide which store ID to assign (just to simulate different stores)
+            const storesList = Object.keys(stores);
+            const storeId = storesList.length > 0 ? storesList[Math.floor(Math.random() * storesList.length)] : 'SAMPLE_STORE';
+            
+            for (let j = 0; j < numItems; j++) {
+                const product = { ...sampleProducts[Math.floor(Math.random() * sampleProducts.length)] };
+                
+                // Simulate a product with the same name but different ID (e.g. variant)
+                if (product.id === 'P001' && Math.random() < 0.2) {
+                    product.id = 'P001-ALT'; // Same name 'Coca Cola 330ml', different ID
+                }
+                
+                const quantity = Math.floor(Math.random() * 3) + 1; 
+                const subtotal = product.price * quantity;
+                
+                items.push({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    quantity: quantity,
+                    subtotal: subtotal,
+                    category: product.category
+                });
+                
+                totalAmount += subtotal;
+            }
+            
+            // Discounts
+            let discountAmount = 0;
+            let discountPercent = 0;
+            let discountType = 'percent';
+            
+            if (Math.random() < 0.3) {
+                if (Math.random() < 0.5) {
+                    discountPercent = Math.floor(Math.random() * 15) + 5;
+                    discountAmount = totalAmount * (discountPercent / 100);
+                    discountType = 'percent';
+                } else {
+                    discountAmount = Math.floor(Math.random() * 5) + 1;
+                    discountType = 'amount';
+                }
+                totalAmount -= discountAmount;
+            }
+            
+            const saleTime = new Date(date + 'T12:00:00');
+            saleTime.setHours(Math.floor(Math.random() * 12) + 8);
+            saleTime.setMinutes(Math.floor(Math.random() * 60));
+            saleTime.setSeconds(Math.floor(Math.random() * 60));
+            
+            const timestamp = saleTime.toISOString().slice(0, 19).replace('T', ' ');
+            
+            sampleSales[saleId] = {
+                billNumber: billNumber,
+                store_id: storeId,
+                items: items,
+                total_amount: totalAmount,
+                subtotal: totalAmount + discountAmount,
+                discountType: discountType,
+                discountPercent: discountPercent,
+                discountAmount: discountAmount,
+                date: date,
+                timestamp: timestamp,
+                staff_id: 'SAMPLE_STAFF',
+                cashierName: `Cashier ${i}`,
+                cashierShift: Math.random() < 0.7 ? '1st Shift' : '2nd Shift'
+            };
+        }
+    });
+    
+    return sampleSales;
 }
 
 // 生成示例销售数据用于演示

@@ -625,6 +625,10 @@
                                 <i class="material-icons" aria-hidden="true">add</i>
                                 <span>Add Product</span>
                             </button>
+                            <button id="stockTransferBtn" class="action-button" aria-label="批量库存转移" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); margin-left: 8px;">
+                                <i class="material-icons" aria-hidden="true">swap_horiz</i>
+                                <span>Stock Transfer</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -979,6 +983,108 @@
                     <i class="material-icons" aria-hidden="true">close</i>
                     <span>Close</span>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Transfer Full-screen Modal -->
+    <div id="stockTransferModal" class="modal-full">
+        <div class="modal-full-content">
+            <div class="modal-full-header">
+                <div class="modal-full-header-left">
+                    <h2><i class="material-icons" style="font-size: 28px; color: #9b59b6; vertical-align: middle;">swap_horiz</i> Bulk Stock Transfer</h2>
+                    <div style="font-size: 14px; color: #7f8c8d; margin-top: 4px;">
+                        <span id="transferOwnStoreDisplay"><i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">store</i>Own Store: Loading...</span>
+                    </div>
+                </div>
+                <div class="modal-full-header-right">
+                    <div class="filter-group" style="display: flex; gap: 12px; align-items: center; background: transparent; padding: 0; box-shadow: none; border: none; margin: 0;">
+                        <div class="filter-item" style="margin: 0; display: flex; align-items: center; gap: 6px;">
+                            <i class="material-icons" style="color: #9b59b6; font-size: 22px; vertical-align: middle;">storefront</i>
+                            <select id="bulkTransferStoreSelect" style="margin: 0; min-width: 180px; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); height: 38px; font-size: 14px; font-family: inherit; box-sizing: border-box;" required>
+                                <option value="">Transfer to store...</option>
+                            </select>
+                        </div>
+                        <div class="filter-item" style="margin: 0; display: flex; align-items: center; gap: 6px;">
+                            <i class="material-icons" style="color: #9b59b6; font-size: 22px; vertical-align: middle;">search</i>
+                            <input type="text" id="bulkTransferSearch" placeholder="Search product name or ID..." class="inventory-search" style="width: 220px; margin: 0; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); height: 38px; font-size: 14px; font-family: inherit; box-sizing: border-box;">
+                        </div>
+                        <div class="filter-item" style="margin: 0; display: flex; align-items: center; gap: 6px;">
+                            <i class="material-icons" style="color: #9b59b6; font-size: 22px; vertical-align: middle;">category</i>
+                            <select id="bulkTransferCategory" style="margin: 0; min-width: 150px; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); height: 38px; font-size: 14px; font-family: inherit; box-sizing: border-box;">
+                                <option value="all">All Categories</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="icon-button close-full-modal" id="closeStockTransferModalBtn" aria-label="Close" style="background: rgba(0,0,0,0.05); border-radius: 50%; padding: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;">
+                        <i class="material-icons">close</i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-full-body">
+                <div class="premium-table-container" style="flex: 1; overflow-y: auto; margin: 0; width: 100%;">
+                    <table class="premium-table premium-table--purple" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th>Product ID</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Current Stock</th>
+                                <th style="width: 150px; text-align: center;">Transfer Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bulkTransferTableBody">
+                            <!-- Products will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-full-footer">
+                <div class="modal-full-credit" style="font-size: 13px; color: #7f8c8d; font-style: italic; display: flex; align-items: center; gap: 6px; user-select: none;">
+                    <i class="material-icons pulse-lightbulb" style="font-size: 16px; color: #9b59b6; vertical-align: middle;">tips_and_updates</i>
+                    <span>Idea By: <strong>Marshita</strong></span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button id="cancelBulkTransferBtn" class="btn-secondary" style="padding: 6px 14px; font-size: 13px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border-radius: 4px;"><i class="material-icons" style="font-size: 16px; vertical-align: middle;">close</i>Cancel</button>
+                    <button id="submitBulkTransferBtn" class="btn-primary" style="padding: 6px 16px; font-size: 13px; background: linear-gradient(135deg, #9b59b6, #8e44ad); border: none; color: white; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border-radius: 4px; font-weight: 500;"><i class="material-icons" style="font-size: 16px; vertical-align: middle;">send</i>Submit Transfer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Transfer Confirmation Modal -->
+    <div id="bulkTransferConfirmModal" class="modal" style="z-index: 3000;">
+        <div class="modal-content" style="max-width: 600px; width: 90%;">
+            <span class="close" id="closeBulkTransferConfirmModalBtn">&times;</span>
+            <h2><i class="material-icons" style="color: #9b59b6; vertical-align: middle;">fact_check</i> Confirm Stock Transfer</h2>
+            <p style="margin-bottom: 15px; font-size: 14px; color: #7f8c8d;">Please review the items to be transferred below before confirming.</p>
+            
+            <div style="background: rgba(155, 89, 182, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; border: 1px solid rgba(155, 89, 182, 0.1);">
+                <p style="margin: 4px 0;"><strong>From Store:</strong> <span id="confirmTransferFromStore">Loading...</span></p>
+                <p style="margin: 4px 0;"><strong>To Store:</strong> <span id="confirmTransferToStore">Loading...</span></p>
+            </div>
+
+            <div style="max-height: 300px; overflow-y: auto; margin-bottom: 20px; border: 1px solid rgba(0,0,0,0.08); border-radius: 8px;">
+                <table class="premium-table" style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead>
+                        <tr style="background: #f8fafc;">
+                            <th style="padding: 10px; text-align: left;">Product ID</th>
+                            <th style="padding: 10px; text-align: left;">Product Name</th>
+                            <th style="padding: 10px; text-align: center;">Transfer Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bulkTransferConfirmTableBody">
+                        <!-- Summary list of transfer items -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 15px;">
+                <button type="button" id="cancelBulkTransferConfirmBtn" class="btn-secondary" style="padding: 8px 16px;">Go Back</button>
+                <button type="button" id="confirmBulkTransferFinalBtn" class="btn-primary" style="padding: 8px 20px; background: linear-gradient(135deg, #9b59b6, #8e44ad); border: none; color: white;">Confirm & Send</button>
             </div>
         </div>
     </div>

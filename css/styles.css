@@ -1909,12 +1909,13 @@ tr:hover {
 .summary-control-panel {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    padding: 15px 25px;
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #e0e0e0;
+    align-items: flex-end; /* 修改为底部对齐，更显整齐 */
+    padding: 20px 25px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 20px;
     position: sticky;
     top: 0;
     z-index: 90;
@@ -1922,9 +1923,9 @@ tr:hover {
 
 .control-section {
     display: flex;
-    gap: 25px;
+    gap: 20px;
     flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: flex-end;
 }
 
 .control-group {
@@ -1934,82 +1935,280 @@ tr:hover {
 }
 
 .control-group label {
-    font-weight: 600;
-    color: #495057;
+    font-weight: 500;
+    color: #64748b;
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 14px;
+    gap: 6px;
+    font-size: 13px;
+    letter-spacing: 0.5px;
 }
 
 .control-group label .material-icons {
-    font-size: 18px;
-    color: #6c757d;
+    font-size: 16px;
+    color: #94a3b8;
 }
 
-/* 视图模式选择器 */
-.view-mode-selector {
-    display: flex;
-    background-color: white;
+/* 统一输入框与下拉框的高级质感 */
+.summary-date-input,
+.summary-select {
+    padding: 10px 14px;
+    border: 1px solid #cbd5e1;
     border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.view-mode-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 12px 16px;
-    border: none;
-    background-color: white;
-    color: #6c757d;
+    background-color: #f8fafc;
+    color: #334155;
+    font-size: 14px;
+    min-width: 140px;
+    height: 42px; /* 统一高度 */
+    box-sizing: border-box;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
-    transition: all 0.3s ease;
-    gap: 4px;
-    min-width: 70px;
 }
 
-.view-mode-btn:hover {
-    background-color: #f8f9fa;
-    color: #495057;
+.summary-date-input:focus,
+.summary-select:focus {
+    outline: none;
+    background-color: #ffffff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
-.view-mode-btn.active {
-    background-color: #007bff;
-    color: white;
+/* 日期范围输入组 */
+.date-range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.view-mode-btn .material-icons {
-    font-size: 20px;
+.summary-date-input {
+    min-width: 135px;
 }
 
-.view-mode-btn span {
-    font-size: 12px;
+.date-connector {
+    color: #64748b;
+    font-size: 14px;
     font-weight: 500;
 }
 
-/* 筛选选项 */
+/* Filter options wrapper */
 .filter-options {
     display: flex;
     gap: 10px;
 }
 
-.control-group select {
-    padding: 8px 12px;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    background-color: white;
-    color: #495057;
-    font-size: 14px;
-    min-width: 140px;
-    transition: border-color 0.3s ease;
+/* Store dropdown wrapper — keeps the same height as other controls */
+.store-filter-group {
+    min-width: 0;
 }
 
-.control-group select:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+/* Query button style in Sales Summary */
+.summary-query-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 18px;
+    height: 42px;
+    border: none;
+    border-radius: 8px;
+    background-color: #3b82f6;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-sizing: border-box;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.summary-query-btn:hover {
+    background-color: #2563eb;
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+}
+
+.summary-query-btn:active {
+    transform: scale(0.98);
+}
+
+.summary-query-btn .material-icons {
+    font-size: 18px;
+}
+
+
+.store-dropdown-wrapper {
+    position: relative;
+}
+
+/* Trigger button — same height/style as .summary-select */
+.store-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 14px;
+    height: 42px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    min-width: 160px;
+    max-width: 220px;
+    box-sizing: border-box;
+}
+
+.store-dropdown-trigger:hover {
+    border-color: #94a3b8;
+    background: #fff;
+}
+
+.store-dropdown-trigger.open {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    background: #fff;
+}
+
+.store-dropdown-trigger .material-icons {
+    font-size: 16px;
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+.store-dropdown-trigger .store-dropdown-arrow {
+    margin-left: auto;
+    transition: transform 0.2s;
+}
+
+.store-dropdown-trigger.open .store-dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+#storeDropdownLabel {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Floating popup */
+.store-dropdown-popup {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 999;
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    min-width: 200px;
+    max-width: 260px;
+    overflow: hidden;
+    animation: storeDropdownIn 0.15s ease;
+}
+
+.store-dropdown-popup.open {
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes storeDropdownIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.store-dropdown-header {
+    padding: 6px 10px;
+    background: #f1f5f9;
+    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+.store-dropdown-list {
+    overflow-y: auto;
+    max-height: 200px;
+    padding: 4px 0;
+}
+
+.store-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 0.12s;
+    user-select: none;
+}
+
+.store-checkbox-item:hover {
+    background: #eff6ff;
+}
+
+.store-all-item {
+    font-weight: 600;
+}
+
+.store-checkbox-item input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    accent-color: #3b82f6;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.store-checkbox-label {
+    font-size: 13px;
+    color: #334155;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 视图模式选择器 */
+.view-mode-selector {
+    display: flex;
+    background-color: #f1f5f9;
+    border-radius: 10px;
+    padding: 3px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);
+}
+
+.view-mode-btn {
+    display: flex;
+    flex-direction: row; /* 横向排列更精致 */
+    align-items: center;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background-color: transparent;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    gap: 6px;
+    min-width: 90px;
+    height: 36px;
+    justify-content: center;
+}
+
+.view-mode-btn:hover {
+    color: #1e293b;
+    background-color: rgba(0,0,0,0.02);
+}
+
+.view-mode-btn.active {
+    background-color: #ffffff;
+    color: #3b82f6;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+    font-weight: 600;
+}
+
+.view-mode-btn .material-icons {
+    font-size: 18px;
+}
+
+.view-mode-btn span {
+    font-size: 13px;
 }
 
 /* 操作按钮区域 */
@@ -2020,55 +2219,61 @@ tr:hover {
 }
 
 .action-section label {
-    font-weight: 600;
-    color: #495057;
+    font-weight: 500;
+    color: #64748b;
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 14px;
+    gap: 6px;
+    font-size: 13px;
 }
 
 .action-section label .material-icons {
-    font-size: 18px;
-    color: #6c757d;
+    font-size: 16px;
+    color: #94a3b8;
 }
 
 /* 操作模式选择器 */
 .action-mode-selector {
     display: flex;
-    background-color: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: #f1f5f9;
+    border-radius: 10px;
+    padding: 3px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);
 }
 
 .action-mode-btn {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    padding: 12px 16px;
+    padding: 8px 16px;
     border: none;
-    background-color: white;
-    color: #6c757d;
+    border-radius: 8px;
+    background-color: transparent;
+    color: #64748b;
     cursor: pointer;
-    transition: all 0.3s ease;
-    gap: 4px;
-    min-width: 70px;
-    flex: 1;
+    transition: all 0.25s ease;
+    gap: 6px;
+    min-width: 90px;
+    height: 36px;
+    justify-content: center;
 }
 
 .action-mode-btn:hover {
-    background-color: #f8f9fa;
-    color: #495057;
+    color: #1e293b;
+    background-color: rgba(0,0,0,0.04);
+    transform: translateY(-1px);
+}
+
+.action-mode-btn:active {
+    transform: translateY(0);
 }
 
 .action-mode-btn .material-icons {
-    font-size: 20px;
+    font-size: 18px;
 }
 
 .action-mode-btn span {
-    font-size: 12px;
-    font-weight: 500;
+    font-size: 13px;
 }
 
 /* 统计卡片已移除 */
@@ -2107,32 +2312,38 @@ tr:hover {
     width: 100%;
     border-collapse: collapse;
     background-color: white;
+    font-size: 14px;
 }
 
 .summary-table th {
-    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-    color: white;
-    padding: 15px 12px;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: #f8fafc;
+    padding: 16px 14px;
     text-align: left;
     font-weight: 600;
     position: sticky;
     top: 0;
     z-index: 10;
-    font-size: 14px;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    box-shadow: inset 0 -1px 0 #3b82f6;
 }
 
 .summary-table td {
-    padding: 12px;
-    border-bottom: 1px solid #e0e0e0;
-    font-size: 14px;
+    padding: 14px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    font-weight: 500;
+    transition: all 0.2s ease;
 }
 
 .summary-table tr:nth-child(even) {
-    background-color: #f8f9fa;
+    background-color: #f8fafc;
 }
 
-.summary-table tr:hover {
-    background-color: #e3f2fd;
+.summary-table tr:hover td {
+    background-color: #eff6ff;
+    color: #2563eb;
 }
 
 /* 卡片视图 */
@@ -4773,24 +4984,25 @@ body.simple-mode .hot-item-price {
 
 /* Heatmap View Styles */
 .heatmap-container {
-    padding: 20px;
+    padding: 25px;
     background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
 }
 
 .heatmap-legend {
     margin-bottom: 30px;
     padding: 20px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
 }
 
 .legend-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
-    color: #495057;
+    color: #1e293b;
     margin-bottom: 15px;
     text-align: center;
 }
@@ -4798,21 +5010,20 @@ body.simple-mode .hot-item-price {
 .legend-scale {
     display: flex;
     justify-content: center;
-    gap: 30px;
+    gap: 35px;
     flex-wrap: wrap;
 }
 
 .legend-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    color: #6c757d;
+    gap: 10px;
+    font-size: 13px;
+    color: #475569;
+    font-weight: 500;
 }
 
 .legend-color {
-    width: 20px;
-    height: 20px;
     border-radius: 4px;
     border: 1px solid rgba(0, 0, 0, 0.1);
 }
@@ -7216,4 +7427,183 @@ body.dark-mode .kb-key.special-key {
 
 body.dark-mode .kb-key.bksp, body.dark-mode .kb-key.clear-key {
     color: #f87171;
+}
+
+/* Full-screen Stock Transfer Modal */
+.modal-full {
+    display: none;
+    position: fixed;
+    z-index: 2500;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #f8fafc;
+    animation: slideInUp 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+    overflow: hidden;
+    color: #1e293b;
+}
+
+body.dark-mode .modal-full {
+    background-color: #0f172a;
+    color: #f8fafc;
+}
+
+.modal-full-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    padding: 16px 20px;
+    box-sizing: border-box;
+}
+
+.modal-full-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    margin-bottom: 12px;
+}
+
+body.dark-mode .modal-full-header {
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.modal-full-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #1e293b;
+}
+
+body.dark-mode .modal-full-header h2 {
+    color: #f8fafc;
+}
+
+.modal-full-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.modal-full-header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.modal-full-body {
+    flex: 1;
+    overflow: hidden;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(0,0,0,0.06);
+}
+
+body.dark-mode .modal-full-body {
+    background: #1e293b;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+.modal-full-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0,0,0,0.08);
+}
+
+body.dark-mode .modal-full-footer {
+    border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.transfer-store-bar {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 20px;
+    background: #ffffff;
+    padding: 16px 20px;
+    border-radius: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+body.dark-mode .transfer-store-bar {
+    background: #1e293b;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.transfer-qty-input {
+    width: 90px;
+    padding: 8px;
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 6px;
+    text-align: center;
+    font-weight: 600;
+    transition: all 0.2s;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+body.dark-mode .transfer-qty-input {
+    background: #0f172a;
+    border-color: rgba(255,255,255,0.15);
+    color: #fff;
+}
+
+.transfer-qty-input:focus {
+    outline: none;
+    border-color: #9b59b6;
+    box-shadow: 0 0 0 3px rgba(155, 89, 182, 0.15);
+}
+
+.transfer-qty-input.invalid-qty {
+    border-color: #ef4444 !important;
+    background-color: rgba(239, 68, 68, 0.05) !important;
+    color: #ef4444 !important;
+}
+
+body.dark-mode .transfer-qty-input.invalid-qty {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+}
+
+@keyframes slideInUp {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+/* Pulse animation for credit lightbulb icon */
+@keyframes pulse-icon {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.25);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.pulse-lightbulb {
+    animation: pulse-icon 2s infinite ease-in-out;
+    display: inline-block;
 }
