@@ -1328,6 +1328,8 @@ function applyCatalogDataToStoreProduct(storeId, storeProductId, catalogProductI
         stock: storeProduct.stock !== undefined ? storeProduct.stock : (storeProduct.quantity || 0),
         promotionEnabled: storeProduct.promotionEnabled || false,
         promotionPrice: storeProduct.promotionEnabled ? storeProduct.promotionPrice || null : null,
+        staffPriceEnabled: storeProduct.staffPriceEnabled || false,
+        staffPrice: storeProduct.staffPriceEnabled ? storeProduct.staffPrice || null : null,
         updated_at: firebase.database.ServerValue.TIMESTAMP
     };
     
@@ -1413,6 +1415,8 @@ function applyAllCatalogMatches() {
                 stock: product.stock !== undefined ? product.stock : (product.quantity || 0),
                 promotionEnabled: product.promotionEnabled || false,
                 promotionPrice: product.promotionEnabled ? product.promotionPrice || null : null,
+                staffPriceEnabled: product.staffPriceEnabled || false,
+                staffPrice: product.staffPriceEnabled ? product.staffPrice || null : null,
                 updated_at: firebase.database.ServerValue.TIMESTAMP
             };
             tasks.push(firebase.database().ref(`store_products/${targetStore}/${productId}`).update(updatedData));

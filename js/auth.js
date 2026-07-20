@@ -105,8 +105,8 @@ function showMessage(message) {
 firebase.auth().onAuthStateChanged((user) => {
     if (user) {
         // User is logged in, check page type
-        const currentPage = window.location.pathname;
-        if (currentPage.includes('index.html') || currentPage === '/') {
+        const currentPage = window.location.pathname.toLowerCase();
+        if (currentPage.includes('index.html') || currentPage === '/' || currentPage.endsWith('/')) {
             // On login page, get user role and redirect
             firebase.database().ref('users/' + user.uid).once('value')
                 .then((snapshot) => {

@@ -63,7 +63,17 @@ function getFullPath(relativePath) {
     // 获取当前URL的基础部分（协议+主机+端口+路径）
     const currentUrl = window.location.href;
     // 提取URL的基础部分（不包括文件名和查询参数）
-    const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
+    let baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
+    
+    // 获取当前页面的父目录名称（通过分割路径）
+    const pathSegments = window.location.pathname.split('/');
+    const parentDirectory = pathSegments.length >= 2 ? pathSegments[pathSegments.length - 2] : '';
+    
+    // 如果当前路径的父目录是 pages（忽略大小写），说明我们在 pages 子目录中，网站根目录在上一级
+    if (parentDirectory.toLowerCase() === 'pages') {
+        // 移除末尾 of 'pages/' (6个字符)
+        baseUrl = baseUrl.substring(0, baseUrl.length - 6);
+    }
     
     // 如果相对路径以/开头，则从网站根目录开始
     if (relativePath.startsWith('/')) {
@@ -101,8 +111,8 @@ auth.onAuthStateChanged(user => {
                 // 设置用户在线状态跟踪
                 setupOnlineStatusTracking();
                 
-                // 获取当前URL的信息
-                const currentPath = window.location.pathname;
+                // 获取当前URL的信息（统一转换为小写进行比对）
+                const currentPath = window.location.pathname.toLowerCase();
                 console.log("当前路径:", currentPath);
                 
                 // 根据角色重定向到相应页面
@@ -113,8 +123,8 @@ auth.onAuthStateChanged(user => {
 
                     const adminPage = isMobileDevice ? 'pages/adminp.html' : 'pages/admin.html';
 
-                    // 检查当前是否已经在对应的管理员页面或产品目录页面
-                    if (currentPath.includes('/' + adminPage) || 
+                    // 检查当前是否已经在对应的管理员页面或产品目录页面（小写匹配）
+                    if (currentPath.includes('/' + adminPage.toLowerCase()) || 
                         currentPath.includes('/pages/product_catalog.html')) {
                         console.log("已在管理员相关页面，无需重定向");
                         return;
@@ -122,7 +132,7 @@ auth.onAuthStateChanged(user => {
 
                     targetPage = getFullPath(adminPage);
                 } else if (userData.role === 'staff') {
-                    // 检查当前是否已经在pos页面或产品目录页面
+                    // 检查当前是否已经在pos页面或产品目录页面（小写匹配）
                     if (currentPath.includes('/pages/pos.html') || 
                         currentPath.includes('/pages/product_catalog.html')) {
                         console.log("已在销售相关页面，无需重定向");
@@ -154,8 +164,8 @@ auth.onAuthStateChanged(user => {
         // 用户未登录
         console.log("用户未登录");
         
-        // 如果不在登录页面则重定向到登录页面
-        const currentPath = window.location.pathname;
+        // 如果不在登录页面则重定向到登录页面（小写匹配）
+        const currentPath = window.location.pathname.toLowerCase();
         
         if (!currentPath.includes('/index.html') && 
             !currentPath.endsWith('/') && 

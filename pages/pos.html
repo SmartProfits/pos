@@ -25,13 +25,102 @@
 
         .sidebar {
             min-width: 250px;
+            width: 250px;
             height: 100vh;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .sidebar.collapsed {
+            min-width: 0;
+            width: 0;
+            opacity: 0;
+            box-shadow: none;
+            pointer-events: none;
         }
 
         .content {
             flex: 1;
             height: 100vh;
             overflow-y: auto;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 12px 20px !important;
+        }
+
+        .header {
+            margin-bottom: 12px !important;
+        }
+
+        /* 保持购物车宽度和内边距固定，不受侧边栏折叠影响 */
+        .sidebar.collapsed ~ .content .pos-grid {
+            grid-template-columns: 1fr 350px;
+        }
+
+        .sidebar.collapsed ~ .content .cart-container {
+            padding: 20px;
+        }
+
+        /* 页面标题及容器样式优化 */
+        .header-title-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #viewTitle {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            margin: 0;
+            color: #1e293b;
+        }
+
+        body.dark-mode #viewTitle {
+            color: #f8fafc;
+        }
+
+        .sidebar-toggle-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: #f8fafc;
+        }
+
+        .sidebar-toggle-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, #334155, #1e293b);
+        }
+
+        .sidebar-toggle-btn:active {
+            transform: translateY(0);
+        }
+
+        .sidebar-toggle-btn i {
+            font-size: 24px;
+            line-height: 1;
+            user-select: none;
+        }
+
+        /* 深色模式下的折叠按钮样式 */
+        body.dark-mode .sidebar-toggle-btn {
+            background: linear-gradient(135deg, #334155, #1e293b);
+            color: #f8fafc;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        body.dark-mode .sidebar-toggle-btn:hover {
+            background: linear-gradient(135deg, #475569, #334155);
         }
 
         .sidebar-content {
@@ -209,6 +298,26 @@
 
             100% {
                 transform: translateY(0);
+            }
+        }
+
+        /* 3rd Shift Cashier Name Style */
+        .third-shift-name {
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 600;
+            animation: third-shift-pulse 2.5s infinite;
+            display: inline-block;
+        }
+
+        @keyframes third-shift-pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
             }
         }
 
@@ -418,7 +527,12 @@
 
         <div class="content" id="mainContent">
             <div class="header">
-                <h1 id="viewTitle">Sales System</h1>
+                <div class="header-title-container">
+                    <button id="sidebarToggle" class="sidebar-toggle-btn" title="Toggle Sidebar">
+                        <i class="material-icons" id="toggleIcon">chevron_left</i>
+                    </button>
+                    <h1 id="viewTitle">Sales System</h1>
+                </div>
                 <div class="header-actions">
                     <button id="darkModeBtn" class="theme-toggle-btn" title="Toggle Dark Mode">
                         <i class="material-icons" id="darkModeIcon">dark_mode</i>
@@ -468,17 +582,24 @@
                                 </div>
                             </div>
                         </div>
+                        <div id="categoryGrid" class="category-grid-container" style="display: none;"></div>
+                        <div id="categoryGridDivider" class="pos-category-layout-divider" style="display: none;">Order</div>
                         <div class="product-grid" id="productGrid">
                             <!-- Product list will be loaded dynamically by JavaScript -->
                         </div>
                     </div>
 
                     <div class="cart-container">
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; padding-bottom:12px; border-bottom:2px solid rgba(52,152,219,0.12);">
-                            <div style="background:linear-gradient(135deg,#3498db,#6c5ce7); border-radius:10px; padding:7px; display:flex; align-items:center;">
-                                <i class="material-icons" style="color:white; font-size:20px;">shopping_cart</i>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; padding-bottom:12px; border-bottom:2px solid rgba(52,152,219,0.12); width:100%; justify-content:space-between;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <div style="background:linear-gradient(135deg,#3498db,#6c5ce7); border-radius:10px; padding:7px; display:flex; align-items:center;">
+                                    <i class="material-icons" style="color:white; font-size:20px;">shopping_cart</i>
+                                </div>
+                                <h2 style="margin:0; font-size:17px; font-weight:700; color:#1e293b;">Cart</h2>
                             </div>
-                            <h2 style="margin:0; font-size:17px; font-weight:700; color:#1e293b;">Cart</h2>
+                            <div id="cartStaffPriceToggleContainer" style="display:flex; align-items:center;">
+                                <!-- Staff price toggle switch will be rendered here dynamically -->
+                            </div>
                         </div>
                         <div class="cart-header">
                             <div class="cart-header-item">Product</div>
@@ -538,25 +659,11 @@
                                     id="totalDiscountAmount">RM0.00</span></div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="summary-card">
-                        <div class="summary-icon"><i class="material-icons">looks_one</i></div>
-                        <div class="summary-content">
-                            <h3>1st Shift Sales</h3>
-                            <div class="summary-value" id="firstShiftSalesAmount">RM0.00</div>
-                            <div class="summary-subtitle">Transactions: <span id="firstShiftTransactions">0</span></div>
-                        </div>
-                    </div>
-
-                    <div class="summary-card">
-                        <div class="summary-icon"><i class="material-icons">looks_two</i></div>
-                        <div class="summary-content">
-                            <h3>2nd Shift Sales</h3>
-                            <div class="summary-value" id="secondShiftSalesAmount">RM0.00</div>
-                            <div class="summary-subtitle">Transactions: <span id="secondShiftTransactions">0</span>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Shift Sales Summary Section -->
+                <div class="shifts-summary-container" id="shiftsSummaryContainer">
+                    <!-- Dynamic shift cards go here -->
                 </div>
 
                 <div class="sale-details-container">

@@ -208,12 +208,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         init();
                     } else {
                         // 不是管理员，重定向到POS页面
-                        window.location.href = 'pages/pos.html';
+                        window.location.href = getFullPath('pages/pos.html');
                     }
                 });
         } else {
             // 未登录，重定向到登录页面
-            window.location.href = 'index.html';
+            window.location.href = getFullPath('index.html');
         }
     });
 });

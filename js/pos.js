@@ -21,6 +21,7 @@ let cashierHistory = []; // 收银员历史记录，用于记录换班情况
 let discountPercent = 0; // 折扣百分比，0表示无折扣
 let discountAmount = 0; // 直接金额折扣
 let discountType = 'percent'; // 折扣类型，percent表示百分比，amount表示金额
+let applyStaffPrice = false; // 是否应用员工价
 let sidebarCollapsed = false; // 侧边栏状态
 let cachedSalesData = null; // 缓存的完整销售数据（所有班次）
 let currentAnnouncement = null; // 当前活跃的公告
@@ -356,11 +357,10 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 加载店铺信息
-    loadStoreInfo(userStoreId);
-
-    // 加载商品数据
-    loadProducts(userStoreId);
+    // 加载店铺信息后再加载商品数据，保证storeData已就绪
+    loadStoreInfo(userStoreId).then(() => {
+        loadProducts(userStoreId);
+    });
 
     // 加载最后一个账单号
     loadLastBillNumber();
@@ -423,16 +423,17 @@ function getUserInfo(userId) {
 
 // 加载店铺信息
 function loadStoreInfo(storeId) {
-    database.ref(`stores/${storeId}`).once('value')
+    return database.ref(`stores/${storeId}`).once('value')
         .then(snapshot => {
             const store = snapshot.val() || { name: 'Unknown Store' };
             storeData = store;
             // 不再更新storeName元素，因为已在UI中移除
             document.title = `POS - ${store.name}`; // 仅更新页面标题
+            return store;
         })
         .catch(error => {
             console.error('Failed to load store information:', error);
-            // 不再弹出警告，而是在控制台记录错误
+            return { name: 'Unknown Store' };
         });
 }
 
@@ -515,6 +516,36 @@ function populateCategoryFilter() {
 // 渲染商品列表
 function renderProducts(searchQuery = '') {
     console.log("渲染产品列表，搜索查询:", searchQuery); // 添加调试日志
+    
+    const posLayoutContainer = document.querySelector('.pos-grid');
+    const categoryGrid = document.getElementById('categoryGrid');
+    const categoryGridDivider = document.getElementById('categoryGridDivider');
+    
+    const isFoodMode = storeData && storeData.posLayout === 'food';
+    
+    if (isFoodMode) {
+        if (posLayoutContainer) {
+            posLayoutContainer.classList.add('food-mode-active');
+        }
+        if (categoryGrid) {
+            categoryGrid.style.display = 'grid';
+            renderCategoryGridButtons();
+        }
+        if (categoryGridDivider) {
+            categoryGridDivider.style.display = 'flex';
+        }
+    } else {
+        if (posLayoutContainer) {
+            posLayoutContainer.classList.remove('food-mode-active');
+        }
+        if (categoryGrid) {
+            categoryGrid.style.display = 'none';
+        }
+        if (categoryGridDivider) {
+            categoryGridDivider.style.display = 'none';
+        }
+    }
+    
     productGrid.innerHTML = '';
 
     if (Object.keys(products).length === 0) {
@@ -555,8 +586,9 @@ function renderProducts(searchQuery = '') {
 
     filteredProducts.forEach(([productId, product]) => {
         // 获取库存，如果不存在则显示为"无库存"
-        const stock = product.stock !== undefined ? product.stock : 'N/A';
-        const stockClass = getStockStatusClass(stock);
+        const isInfinite = product.saleUnit === 'infinite';
+        const stock = isInfinite ? 'Unlimited' : (product.stock !== undefined ? product.stock : 'N/A');
+        const stockClass = isInfinite ? 'stock-available' : getStockStatusClass(stock);
         const saleUnit = product.saleUnit || 'piece';
         const isWeightSale = saleUnit === 'weight';
 
@@ -580,11 +612,11 @@ function renderProducts(searchQuery = '') {
             <div class="product-name">${product.name}${hasPromotion ? ' <span style="color: #f44336; font-size: 0.85em;"><i class="material-icons" style="font-size: 14px; vertical-align: middle;">local_offer</i></span>' : ''}</div>
             <div class="product-category">${product.category || 'Uncategorized'}</div>
             <div class="product-price">${hasPromotion ? `<div style="display: flex; flex-direction: column; align-items: center; gap: 2px;"><span style="text-decoration: line-through; color: #999; font-size: 0.85em;">RM${product.price.toFixed(2)}</span><span style="color: #f44336; font-weight: bold;">RM${displayPrice.toFixed(2)}</span></div>` : `RM${displayPrice.toFixed(2)}`}</div>
-            <div class="product-stock ${stockClass}">Stock: ${stock}${isWeightSale ? 'kg' : ''}</div>
+            <div class="product-stock ${stockClass}">${isInfinite ? 'Unlimited' : `Stock: ${stock}${isWeightSale ? 'kg' : ''}`}</div>
         `;
 
-        // 如果库存为0或不存在，禁用点击事件
-        if (stock !== 'N/A' && stock <= 0) {
+        // 如果库存为0或不存在，并且不是无限库存商品，禁用点击事件
+        if (!isInfinite && stock !== 'N/A' && stock <= 0) {
             productElement.classList.add('out-of-stock');
         } else {
             productElement.addEventListener('click', () => addToCart(productId));
@@ -593,10 +625,58 @@ function renderProducts(searchQuery = '') {
         productGrid.appendChild(productElement);
     });
 
+    // 如果是食品模式，并且有渲染的产品，在末尾添加一个绿色的“Payment”快捷结算按钮
+    if (isFoodMode) {
+        const paymentElement = document.createElement('div');
+        paymentElement.className = 'product-item payment-button-item';
+        paymentElement.innerHTML = `
+            <div class="product-name" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                <i class="material-icons" style="font-size: 28px; margin-bottom: 4px;">payment</i>
+                <span>Payment</span>
+            </div>
+        `;
+        paymentElement.addEventListener('click', () => {
+            if (cart.length === 0) {
+                alert('Cart is empty. Please add products first.');
+            } else {
+                checkout();
+            }
+        });
+        productGrid.appendChild(paymentElement);
+    }
+
     // 更新热销商品显示（确保库存状态正确）
     if (hotItems.length > 0) {
         renderHotItems();
     }
+}
+
+// 渲染分类布局下的分类按钮网格
+function renderCategoryGridButtons() {
+    const categoryGrid = document.getElementById('categoryGrid');
+    if (!categoryGrid) return;
+    
+    categoryGrid.innerHTML = '';
+    
+    categories.forEach(category => {
+        const catBtn = document.createElement('div');
+        catBtn.className = 'category-grid-item';
+        if (category === currentCategory) {
+            catBtn.classList.add('active');
+        }
+        
+        let displayName = category;
+        if (category === 'all') {
+            displayName = 'All';
+        }
+        
+        catBtn.innerHTML = `<span>${displayName}</span>`;
+        catBtn.addEventListener('click', () => {
+            filterProductsByCategory(category);
+        });
+        
+        categoryGrid.appendChild(catBtn);
+    });
 }
 
 // 获取库存状态的CSS类
@@ -661,6 +741,11 @@ function initEventListeners() {
     cashierNameForm.addEventListener('submit', handleCashierNameSubmit);
     changeCashierBtn.addEventListener('click', () => showModal(cashierNameModal));
     viewCashierHistoryBtn.addEventListener('click', showCashierHistory);
+
+    // 侧边栏折叠相关
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', toggleSidebar);
+    }
 
     // 销售历史 - 移除日期过滤器事件，仅保留班次过滤
     if (shiftFilter) {
@@ -849,6 +934,60 @@ function initEventListeners() {
     }
 }
 
+// 动态渲染班次统计卡片
+function renderShiftCards(shiftCount, shiftData) {
+    const container = document.getElementById('shiftsSummaryContainer');
+    if (!container) return;
+
+    // 根据班次数量切换样式类
+    container.classList.toggle('three-shifts', shiftCount === 3);
+
+    let html = '';
+    
+    // 1st Shift
+    const s1 = shiftData['1st Shift'] || { amount: 0, count: 0 };
+    html += `
+        <div class="summary-card" style="color: #2e7d32;">
+            <div class="summary-icon"><i class="material-icons">looks_one</i></div>
+            <div class="summary-content">
+                <h3>1st Shift Sales</h3>
+                <div class="summary-value" id="firstShiftSalesAmount">RM${s1.amount.toFixed(2)}</div>
+                <div class="summary-subtitle">Transactions: <span id="firstShiftTransactions">${s1.count}</span></div>
+            </div>
+        </div>
+    `;
+
+    // 2nd Shift
+    const s2 = shiftData['2nd Shift'] || { amount: 0, count: 0 };
+    html += `
+        <div class="summary-card" style="color: #1565c0;">
+            <div class="summary-icon"><i class="material-icons">looks_two</i></div>
+            <div class="summary-content">
+                <h3>2nd Shift Sales</h3>
+                <div class="summary-value" id="secondShiftSalesAmount">RM${s2.amount.toFixed(2)}</div>
+                <div class="summary-subtitle">Transactions: <span id="secondShiftTransactions">${s2.count}</span></div>
+            </div>
+        </div>
+    `;
+
+    // 3rd Shift
+    if (shiftCount === 3) {
+        const s3 = shiftData['3rd Shift'] || { amount: 0, count: 0 };
+        html += `
+            <div class="summary-card" style="color: #e65100;">
+                <div class="summary-icon"><i class="material-icons">looks_3</i></div>
+                <div class="summary-content">
+                    <h3>3rd Shift Sales</h3>
+                    <div class="summary-value" id="thirdShiftSalesAmount">RM${s3.amount.toFixed(2)}</div>
+                    <div class="summary-subtitle">Transactions: <span id="thirdShiftTransactions">${s3.count}</span></div>
+                </div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
 // 切换视图
 function switchView(viewName) {
     // 更新导航菜单激活状态
@@ -966,6 +1105,8 @@ function updateSalesSummary(summary, existingSales = null) {
         let firstShiftCount = 0;
         let secondShiftSales = 0;
         let secondShiftCount = 0;
+        let thirdShiftSales = 0;
+        let thirdShiftCount = 0;
         let discountCount = 0;
         let discountAmount = 0;
 
@@ -981,6 +1122,9 @@ function updateSalesSummary(summary, existingSales = null) {
             } else if (sale.cashierShift === '2nd Shift') {
                 secondShiftSales += amount;
                 secondShiftCount++;
+            } else if (sale.cashierShift === '3rd Shift') {
+                thirdShiftSales += amount;
+                thirdShiftCount++;
             }
 
             // 计算折扣
@@ -998,11 +1142,12 @@ function updateSalesSummary(summary, existingSales = null) {
         document.getElementById('totalSalesAmount').textContent = `RM${totalSales.toFixed(2)}`;
         document.getElementById('totalTransactions').textContent = transactionCount;
 
-        document.getElementById('firstShiftSalesAmount').textContent = `RM${firstShiftSales.toFixed(2)}`;
-        document.getElementById('firstShiftTransactions').textContent = firstShiftCount;
-
-        document.getElementById('secondShiftSalesAmount').textContent = `RM${secondShiftSales.toFixed(2)}`;
-        document.getElementById('secondShiftTransactions').textContent = secondShiftCount;
+        const shiftCount = (storeData && storeData.shiftCount !== undefined) ? parseInt(storeData.shiftCount) : 2;
+        renderShiftCards(shiftCount, {
+            '1st Shift': { amount: firstShiftSales, count: firstShiftCount },
+            '2nd Shift': { amount: secondShiftSales, count: secondShiftCount },
+            '3rd Shift': { amount: thirdShiftSales, count: thirdShiftCount }
+        });
 
         document.getElementById('discountedSalesCount').textContent = discountCount;
         document.getElementById('totalDiscountAmount').textContent = `RM${discountAmount.toFixed(2)}`;
@@ -1014,12 +1159,14 @@ function updateSalesSummary(summary, existingSales = null) {
         // 更新班次销售额
         const firstShiftData = summary.shifts && summary.shifts['1st Shift'] ? summary.shifts['1st Shift'] : { total_sales: 0, transaction_count: 0 };
         const secondShiftData = summary.shifts && summary.shifts['2nd Shift'] ? summary.shifts['2nd Shift'] : { total_sales: 0, transaction_count: 0 };
+        const thirdShiftData = summary.shifts && summary.shifts['3rd Shift'] ? summary.shifts['3rd Shift'] : { total_sales: 0, transaction_count: 0 };
 
-        document.getElementById('firstShiftSalesAmount').textContent = `RM${(firstShiftData.total_sales || 0).toFixed(2)}`;
-        document.getElementById('firstShiftTransactions').textContent = firstShiftData.transaction_count || 0;
-
-        document.getElementById('secondShiftSalesAmount').textContent = `RM${(secondShiftData.total_sales || 0).toFixed(2)}`;
-        document.getElementById('secondShiftTransactions').textContent = secondShiftData.transaction_count || 0;
+        const shiftCount = (storeData && storeData.shiftCount !== undefined) ? parseInt(storeData.shiftCount) : 2;
+        renderShiftCards(shiftCount, {
+            '1st Shift': { amount: firstShiftData.total_sales || 0, count: firstShiftData.transaction_count || 0 },
+            '2nd Shift': { amount: secondShiftData.total_sales || 0, count: secondShiftData.transaction_count || 0 },
+            '3rd Shift': { amount: thirdShiftData.total_sales || 0, count: thirdShiftData.transaction_count || 0 }
+        });
     }
 }
 
@@ -1113,10 +1260,8 @@ function renderSalesTable(sales) {
         document.getElementById('totalTransactions').textContent = '0';
         document.getElementById('discountedSalesCount').textContent = '0';
         document.getElementById('totalDiscountAmount').textContent = 'RM0.00';
-        document.getElementById('firstShiftSalesAmount').textContent = 'RM0.00';
-        document.getElementById('firstShiftTransactions').textContent = '0';
-        document.getElementById('secondShiftSalesAmount').textContent = 'RM0.00';
-        document.getElementById('secondShiftTransactions').textContent = '0';
+        const shiftCount = (storeData && storeData.shiftCount !== undefined) ? parseInt(storeData.shiftCount) : 2;
+        renderShiftCards(shiftCount, {});
         return;
     }
 
@@ -1145,6 +1290,8 @@ function renderSalesTable(sales) {
     let firstShiftCount = 0;
     let secondShiftAmount = 0;
     let secondShiftCount = 0;
+    let thirdShiftAmount = 0;
+    let thirdShiftCount = 0;
 
     // 先计算全部销售数据（不受当前筛选影响）
     sortedSales.forEach(saleId => {
@@ -1157,14 +1304,19 @@ function renderSalesTable(sales) {
         } else if (sale.cashierShift === '2nd Shift') {
             secondShiftAmount += sale.total_amount;
             secondShiftCount++;
+        } else if (sale.cashierShift === '3rd Shift') {
+            thirdShiftAmount += sale.total_amount;
+            thirdShiftCount++;
         }
     });
 
     // 更新班次统计显示
-    document.getElementById('firstShiftSalesAmount').textContent = `RM${firstShiftAmount.toFixed(2)}`;
-    document.getElementById('firstShiftTransactions').textContent = firstShiftCount;
-    document.getElementById('secondShiftSalesAmount').textContent = `RM${secondShiftAmount.toFixed(2)}`;
-    document.getElementById('secondShiftTransactions').textContent = secondShiftCount;
+    const shiftCount = (storeData && storeData.shiftCount !== undefined) ? parseInt(storeData.shiftCount) : 2;
+    renderShiftCards(shiftCount, {
+        '1st Shift': { amount: firstShiftAmount, count: firstShiftCount },
+        '2nd Shift': { amount: secondShiftAmount, count: secondShiftCount },
+        '3rd Shift': { amount: thirdShiftAmount, count: thirdShiftCount }
+    });
 
     // 计算筛选后的销售数据
     filteredSales.forEach(saleId => {
@@ -1190,6 +1342,17 @@ function renderSalesTable(sales) {
             } else {
                 discountDisplay = `RM${sale.discountAmount.toFixed(2)}`;
                 discountBadgeClass = 'discount-fixed';
+            }
+        }
+
+        // 如果应用了员工价，修改显示并更新标记类
+        const isStaffApplied = sale.isStaffPriceApplied || (sale.items && sale.items.some(item => item.isStaffPriceApplied));
+        if (isStaffApplied) {
+            if (discountDisplay === 'None') {
+                discountDisplay = 'Staff';
+                discountBadgeClass = 'discount-staff';
+            } else {
+                discountDisplay += ' (Staff)';
             }
         }
 
@@ -1716,8 +1879,34 @@ function deleteSale() {
         });
 }
 
+// 初始化班次下拉选择框
+function initializeShiftDropdown() {
+    const shiftSelect = document.getElementById('cashierShift');
+    if (shiftSelect) {
+        const shiftCount = (storeData && storeData.shiftCount !== undefined) ? parseInt(storeData.shiftCount) : 2;
+        let options = '<option value="" disabled>Select your shift</option>';
+        options += '<option value="1st Shift">1st Shift</option>';
+        options += '<option value="2nd Shift">2nd Shift</option>';
+        if (shiftCount === 3) {
+            options += '<option value="3rd Shift">3rd Shift</option>';
+        }
+        shiftSelect.innerHTML = options;
+        
+        // 恢复之前选中的班次
+        const savedShift = localStorage.getItem('cashierShift');
+        if (savedShift && (savedShift === '1st Shift' || savedShift === '2nd Shift' || (shiftCount === 3 && savedShift === '3rd Shift'))) {
+            shiftSelect.value = savedShift;
+        } else {
+            shiftSelect.value = "";
+        }
+    }
+}
+
 // 显示模态框
 function showModal(modal) {
+    if (modal === cashierNameModal) {
+        initializeShiftDropdown();
+    }
     modal.style.display = 'block';
 }
 
@@ -1737,6 +1926,11 @@ function renderCart() {
     });
 
     cartItems.innerHTML = '';
+
+    const toggleContainer = document.getElementById('cartStaffPriceToggleContainer');
+    if (toggleContainer) {
+        toggleContainer.innerHTML = '';
+    }
 
     if (cart.length === 0) {
         cartItems.innerHTML = '<div class="empty-cart">Your cart is empty</div>';
@@ -1788,14 +1982,20 @@ function renderCart() {
     cart.forEach(item => {
         // 只有非免费商品才计入小计
         if (!item.isFree) {
-            subtotal += item.price * item.quantity;
+            const activePrice = (applyStaffPrice && item.staffPriceEnabled && item.staffPrice !== null && item.staffPrice !== undefined)
+                ? item.staffPrice
+                : item.price;
+            subtotal += activePrice * item.quantity;
         }
         totalItems += item.quantity;
     });
 
     // 添加购物车商品
     cart.forEach((item, index) => {
-        const itemTotal = item.price * item.quantity;
+        const activePrice = (applyStaffPrice && item.staffPriceEnabled && item.staffPrice !== null && item.staffPrice !== undefined)
+            ? item.staffPrice
+            : item.price;
+        const itemTotal = activePrice * item.quantity;
 
         const cartItemElement = document.createElement('div');
         cartItemElement.className = 'cart-item';
@@ -1810,7 +2010,7 @@ function renderCart() {
         // 处理重量精度问题，确保显示最多3位小数
         const formattedQuantity = isWeightSale ? parseFloat(item.quantity.toFixed(3)) : item.quantity;
         const quantityDisplay = isWeightSale ? `${formattedQuantity}kg` : `${formattedQuantity}`;
-        const pricePerUnit = isWeightSale ? `RM${item.price.toFixed(2)}/kg` : `RM${item.price.toFixed(2)}`;
+        const pricePerUnit = isWeightSale ? `RM${activePrice.toFixed(2)}/kg` : `RM${activePrice.toFixed(2)}`;
 
         cartItemElement.innerHTML = `
             <div class="cart-item-header">
@@ -1940,10 +2140,41 @@ function renderCart() {
         discountValue = Math.min(discountAmount, subtotal); // 确保折扣不超过小计
     }
 
-    // 应用四舍五入到最接近的0.05规则
-    const total = roundToNearest005(subtotal - discountValue);
+    // 计算税率和税额
+    const taxRate = (storeData && storeData.taxRate !== undefined) ? parseFloat(storeData.taxRate) : 0;
+    const taxableAmount = subtotal - discountValue;
+    const taxAmount = taxableAmount * (taxRate / 100);
 
-    // 添加小计、折扣和总计显示
+    // 应用四舍五入到最接近的0.05规则
+    const total = roundToNearest005(taxableAmount + taxAmount);
+
+    // 检查是否有任何购物车项目有员工价
+    const hasStaffPriceItems = cart.some(item => item.staffPriceEnabled && item.staffPrice !== undefined && item.staffPrice !== null);
+
+    // 动态渲染顶部 Cart Header 右侧的员工价切换按钮
+    const cartToggleContainer = document.getElementById('cartStaffPriceToggleContainer');
+    if (cartToggleContainer) {
+        if (hasStaffPriceItems) {
+            cartToggleContainer.innerHTML = `
+                <button id="staffPriceToggleBtn" class="staff-price-toggle-btn ${applyStaffPrice ? 'active' : ''}">
+                    <i class="material-icons">badge</i>
+                    <span>Staff Price</span>
+                </button>
+            `;
+            // 添加员工价格开关事件监听
+            const staffPriceToggle = document.getElementById('staffPriceToggleBtn');
+            if (staffPriceToggle) {
+                staffPriceToggle.addEventListener('click', function() {
+                    applyStaffPrice = !applyStaffPrice;
+                    renderCart();
+                });
+            }
+        } else {
+            cartToggleContainer.innerHTML = '';
+        }
+    }
+
+    // 添加小计、折扣、税额和总计显示
     const summaryElement = document.createElement('div');
     summaryElement.className = 'cart-summary';
     summaryElement.innerHTML = `
@@ -1955,6 +2186,12 @@ function renderCart() {
         <div class="summary-row discount">
             <span>Discount ${discountType === 'percent' ? `(${discountPercent}%)` : '(Fixed)'}:</span>
             <span>-RM${discountValue.toFixed(2)}</span>
+        </div>
+        ` : ''}
+        ${taxRate > 0 ? `
+        <div class="summary-row tax-row" style="color: #64748b; font-size: 0.95em;">
+            <span>Tax (${taxRate}%):</span>
+            <span>RM${taxAmount.toFixed(2)}</span>
         </div>
         ` : ''}
         <div class="summary-row total">
@@ -2043,8 +2280,8 @@ function addToCart(productId) {
         return;
     }
 
-    // 检查商品库存（按数量销售的商品）
-    if (product.stock !== undefined) {
+    // 检查商品库存（按数量销售的商品且非无限商品）
+    if (product.stock !== undefined && product.saleUnit !== 'infinite') {
         // 计算当前购物车中该商品的数量
         const existingItemIndex = cart.findIndex(item => item.id === productId);
         const currentCartQuantity = existingItemIndex !== -1 ? cart[existingItemIndex].quantity : 0;
@@ -2074,6 +2311,8 @@ function addToCart(productId) {
         // 如果已存在，增加数量并更新价格（以防促销价格有变化）
         cart[existingItemIndex].quantity += 1;
         cart[existingItemIndex].price = displayPrice;
+        cart[existingItemIndex].staffPrice = product.staffPrice;
+        cart[existingItemIndex].staffPriceEnabled = product.staffPriceEnabled;
     } else {
         // 否则添加新项目，默认不是免费商品
         cart.push({
@@ -2082,7 +2321,9 @@ function addToCart(productId) {
             price: displayPrice,
             quantity: 1,
             isFree: false,
-            saleUnit: product.saleUnit || 'piece'
+            saleUnit: product.saleUnit || 'piece',
+            staffPrice: product.staffPrice,
+            staffPriceEnabled: product.staffPriceEnabled
         });
     }
 
@@ -2256,6 +2497,8 @@ function showWeightInputDialog(productId) {
             // 如果已存在，增加重量并更新价格（以防促销价格有变化）
             cart[existingItemIndex].quantity += totalWeight;
             cart[existingItemIndex].price = displayPrice;
+            cart[existingItemIndex].staffPrice = product.staffPrice;
+            cart[existingItemIndex].staffPriceEnabled = product.staffPriceEnabled;
         } else {
             // 否则添加新项目
             cart.push({
@@ -2264,7 +2507,9 @@ function showWeightInputDialog(productId) {
                 price: displayPrice,
                 quantity: totalWeight,
                 isFree: false,
-                saleUnit: 'weight'
+                saleUnit: 'weight',
+                staffPrice: product.staffPrice,
+                staffPriceEnabled: product.staffPriceEnabled
             });
         }
 
@@ -2423,7 +2668,13 @@ function checkout() {
         let billNumber = generateBillNumber();
 
         // 计算小计、折扣和总计
-        let subtotal = cart.reduce((sum, item) => sum + (item.isFree ? 0 : item.price * item.quantity), 0);
+        let subtotal = cart.reduce((sum, item) => {
+            if (item.isFree) return sum;
+            const activePrice = (applyStaffPrice && item.staffPriceEnabled && item.staffPrice !== null && item.staffPrice !== undefined)
+                ? item.staffPrice
+                : item.price;
+            return sum + activePrice * item.quantity;
+        }, 0);
 
         // 根据折扣类型计算折扣金额
         let discountValue = 0;
@@ -2433,8 +2684,13 @@ function checkout() {
             discountValue = Math.min(discountAmount, subtotal); // 确保折扣不超过小计
         }
 
+        // 计算税率和税额
+        const taxRate = (storeData && storeData.taxRate !== undefined) ? parseFloat(storeData.taxRate) : 0;
+        const taxableAmount = subtotal - discountValue;
+        const taxAmount = taxableAmount * (taxRate / 100);
+
         // 应用舍入规则：Nearest 0.05
-        let total = roundToNearest005(subtotal - discountValue);
+        let total = roundToNearest005(taxableAmount + taxAmount);
 
         // 保存当前购物车的副本，以便在处理过程中避免被修改
         let cartCopy = cart.map(item => ({ ...item }));
@@ -2442,19 +2698,30 @@ function checkout() {
         // 准备销售数据
         let saleData = {
             billNumber: billNumber,
-            items: cartCopy.map(item => ({
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                quantity: item.quantity,
-                subtotal: item.isFree ? 0 : item.price * item.quantity,
-                isFree: item.isFree
-            })),
+            items: cartCopy.map(item => {
+                const activePrice = (applyStaffPrice && item.staffPriceEnabled && item.staffPrice !== null && item.staffPrice !== undefined)
+                    ? item.staffPrice
+                    : item.price;
+                return {
+                    id: item.id,
+                    name: item.name,
+                    price: activePrice,
+                    quantity: item.quantity,
+                    subtotal: item.isFree ? 0 : activePrice * item.quantity,
+                    isFree: item.isFree,
+                    saleUnit: item.saleUnit || 'piece',
+                    originalPrice: item.price,
+                    isStaffPriceApplied: applyStaffPrice && item.staffPriceEnabled && item.staffPrice !== null && item.staffPrice !== undefined
+                };
+            }),
             subtotal: subtotal,
             discountType: discountType,
             discountPercent: discountType === 'percent' ? discountPercent : 0,
             discountAmount: discountValue,
+            taxRate: taxRate,
+            taxAmount: taxAmount,
             total_amount: total,
+            isStaffPriceApplied: applyStaffPrice,
             cashierName: cashierName, // 添加收银员姓名
             cashierShift: cashierShift, // 添加收银员班次
             shiftInfo: {
@@ -2472,6 +2739,7 @@ function checkout() {
         // 清空购物车 - 在开始处理前就清空，避免任何可能的引用问题
         let oldCart = [...cart];
         cart = [];
+        applyStaffPrice = false;
         renderCart();
 
         // 更新商品库存
@@ -2544,6 +2812,29 @@ function showSuccessModal(saleData, saleId) {
             <div class="success-total">
                 <div class="total-label">Total Amount</div>
                 <div class="total-value">RM${totalAmount.toFixed(2)}</div>
+            </div>
+            
+            <div class="receipt-summary" style="width: 100%; border-top: 1px dashed #cbd5e1; margin-top: 15px; padding-top: 15px; font-size: 14px; text-align: left; color: #475569;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span>Subtotal:</span>
+                    <span>RM${saleData.subtotal.toFixed(2)}</span>
+                </div>
+                ${saleData.discountAmount > 0 ? `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; color: #f44336;">
+                    <span>Discount ${saleData.discountType === 'percent' ? `(${saleData.discountPercent}%)` : '(Fixed)'}:</span>
+                    <span>-RM${saleData.discountAmount.toFixed(2)}</span>
+                </div>
+                ` : ''}
+                ${saleData.taxAmount > 0 ? `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span>Tax (${saleData.taxRate}%):</span>
+                    <span>RM${saleData.taxAmount.toFixed(2)}</span>
+                </div>
+                ` : ''}
+                <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px solid #cbd5e1; padding-top: 6px; margin-top: 6px; color: #1e293b; font-size: 15px;">
+                    <span>Grand Total:</span>
+                    <span>RM${totalAmount.toFixed(2)}</span>
+                </div>
             </div>
         </div>
     `;
@@ -2735,6 +3026,7 @@ function clearCart() {
     discountPercent = 0;
     discountAmount = 0;
     discountType = 'percent';
+    applyStaffPrice = false;
     renderCart();
 }
 
@@ -2748,82 +3040,126 @@ function updateDateTime() {
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const seconds = String(now.getSeconds()).padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours % 12 || 12; // 转换为12小时制
+    const hours12 = hours % 12 || 12;
 
-    // 获取星期几
     const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const weekday = weekdays[now.getDay()];
 
-    // 创建HTML结构
-    currentDateTime.innerHTML = `
-        <div class="datetime-container">
-            <div class="date-display">
-                <span class="calendar-icon">📅</span>
-                <span class="date">${day}/${month}/${year}</span>
-                <span class="weekday">${weekday}</span>
+    let container = currentDateTime.querySelector('.datetime-container');
+    if (!container) {
+        currentDateTime.innerHTML = `
+            <div class="datetime-container">
+                <div class="date-display">
+                    <span class="calendar-icon">📅</span>
+                    <span class="date"></span>
+                    <span class="weekday"></span>
+                </div>
+                <div class="time-display">
+                    <span class="clock-icon">🕒</span>
+                    <span class="time-hours-mins"></span>
+                    <span class="seconds"></span>
+                    <span class="ampm"></span>
+                </div>
             </div>
-            <div class="time-display">
-                <span class="clock-icon">🕒</span>
-                <span class="time">${hours12}:${minutes}<span class="seconds">:${seconds}</span></span>
-                <span class="ampm">${ampm}</span>
-            </div>
-        </div>
-    `;
-
-    // 添加样式
-    const style = document.createElement('style');
-    if (!document.querySelector('style#datetime-style')) {
-        style.id = 'datetime-style';
-        style.textContent = `
-            .datetime-container {
-                display: flex;
-                flex-direction: column;
-                background: linear-gradient(135deg, #1a237e, #311b92);
-                padding: 10px;
-                border-radius: 10px;
-                color: white;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-                min-width: 200px;
-            }
-            .date-display, .time-display {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 5px 0;
-            }
-            .calendar-icon, .clock-icon {
-                margin-right: 8px;
-                font-size: 1.1em;
-            }
-            .date, .time {
-                font-size: 1.1em;
-                font-weight: 600;
-                margin-right: 8px;
-            }
-            .weekday, .ampm {
-                font-size: 0.9em;
-                opacity: 0.9;
-                background-color: rgba(255, 255, 255, 0.2);
-                padding: 2px 6px;
-                border-radius: 4px;
-            }
-            .seconds {
-                font-size: 0.8em;
-                opacity: 0.8;
-            }
         `;
-        document.head.appendChild(style);
+        container = currentDateTime.querySelector('.datetime-container');
+
+        const style = document.createElement('style');
+        if (!document.querySelector('style#datetime-style')) {
+            style.id = 'datetime-style';
+            style.textContent = `
+                .datetime-container {
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 6px 16px;
+                    border-radius: 30px;
+                    font-size: 14px;
+                    font-family: 'Poppins', 'Roboto', -apple-system, sans-serif;
+                    background: #ffffff;
+                    border: 1px solid #cbd5e1;
+                    color: #0f172a;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+                    width: 350px;
+                    box-sizing: border-box;
+                }
+                body.dark-mode .datetime-container {
+                    background: #1e293b;
+                    border-color: #334155;
+                    color: #f8fafc;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+                }
+                .date-display, .time-display {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                .date-display {
+                    border-right: 1px solid #e2e8f0;
+                    padding-right: 12px;
+                }
+                body.dark-mode .date-display {
+                    border-right-color: #334155;
+                }
+                .calendar-icon, .clock-icon {
+                    font-size: 15px;
+                }
+                .date {
+                    font-weight: 600;
+                    font-family: Consolas, Monaco, monospace;
+                }
+                .time-hours-mins {
+                    font-weight: 600;
+                    font-family: Consolas, Monaco, monospace;
+                }
+                .weekday, .ampm {
+                    font-size: 11px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    background: #f1f5f9;
+                    color: #475569;
+                    padding: 2px 8px;
+                    border-radius: 6px;
+                    letter-spacing: 0.5px;
+                }
+                body.dark-mode .weekday, body.dark-mode .ampm {
+                    background: #334155;
+                    color: #cbd5e1;
+                }
+                .seconds {
+                    font-size: 12px;
+                    opacity: 0.65;
+                    font-weight: 500;
+                    font-family: Consolas, Monaco, monospace;
+                    display: inline-block;
+                    width: 22px;
+                    text-align: left;
+                }
+            `;
+            document.head.appendChild(style);
+        }
     }
 
-    // 每秒更新秒数
-    if (!window.secondsInterval) {
-        window.secondsInterval = setInterval(() => {
-            const secondsElement = document.querySelector('.seconds');
-            if (secondsElement) {
-                const now = new Date();
-                secondsElement.textContent = `:${String(now.getSeconds()).padStart(2, '0')}`;
-            }
-        }, 1000);
+    const dateEl = container.querySelector('.date');
+    const weekdayEl = container.querySelector('.weekday');
+    const hoursMinsEl = container.querySelector('.time-hours-mins');
+    const secondsEl = container.querySelector('.seconds');
+    const ampmEl = container.querySelector('.ampm');
+
+    const dateText = `${day}/${month}/${year}`;
+    const hoursMinsText = `${hours12}:${minutes}`;
+    const secondsText = `:${seconds}`;
+
+    if (dateEl && dateEl.textContent !== dateText) dateEl.textContent = dateText;
+    if (weekdayEl && weekdayEl.textContent !== weekday) weekdayEl.textContent = weekday;
+    if (ampmEl && ampmEl.textContent !== ampm) ampmEl.textContent = ampm;
+    
+    if (hoursMinsEl && hoursMinsEl.textContent !== hoursMinsText) {
+        hoursMinsEl.textContent = hoursMinsText;
+    }
+    if (secondsEl && secondsEl.textContent !== secondsText) {
+        secondsEl.textContent = secondsText;
     }
 }
 
@@ -3011,6 +3347,12 @@ function updateProductInventory(storeId, cartItems) {
         const productPath = `store_products/${storeId}/${productId}`;
         let totalQty = productQuantity.totalQuantity;
 
+        // 如果是无限库存商品，跳过库存扣除
+        if (productQuantity.saleUnit === 'infinite') {
+            console.log(`Skipping stock deduction for infinite product ${productQuantity.name}`);
+            return Promise.resolve();
+        }
+
         // 如果是重量单位，则处理浮点数精度问题
         if (productQuantity.saleUnit === 'weight') {
             totalQty = parseFloat(totalQty.toFixed(3));
@@ -3078,11 +3420,13 @@ function handleCashierNameSubmit(e) {
         cashierShiftDisplay.textContent = cashierShift;
 
         // 应用班次样式
-        cashierNameDisplay.classList.remove('first-shift-name', 'second-shift-name');
+        cashierNameDisplay.classList.remove('first-shift-name', 'second-shift-name', 'third-shift-name');
         if (newCashierShift === '1st Shift') {
             cashierNameDisplay.classList.add('first-shift-name');
         } else if (newCashierShift === '2nd Shift') {
             cashierNameDisplay.classList.add('second-shift-name');
+        } else if (newCashierShift === '3rd Shift') {
+            cashierNameDisplay.classList.add('third-shift-name');
         }
 
         // 保存到本地存储
@@ -4429,8 +4773,9 @@ function renderHotItems() {
         const product = products[productId];
         if (!product) return;
 
-        const stock = product.stock !== undefined ? product.stock : 0;
-        const stockClass = stock <= 0 ? 'out-of-stock' : '';
+        const isInfinite = product.saleUnit === 'infinite';
+        const stock = isInfinite ? 'Unlimited' : (product.stock !== undefined ? product.stock : 0);
+        const stockClass = (!isInfinite && stock <= 0) ? 'out-of-stock' : '';
         const isWeightSale = product.saleUnit === 'weight';
 
         const hotItemElement = document.createElement('div');
@@ -4440,11 +4785,11 @@ function renderHotItems() {
         hotItemElement.innerHTML = `
             <div class="hot-item-name">${product.name}</div>
             <div class="hot-item-price">RM${product.price.toFixed(2)}${isWeightSale ? '/kg' : ''}</div>
-            <div class="hot-item-stock">Stock: ${stock}${isWeightSale ? 'kg' : ''}</div>
+            <div class="hot-item-stock">${isInfinite ? 'Unlimited' : `Stock: ${stock}${isWeightSale ? 'kg' : ''}`}</div>
         `;
 
         // 添加点击事件
-        if (stock > 0) {
+        if (isInfinite || stock > 0) {
             hotItemElement.addEventListener('click', () => addToCart(productId));
         }
 
@@ -4667,11 +5012,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const currentShift = localStorage.getItem('cashierShift');
 
     if (cashierNameDisplay && currentShift) {
-        cashierNameDisplay.classList.remove('first-shift-name', 'second-shift-name');
+        cashierNameDisplay.classList.remove('first-shift-name', 'second-shift-name', 'third-shift-name');
         if (currentShift === '1st Shift') {
             cashierNameDisplay.classList.add('first-shift-name');
         } else if (currentShift === '2nd Shift') {
             cashierNameDisplay.classList.add('second-shift-name');
+        } else if (currentShift === '3rd Shift') {
+            cashierNameDisplay.classList.add('third-shift-name');
         }
     }
 

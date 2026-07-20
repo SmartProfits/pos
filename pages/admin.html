@@ -289,6 +289,9 @@
                                 <th>Store ID</th>
                                 <th>Store Name</th>
                                 <th>Address</th>
+                                <th>POS Mode</th>
+                                <th>Shifts</th>
+                                <th>Tax Rate</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -347,10 +350,14 @@
                             </select>
                         </div>
                     </div>
-                    <div class="header-actions">
+                    <div class="header-actions" style="display: flex; gap: 10px;">
                         <button id="addProductBtn" class="action-button">
                             <i class="material-icons">add_shopping_cart</i>
                             <span>Add Product</span>
+                        </button>
+                        <button id="addProductProBtn" class="action-button" style="background: linear-gradient(135deg, #10b981, #059669); border-color: transparent;">
+                            <i class="material-icons">dashboard_customize</i>
+                            <span>Add Product Pro</span>
                         </button>
                     </div>
                 </div>
@@ -724,6 +731,62 @@
                     <label for="storeAddress"><i class="material-icons">location_on</i> Address:</label>
                     <input type="text" id="storeAddress" required>
                 </div>
+                <div class="form-group">
+                    <label for="storePosLayout"><i class="material-icons">dashboard</i> POS Mode:</label>
+                    <select id="storePosLayout">
+                        <option value="default" selected>Default Mode</option>
+                        <option value="food">Food Mode</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="storeTaxRate"><i class="material-icons">percent</i> Tax Rate (%):</label>
+                    <input type="number" id="storeTaxRate" min="0" max="100" step="0.1" value="0">
+                </div>
+                <div class="form-group">
+                    <label for="storeShiftCount"><i class="material-icons">schedule</i> Shift Count:</label>
+                    <select id="storeShiftCount">
+                        <option value="2" selected>2 Shifts</option>
+                        <option value="3">3 Shifts</option>
+                    </select>
+                </div>
+                <button type="submit"><i class="material-icons">save</i> Save</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Store Modal -->
+    <div id="editStoreModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">edit</i> Edit Store</h2>
+            <form id="editStoreForm">
+                <input type="hidden" id="editStoreId">
+                <div class="form-group">
+                    <label for="editStoreName"><i class="material-icons">store</i> Store Name:</label>
+                    <input type="text" id="editStoreName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editStoreAddress"><i class="material-icons">location_on</i> Address:</label>
+                    <input type="text" id="editStoreAddress" required>
+                </div>
+                <div class="form-group">
+                    <label for="editStorePosLayout"><i class="material-icons">dashboard</i> POS Mode:</label>
+                    <select id="editStorePosLayout">
+                        <option value="default">Default Mode</option>
+                        <option value="food">Food Mode</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editStoreTaxRate"><i class="material-icons">percent</i> Tax Rate (%):</label>
+                    <input type="number" id="editStoreTaxRate" min="0" max="100" step="0.1" value="0">
+                </div>
+                <div class="form-group">
+                    <label for="editStoreShiftCount"><i class="material-icons">schedule</i> Shift Count:</label>
+                    <select id="editStoreShiftCount">
+                        <option value="2">2 Shifts</option>
+                        <option value="3">3 Shifts</option>
+                    </select>
+                </div>
                 <button type="submit"><i class="material-icons">save</i> Save</button>
             </form>
         </div>
@@ -758,6 +821,16 @@
                     <input type="number" id="productPromotionPrice" step="0.01" min="0" placeholder="Enter promotion price">
                 </div>
                 <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="productStaffPriceEnabled" style="width: auto;">
+                        <span><i class="material-icons">badge</i> Enable Staff Price</span>
+                    </label>
+                </div>
+                <div class="form-group" id="productStaffPriceGroup" style="display: none;">
+                    <label for="productStaffPrice"><i class="material-icons">price_change</i> Staff Price:</label>
+                    <input type="number" id="productStaffPrice" step="0.01" min="0" placeholder="Enter staff price">
+                </div>
+                <div class="form-group">
                     <label for="productQuantity"><i class="material-icons">inventory_2</i> Stock:</label>
                     <input type="number" id="productQuantity" min="0" value="0" step="0.001">
                 </div>
@@ -770,6 +843,7 @@
                     <select id="saleUnit" required onchange="updateAdminStockInputStep('productQuantity', 'saleUnit')">
                         <option value="piece">By Piece/Quantity</option>
                         <option value="weight">By Weight (kg)</option>
+                        <option value="infinite">Infinite/No Stock Limit</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -780,6 +854,71 @@
                     </select>
                 </div>
                 <button type="submit"><i class="material-icons">save</i> Save</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Add Product Pro Modal -->
+    <div id="addProductProModal" class="modal">
+        <div class="modal-content" style="max-width: 900px; width: 95%;">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">dashboard_customize</i> Add Product Pro (Batch Add)</h2>
+            <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Set the common settings at the top, then quickly fill in name, price, and stock for each product. Product IDs will auto-increment based on the start ID.</p>
+            
+            <form id="addProductProForm">
+                <!-- Common fields at the top -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.02); padding: 15px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.05);">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="proStartId"><i class="material-icons">tag</i> Starting ID:</label>
+                        <input type="text" id="proStartId" placeholder="e.g. BF002" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="proCategory"><i class="material-icons">category</i> Category:</label>
+                        <input type="text" id="proCategory" placeholder="e.g. Beverage">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="proSaleUnit"><i class="material-icons">straighten</i> Sale Unit:</label>
+                        <select id="proSaleUnit" required>
+                            <option value="piece">By Piece/Quantity</option>
+                            <option value="weight">By Weight (kg)</option>
+                            <option value="infinite">Infinite/No Stock Limit</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="proStoreId"><i class="material-icons">store</i> Store:</label>
+                        <select id="proStoreId" required>
+                            <option value="">Select Store</option>
+                            <!-- Store options will be loaded dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Products Table -->
+                <div style="max-height: 400px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                    <table class="data-table" id="proProductsTable" style="width: 100%; border-collapse: collapse; margin: 0;">
+                        <thead style="background-color: #f5f5f5; position: sticky; top: 0; z-index: 1;">
+                            <tr>
+                                <th style="padding: 10px; width: 150px; text-align: left; border-bottom: 1px solid #ddd;">Product ID</th>
+                                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Product Name</th>
+                                <th style="padding: 10px; width: 150px; text-align: left; border-bottom: 1px solid #ddd;">Price (RM)</th>
+                                <th style="padding: 10px; width: 150px; text-align: left; border-bottom: 1px solid #ddd;">Stock</th>
+                                <th style="padding: 10px; width: 60px; text-align: center; border-bottom: 1px solid #ddd;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="proProductsTableBody">
+                            <!-- Product rows will be dynamically added here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <button type="button" class="btn-secondary" id="proAddRowBtn" style="background: #4f46e5; color: white; display: flex; align-items: center; gap: 5px; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                        <i class="material-icons">add</i> Add Row
+                    </button>
+                    <button type="submit" class="btn-primary" style="display: flex; align-items: center; gap: 5px; padding: 10px 20px; border-radius: 6px; font-weight: 500;">
+                        <i class="material-icons">save</i> Save All Products
+                    </button>
+                </div>
             </form>
         </div>
     </div>

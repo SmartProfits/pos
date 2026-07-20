@@ -80,6 +80,13 @@ const productsTableBody = document.getElementById('productsTableBody');
 const addProductModal = document.getElementById('addProductModal');
 const addProductForm = document.getElementById('addProductForm');
 const productStoreId = document.getElementById('productStoreId');
+const addProductProBtn = document.getElementById('addProductProBtn');
+const addProductProModal = document.getElementById('addProductProModal');
+const addProductProForm = document.getElementById('addProductProForm');
+const proStoreId = document.getElementById('proStoreId');
+const proStartId = document.getElementById('proStartId');
+const proAddRowBtn = document.getElementById('proAddRowBtn');
+const proProductsTableBody = document.getElementById('proProductsTableBody');
 
 // 用户管理DOM元素
 const addUserBtn = document.getElementById('addUserBtn');
@@ -219,12 +226,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         init();
                     } else {
                         // 不是管理员，重定向到POS页面
-                        window.location.href = 'pages/pos.html';
+                        window.location.href = getFullPath('pages/pos.html');
                     }
                 });
         } else {
             // 未登录，重定向到登录页面
-            window.location.href = 'index.html';
+            window.location.href = getFullPath('index.html');
         }
     });
 });
@@ -376,6 +383,18 @@ function initEventListeners() {
                 promotionPriceGroup.style.display = this.checked ? 'block' : 'none';
             });
         }
+        // 添加员工价格开关事件监听
+        const staffEnabledCheckbox = document.getElementById('productStaffPriceEnabled');
+        const staffPriceGroup = document.getElementById('productStaffPriceGroup');
+        if (staffEnabledCheckbox && staffPriceGroup) {
+            // 移除旧的事件监听器（如果有）
+            const newCheckbox = staffEnabledCheckbox.cloneNode(true);
+            staffEnabledCheckbox.parentNode.replaceChild(newCheckbox, staffEnabledCheckbox);
+            
+            newCheckbox.addEventListener('change', function() {
+                staffPriceGroup.style.display = this.checked ? 'block' : 'none';
+            });
+        }
     });
     
     // 商品店铺过滤器变化
@@ -465,8 +484,71 @@ function initEventListeners() {
     // 添加店铺表单提交
     addStoreForm.addEventListener('submit', handleAddStore);
     
+    // 编辑店铺表单提交
+    const editStoreForm = document.getElementById('editStoreForm');
+    if (editStoreForm) {
+        editStoreForm.addEventListener('submit', handleEditStore);
+    }
+    
     // 添加商品表单提交
     addProductForm.addEventListener('submit', handleAddProduct);
+    
+    // 批量添加商品相关事件
+    if (addProductProBtn) {
+        addProductProBtn.addEventListener('click', () => {
+            // 重置表单
+            addProductProForm.reset();
+            // 清空列表
+            proProductsTableBody.innerHTML = '';
+            // 添加首行
+            addProProductRow();
+            // 显示模态框
+            showModal(addProductProModal);
+        });
+    }
+
+    if (proAddRowBtn) {
+        proAddRowBtn.addEventListener('click', () => {
+            addProProductRow();
+        });
+    }
+
+    if (addProductProForm) {
+        addProductProForm.addEventListener('submit', handleAddProductPro);
+    }
+
+    if (proStartId) {
+        proStartId.addEventListener('input', () => {
+            recalculateRowIds();
+        });
+    }
+
+    const proSaleUnit = document.getElementById('proSaleUnit');
+    if (proSaleUnit) {
+        proSaleUnit.addEventListener('change', () => {
+            const isInfinite = proSaleUnit.value === 'infinite';
+            const rows = document.querySelectorAll('#proProductsTableBody tr');
+            rows.forEach(row => {
+                const stockInput = row.querySelector('.pro-stock-input');
+                if (stockInput) {
+                    if (isInfinite) {
+                        stockInput.value = '999999';
+                        stockInput.disabled = true;
+                    } else {
+                        stockInput.disabled = false;
+                        if (stockInput.value === '999999') {
+                            stockInput.value = '0';
+                        }
+                        if (proSaleUnit.value === 'weight') {
+                            stockInput.step = '0.001';
+                        } else {
+                            stockInput.step = '1';
+                        }
+                    }
+                }
+            });
+        });
+    }
     
     // 添加用户表单提交
     addUserForm.addEventListener('submit', handleAddUser);
@@ -783,7 +865,7 @@ function renderStores() {
     storesTableBody.innerHTML = '';
     
     if (Object.keys(stores).length === 0) {
-        storesTableBody.innerHTML = '<tr><td colspan="4" class="no-data">No store data available</td></tr>';
+        storesTableBody.innerHTML = '<tr><td colspan="7" class="no-data">No store data available</td></tr>';
         return;
     }
     
@@ -794,6 +876,14 @@ function renderStores() {
             <td>${storeId}</td>
             <td>${store.name}</td>
             <td>${store.address || '-'}</td>
+            <td>
+                <label class="switch" style="transform: scale(0.85); display: inline-block; vertical-align: middle;">
+                    <input type="checkbox" class="store-layout-toggle" data-id="${storeId}" ${store.posLayout === 'food' ? 'checked' : ''}>
+                    <span class="slider round"></span>
+                </label>
+            </td>
+            <td>${store.shiftCount !== undefined ? store.shiftCount : 2}</td>
+            <td>${store.taxRate !== undefined ? store.taxRate + '%' : '0%'}</td>
             <td>
                 <div class="action-buttons">
                     <button class="edit-btn icon-button" data-id="${storeId}" title="Edit"><i class="material-icons">edit</i></button>
@@ -813,12 +903,35 @@ function renderStores() {
     document.querySelectorAll('#storesTableBody .delete-btn').forEach(btn => {
         btn.addEventListener('click', () => deleteStore(btn.dataset.id));
     });
+    
+    // 添加事件监听器到布局切换开关
+    document.querySelectorAll('#storesTableBody .store-layout-toggle').forEach(toggle => {
+        toggle.addEventListener('change', (e) => {
+            const id = e.target.dataset.id;
+            const isCategory = e.target.checked;
+            const posLayout = isCategory ? 'food' : 'default';
+            
+            database.ref(`stores/${id}`).update({ posLayout })
+                .then(() => {
+                    console.log(`Successfully updated layout for store ${id} to ${posLayout}`);
+                    if (stores[id]) {
+                        stores[id].posLayout = posLayout;
+                    }
+                })
+                .catch(error => {
+                    console.error(`Failed to update layout for store ${id}:`, error);
+                    alert('Failed to update layout: ' + error.message);
+                    // Revert toggle state
+                    e.target.checked = !isCategory;
+                });
+        });
+    });
 }
 
 // 填充店铺下拉菜单
 function populateStoreDropdowns() {
     // 清空并重新填充店铺过滤器
-    const dropdowns = [productStoreFilter, productStoreId, userStoreId, inventoryStoreFilter, stockHistoryStoreFilter];
+    const dropdowns = [productStoreFilter, productStoreId, userStoreId, inventoryStoreFilter, stockHistoryStoreFilter, proStoreId];
     
     dropdowns.forEach(dropdown => {
         if (!dropdown) return;
@@ -1327,6 +1440,12 @@ function renderSaleDetails(sales) {
                 <i class="material-icons" style="font-size: 16px; color: #e53935;">local_offer</i>${discountIcon}
             </span>`;
         }
+        const isStaffApplied = sale.isStaffPriceApplied || (sale.items && sale.items.some(item => item.isStaffPriceApplied));
+        if (isStaffApplied) {
+            discountInfo += ` <span class="discount-info staff-applied-info" title="Staff Price Applied" style="background-color: #e8f5e9; border-radius: 4px; padding: 2px 6px; font-size: 11px; font-weight: bold; color: #2e7d32; display: inline-flex; align-items: center; gap: 2px; vertical-align: middle; margin-left: 4px;">
+                <i class="material-icons" style="font-size: 14px; color: #2e7d32;">badge</i>Staff
+            </span>`;
+        }
         
         // 确定班次样式类
         let shiftClass = 'shift-badge-unknown';
@@ -1428,6 +1547,13 @@ function showSaleDetails(sale) {
             }
             summaryDiv.appendChild(discountP);
         }
+
+        // 如果有税额信息
+        if (sale.taxAmount > 0) {
+            const taxP = document.createElement('p');
+            taxP.innerHTML = `Tax (${sale.taxRate}%): <strong>RM${sale.taxAmount.toFixed(2)}</strong>`;
+            summaryDiv.appendChild(taxP);
+        }
     }
     
     // 总计信息
@@ -1448,6 +1574,9 @@ function handleAddStore(e) {
     const storeId = document.getElementById('storeId').value.trim();
     const storeName = document.getElementById('storeName').value.trim();
     const storeAddress = document.getElementById('storeAddress').value.trim();
+    const storePosLayout = document.getElementById('storePosLayout') ? document.getElementById('storePosLayout').value : 'default';
+    const storeTaxRate = parseFloat(document.getElementById('storeTaxRate') ? document.getElementById('storeTaxRate').value : 0) || 0;
+    const storeShiftCount = parseInt(document.getElementById('storeShiftCount') ? document.getElementById('storeShiftCount').value : 2) || 2;
     
     // 检查店铺ID是否已存在
     if (stores[storeId]) {
@@ -1456,7 +1585,7 @@ function handleAddStore(e) {
     }
     
     // 添加店铺
-    addStore(storeId, storeName, storeAddress)
+    addStore(storeId, storeName, storeAddress, storePosLayout, storeTaxRate, storeShiftCount)
         .then(() => {
             // 隐藏模态框
             hideModal(document.getElementById('addStoreModal'));
@@ -1465,6 +1594,15 @@ function handleAddStore(e) {
             document.getElementById('storeId').value = '';
             document.getElementById('storeName').value = '';
             document.getElementById('storeAddress').value = '';
+            if (document.getElementById('storePosLayout')) {
+                document.getElementById('storePosLayout').value = 'default';
+            }
+            if (document.getElementById('storeTaxRate')) {
+                document.getElementById('storeTaxRate').value = '0';
+            }
+            if (document.getElementById('storeShiftCount')) {
+                document.getElementById('storeShiftCount').value = '2';
+            }
             
             // 重新加载店铺列表
             loadStores();
@@ -1480,8 +1618,50 @@ function handleAddStore(e) {
 
 // 编辑店铺
 function editStore(storeId) {
-    // 此处简化为提示，实际应该显示编辑模态框
-    alert(`Edit store ${storeId} functionality has not been implemented yet`);
+    const store = stores[storeId];
+    if (!store) return;
+    
+    document.getElementById('editStoreId').value = storeId;
+    document.getElementById('editStoreName').value = store.name || '';
+    document.getElementById('editStoreAddress').value = store.address || '';
+    document.getElementById('editStorePosLayout').value = store.posLayout || 'default';
+    if (document.getElementById('editStoreTaxRate')) {
+        document.getElementById('editStoreTaxRate').value = store.taxRate !== undefined ? store.taxRate : 0;
+    }
+    if (document.getElementById('editStoreShiftCount')) {
+        document.getElementById('editStoreShiftCount').value = store.shiftCount !== undefined ? store.shiftCount : 2;
+    }
+    
+    showModal(document.getElementById('editStoreModal'));
+}
+
+// 处理编辑店铺表单提交
+function handleEditStore(e) {
+    e.preventDefault();
+    
+    const storeId = document.getElementById('editStoreId').value;
+    const name = document.getElementById('editStoreName').value.trim();
+    const address = document.getElementById('editStoreAddress').value.trim();
+    const posLayout = document.getElementById('editStorePosLayout').value;
+    const taxRate = parseFloat(document.getElementById('editStoreTaxRate') ? document.getElementById('editStoreTaxRate').value : 0) || 0;
+    const shiftCount = parseInt(document.getElementById('editStoreShiftCount') ? document.getElementById('editStoreShiftCount').value : 2) || 2;
+    
+    database.ref(`stores/${storeId}`).update({
+        name,
+        address,
+        posLayout,
+        taxRate,
+        shiftCount
+    })
+    .then(() => {
+        hideModal(document.getElementById('editStoreModal'));
+        loadStores();
+        alert('Store updated successfully.');
+    })
+    .catch(error => {
+        console.error('Failed to update store:', error);
+        alert('Failed to update store. Please try again.');
+    });
 }
 
 // 删除店铺
@@ -1610,21 +1790,27 @@ function renderProducts(searchQuery = '', categoryFilter = 'all', promotionFilte
         const product = products[productId];
         const storeName = stores[product.store_id]?.name || product.store_id;
         // 使用stock值，如果不存在则使用quantity，确保兼容旧数据
-        const stockDisplay = product.stock !== undefined ? product.stock : (product.quantity || 0);
+        const isInfinite = product.saleUnit === 'infinite';
+        const stockDisplay = isInfinite ? 'Unlimited' : (product.stock !== undefined ? product.stock : (product.quantity || 0));
         const displayId = product.original_id || productId;
         
         // 计算显示价格（如果启用促销价格则显示促销价格，否则显示正常价格）
         const displayPrice = (product.promotionEnabled && product.promotionPrice !== null && product.promotionPrice !== undefined) 
             ? product.promotionPrice 
             : product.price;
-        const priceDisplay = product.promotionEnabled && product.promotionPrice !== null && product.promotionPrice !== undefined
+        let priceDisplay = product.promotionEnabled && product.promotionPrice !== null && product.promotionPrice !== undefined
             ? `<span style="text-decoration: line-through; color: #999; margin-right: 5px;">RM${product.price.toFixed(2)}</span><span style="color: #f44336; font-weight: bold;">RM${displayPrice.toFixed(2)}</span>`
             : `RM${displayPrice.toFixed(2)}`;
+            
+        const hasStaffPrice = product.staffPriceEnabled && product.staffPrice !== null && product.staffPrice !== undefined;
+        if (hasStaffPrice) {
+            priceDisplay += ` <span style="color: #4caf50; font-size: 0.85em; font-weight: bold; margin-left: 5px;" title="Staff Price: RM${product.staffPrice.toFixed(2)}"><i class="material-icons" style="font-size: 14px; vertical-align: middle;">badge</i>RM${product.staffPrice.toFixed(2)}</span>`;
+        }
         
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${displayId}</td>
-            <td>${product.name}${product.promotionEnabled ? ' <span style="color: #f44336; font-size: 0.85em;"><i class="material-icons" style="font-size: 14px; vertical-align: middle;">local_offer</i></span>' : ''}</td>
+            <td>${product.name}${product.promotionEnabled ? ' <span style="color: #f44336; font-size: 0.85em;"><i class="material-icons" style="font-size: 14px; vertical-align: middle;">local_offer</i></span>' : ''}${hasStaffPrice ? ' <span style="color: #4caf50; font-size: 0.85em;"><i class="material-icons" style="font-size: 14px; vertical-align: middle;">badge</i></span>' : ''}</td>
             <td>${priceDisplay}</td>
             <td>${stockDisplay}</td>
             <td>${product.category || '-'}</td>
@@ -1699,6 +1885,8 @@ function handleAddProduct(e) {
     const productStoreIdInput = document.getElementById('productStoreId');
     const productPromotionEnabledInput = document.getElementById('productPromotionEnabled');
     const productPromotionPriceInput = document.getElementById('productPromotionPrice');
+    const productStaffPriceEnabledInput = document.getElementById('productStaffPriceEnabled');
+    const productStaffPriceInput = document.getElementById('productStaffPrice');
     const productSaleUnitInput = document.getElementById('saleUnit');
     
     const productId = productIdInput.value.trim();
@@ -1709,6 +1897,8 @@ function handleAddProduct(e) {
     const storeId = productStoreIdInput.value;
     const promotionEnabled = productPromotionEnabledInput ? productPromotionEnabledInput.checked : false;
     const promotionPrice = promotionEnabled && productPromotionPriceInput ? parseFloat(productPromotionPriceInput.value) : null;
+    const staffPriceEnabled = productStaffPriceEnabledInput ? productStaffPriceEnabledInput.checked : false;
+    const staffPrice = staffPriceEnabled && productStaffPriceInput ? parseFloat(productStaffPriceInput.value) : null;
     const saleUnit = productSaleUnitInput ? productSaleUnitInput.value : 'piece';
     
     if (!productId || !name || isNaN(price) || !storeId) {
@@ -1720,17 +1910,178 @@ function handleAddProduct(e) {
         alert('Please enter a valid promotion price');
         return;
     }
+
+    if (staffPriceEnabled && (isNaN(staffPrice) || staffPrice < 0)) {
+        alert('Please enter a valid staff price');
+        return;
+    }
     
     // 添加商品到数据库
-    addProduct(productId, name, price, stock, category, storeId, promotionEnabled, promotionPrice, saleUnit)
+    addProduct(productId, name, price, stock, category, storeId, promotionEnabled, promotionPrice, saleUnit, staffPriceEnabled, staffPrice)
         .then(() => {
             hideModal(addProductModal);
+            
+            // 重置表单的特殊扩展字段
+            if (productStaffPriceEnabledInput) productStaffPriceEnabledInput.checked = false;
+            const staffPriceGroup = document.getElementById('productStaffPriceGroup');
+            if (staffPriceGroup) staffPriceGroup.style.display = 'none';
+            if (productStaffPriceInput) productStaffPriceInput.value = '';
+
             loadProducts();
             alert('Product added successfully!');
         })
         .catch(error => {
             console.error('Failed to add product:', error);
             alert('Failed to add product. Please try again.');
+        });
+}
+
+// 批量添加商品相关辅助函数
+function incrementProductId(idStr) {
+    if (!idStr) return '';
+    const match = idStr.match(/^(.*?)(\d+)$/);
+    if (!match) {
+        return idStr + "1";
+    }
+    const prefix = match[1];
+    const numStr = match[2];
+    const nextNum = parseInt(numStr, 10) + 1;
+    const paddedNum = String(nextNum).padStart(numStr.length, '0');
+    return prefix + paddedNum;
+}
+
+function recalculateRowIds() {
+    const startIdInput = document.getElementById('proStartId');
+    if (!startIdInput) return;
+    let currentId = startIdInput.value.trim();
+    const rows = document.querySelectorAll('#proProductsTableBody tr');
+    rows.forEach((row, index) => {
+        const idSpan = row.querySelector('.pro-row-id');
+        if (idSpan) {
+            idSpan.textContent = currentId;
+            row.dataset.productId = currentId;
+        }
+        currentId = incrementProductId(currentId);
+    });
+}
+
+function addProProductRow() {
+    const startIdInput = document.getElementById('proStartId');
+    let nextId = startIdInput.value.trim();
+    
+    const lastRow = proProductsTableBody.querySelector('tr:last-child');
+    if (lastRow) {
+        const lastId = lastRow.dataset.productId;
+        nextId = incrementProductId(lastId);
+    } else if (!nextId) {
+        nextId = 'BF001';
+        startIdInput.value = nextId;
+    }
+    
+    const row = document.createElement('tr');
+    row.dataset.productId = nextId;
+    row.innerHTML = `
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;"><span class="pro-row-id">${nextId}</span></td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd;"><input type="text" class="pro-name-input" placeholder="Product Name" required style="width: 100%; box-sizing: border-box; padding: 6px;"></td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd;"><input type="number" class="pro-price-input" placeholder="Price" step="0.01" min="0" required style="width: 100%; box-sizing: border-box; padding: 6px;"></td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd;"><input type="number" class="pro-stock-input" placeholder="Stock" step="0.001" min="0" value="0" required style="width: 100%; box-sizing: border-box; padding: 6px;"></td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">
+            <button type="button" class="pro-delete-row-btn" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px;">
+                <i class="material-icons">delete_forever</i>
+            </button>
+        </td>
+    `;
+    
+    row.querySelector('.pro-delete-row-btn').addEventListener('click', () => {
+        row.remove();
+        recalculateRowIds();
+    });
+
+    const proSaleUnit = document.getElementById('proSaleUnit');
+    if (proSaleUnit && proSaleUnit.value === 'infinite') {
+        const stockInput = row.querySelector('.pro-stock-input');
+        if (stockInput) {
+            stockInput.value = '999999';
+            stockInput.disabled = true;
+        }
+    }
+    
+    proProductsTableBody.appendChild(row);
+}
+
+function handleAddProductPro(e) {
+    e.preventDefault();
+    
+    const startIdInput = document.getElementById('proStartId');
+    const categoryInput = document.getElementById('proCategory');
+    const saleUnitInput = document.getElementById('proSaleUnit');
+    const storeIdInput = document.getElementById('proStoreId');
+    
+    const startId = startIdInput.value.trim();
+    const category = categoryInput.value.trim();
+    const saleUnit = saleUnitInput.value;
+    const storeId = storeIdInput.value;
+    
+    if (!startId || !storeId) {
+        alert('Please specify the starting ID and Store');
+        return;
+    }
+    
+    const rows = document.querySelectorAll('#proProductsTableBody tr');
+    if (rows.length === 0) {
+        alert('Please add at least one product row');
+        return;
+    }
+    
+    const productsToAdd = [];
+    let isValid = true;
+    
+    rows.forEach((row, index) => {
+        const productId = row.dataset.productId;
+        const nameInput = row.querySelector('.pro-name-input');
+        const priceInput = row.querySelector('.pro-price-input');
+        const stockInput = row.querySelector('.pro-stock-input');
+        
+        const name = nameInput.value.trim();
+        const price = parseFloat(priceInput.value);
+        const stock = parseFloat(stockInput.value) || 0;
+        
+        if (!name || isNaN(price) || price < 0) {
+            isValid = false;
+            nameInput.style.borderColor = !name ? 'red' : '';
+            priceInput.style.borderColor = isNaN(price) || price < 0 ? 'red' : '';
+            return;
+        }
+        
+        productsToAdd.push({
+            productId,
+            name,
+            price,
+            stock,
+            category,
+            storeId,
+            saleUnit
+        });
+    });
+    
+    if (!isValid) {
+        alert('Please fill in all product names and valid prices');
+        return;
+    }
+    
+    const promises = productsToAdd.map(p => {
+        return addProduct(p.productId, p.name, p.price, p.stock, p.category, p.storeId, false, null, p.saleUnit);
+    });
+    
+    Promise.all(promises)
+        .then(() => {
+            hideModal(addProductProModal);
+            loadProducts();
+            alert(`Successfully added ${productsToAdd.length} products!`);
+        })
+        .catch(error => {
+            console.error('Failed to add batch products:', error);
+            alert('Failed to add some products. Please check console for details.');
         });
 }
 
@@ -1773,6 +2124,16 @@ function editProduct(productId) {
                     <input type="number" id="editProductPromotionPrice" value="${product.promotionPrice || ''}" step="0.01" min="0" placeholder="Enter promotion price">
                 </div>
                 <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="editProductStaffPriceEnabled" style="width: auto;" ${product.staffPriceEnabled ? 'checked' : ''}>
+                        <span><i class="material-icons">badge</i> Enable Staff Price</span>
+                    </label>
+                </div>
+                <div class="form-group" id="editProductStaffPriceGroup" style="display: ${product.staffPriceEnabled ? 'block' : 'none'};">
+                    <label for="editProductStaffPrice"><i class="material-icons">price_change</i> Staff Price:</label>
+                    <input type="number" id="editProductStaffPrice" value="${product.staffPrice || ''}" step="0.01" min="0" placeholder="Enter staff price">
+                </div>
+                <div class="form-group">
                     <label for="editProductStock"><i class="material-icons">inventory_2</i> Stock:</label>
                     <input type="number" id="editProductStock" value="${product.stock !== undefined ? product.stock : (product.quantity || 0)}" min="0" step="0.001" required>
                 </div>
@@ -1785,6 +2146,7 @@ function editProduct(productId) {
                     <select id="editSaleUnit" required onchange="updateAdminStockInputStep('editProductStock', 'editSaleUnit')">
                         <option value="piece" ${product.saleUnit === 'piece' ? 'selected' : ''}>By Piece/Quantity</option>
                         <option value="weight" ${product.saleUnit === 'weight' ? 'selected' : ''}>By Weight (kg)</option>
+                        <option value="infinite" ${product.saleUnit === 'infinite' ? 'selected' : ''}>Infinite/No Stock Limit</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -1833,6 +2195,15 @@ function editProduct(productId) {
             promotionPriceGroup.style.display = this.checked ? 'block' : 'none';
         });
     }
+
+    // 添加员工价格开关事件监听
+    const staffEnabledCheckbox = document.getElementById('editProductStaffPriceEnabled');
+    const staffPriceGroup = document.getElementById('editProductStaffPriceGroup');
+    if (staffEnabledCheckbox && staffPriceGroup) {
+        staffEnabledCheckbox.addEventListener('change', function() {
+            staffPriceGroup.style.display = this.checked ? 'block' : 'none';
+        });
+    }
     
     // 处理表单提交
     const editForm = document.getElementById('editProductForm');
@@ -1847,6 +2218,8 @@ function editProduct(productId) {
         const newStoreId = document.getElementById('editProductStoreId').value;
         const newPromotionEnabled = document.getElementById('editProductPromotionEnabled') ? document.getElementById('editProductPromotionEnabled').checked : false;
         const newPromotionPrice = newPromotionEnabled && document.getElementById('editProductPromotionPrice') ? parseFloat(document.getElementById('editProductPromotionPrice').value) : null;
+        const newStaffPriceEnabled = document.getElementById('editProductStaffPriceEnabled') ? document.getElementById('editProductStaffPriceEnabled').checked : false;
+        const newStaffPrice = newStaffPriceEnabled && document.getElementById('editProductStaffPrice') ? parseFloat(document.getElementById('editProductStaffPrice').value) : null;
         const newSaleUnit = document.getElementById('editSaleUnit') ? document.getElementById('editSaleUnit').value : 'piece';
         
         if (!newProductId || !newName || isNaN(newPrice) || !newStoreId) {
@@ -1858,6 +2231,11 @@ function editProduct(productId) {
             alert('Please enter a valid promotion price');
             return;
         }
+
+        if (newStaffPriceEnabled && (isNaN(newStaffPrice) || newStaffPrice < 0)) {
+            alert('Please enter a valid staff price');
+            return;
+        }
         
         // 检查新产品ID是否已存在（如果ID有变化）
         if (newProductId !== actualProductId && products[newProductId] && products[newProductId].store_id === newStoreId) {
@@ -1866,7 +2244,7 @@ function editProduct(productId) {
         }
         
         // 更新商品
-        updateProduct(actualProductId, newProductId, newName, newPrice, newStock, newCategory, newStoreId, product.store_id, newPromotionEnabled, newPromotionPrice, newSaleUnit)
+        updateProduct(actualProductId, newProductId, newName, newPrice, newStock, newCategory, newStoreId, product.store_id, newPromotionEnabled, newPromotionPrice, newSaleUnit, newStaffPriceEnabled, newStaffPrice)
             .then(() => {
                 hideModal(editModal);
                 // 移除模态框
@@ -1884,7 +2262,7 @@ function editProduct(productId) {
 }
 
 // 更新商品
-function updateProduct(oldProductId, newProductId, name, price, stock, category, newStoreId, oldStoreId, promotionEnabled = false, promotionPrice = null, saleUnit = 'piece') {
+function updateProduct(oldProductId, newProductId, name, price, stock, category, newStoreId, oldStoreId, promotionEnabled = false, promotionPrice = null, saleUnit = 'piece', staffPriceEnabled = false, staffPrice = null) {
     const productData = {
         name,
         price,
@@ -1894,6 +2272,8 @@ function updateProduct(oldProductId, newProductId, name, price, stock, category,
         stock: stock, // 确保更新stock字段
         promotionEnabled: promotionEnabled || false,
         promotionPrice: promotionEnabled ? (promotionPrice || null) : null,
+        staffPriceEnabled: staffPriceEnabled || false,
+        staffPrice: staffPriceEnabled ? (staffPrice || null) : null,
         saleUnit: saleUnit || 'piece'
     };
     
@@ -2174,10 +2554,13 @@ function logout() {
 
 // 数据库操作函数
 // 添加商店
-function addStore(storeId, name, address) {
+function addStore(storeId, name, address, posLayout = 'default', taxRate = 0, shiftCount = 2) {
     return database.ref(`stores/${storeId}`).set({
         name,
-        address
+        address,
+        posLayout,
+        taxRate,
+        shiftCount
     });
 }
 
@@ -2193,7 +2576,7 @@ function getAllStores() {
 }
 
 // 添加商品
-function addProduct(productId, name, price, quantity, category, storeId, promotionEnabled = false, promotionPrice = null, saleUnit = 'piece') {
+function addProduct(productId, name, price, quantity, category, storeId, promotionEnabled = false, promotionPrice = null, saleUnit = 'piece', staffPriceEnabled = false, staffPrice = null) {
     const productData = {
         name,
         price,
@@ -2203,6 +2586,8 @@ function addProduct(productId, name, price, quantity, category, storeId, promoti
         stock: quantity || 0, // 添加stock字段，与POS页面保持一致
         promotionEnabled: promotionEnabled || false,
         promotionPrice: promotionEnabled ? (promotionPrice || null) : null,
+        staffPriceEnabled: staffPriceEnabled || false,
+        staffPrice: staffPriceEnabled ? (staffPrice || null) : null,
         saleUnit: saleUnit || 'piece'
     };
     return database.ref(`store_products/${storeId}/${productId}`).set(productData);
@@ -2216,8 +2601,19 @@ function updateAdminStockInputStep(quantityId, saleUnitId) {
     if (saleUnitInput && productQuantityInput) {
         if (saleUnitInput.value === 'weight') {
             productQuantityInput.step = '0.001'; // 允许输入三位小数
+            productQuantityInput.disabled = false;
+            if (productQuantityInput.value === '999999') {
+                productQuantityInput.value = '0';
+            }
+        } else if (saleUnitInput.value === 'infinite') {
+            productQuantityInput.value = '999999'; // 设置为一个足够高数值
+            productQuantityInput.disabled = true;  // 禁用输入
         } else {
             productQuantityInput.step = '1';
+            productQuantityInput.disabled = false;
+            if (productQuantityInput.value === '999999') {
+                productQuantityInput.value = '0';
+            }
         }
     }
 }
@@ -2604,10 +3000,14 @@ function renderInventory(productsEntries) {
     
     productsEntries.forEach(([productId, product]) => {
         const storeName = stores[product.store_id]?.name || product.store_id;
-        const stock = product.stock !== undefined ? product.stock : (product.quantity || 0);
+        const isInfinite = product.saleUnit === 'infinite';
+        const stock = isInfinite ? 'Unlimited' : (product.stock !== undefined ? product.stock : (product.quantity || 0));
         const displayId = product.original_id || productId;
         let statusClass, statusText;
-        if (stock <= 0) {
+        if (isInfinite) {
+            statusClass = 'status-good';
+            statusText = 'Unlimited';
+        } else if (stock <= 0) {
             statusClass = 'status-out';
             statusText = 'Out of Stock';
         } else if (stock <= 10) {
