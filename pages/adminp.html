@@ -144,6 +144,14 @@
             color: #C084FC !important;
         }
 
+        body.night-mode #shift2Sales.three-shift-mode {
+            color: #60A5FA !important;
+        }
+
+        body.night-mode #shift3Sales {
+            color: #C084FC !important;
+        }
+
         /* Make sure ranking medals aren't too dark */
         body.night-mode .top3-rank.r1 {
             color: #7a3c00 !important;
@@ -1965,12 +1973,18 @@
             grid-template-columns: repeat(2, 1fr);
             gap: 14px;
             margin-bottom: 28px;
+            transition: all 0.3s ease;
+        }
+
+        .shirt-sales-section.three-shifts {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
         }
 
         .shirt-card {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 18px;
-            padding: 20px;
+            padding: 20px 8px;
             text-align: center;
             box-shadow: 0 4px 18px rgba(37, 99, 235, 0.10), 0 2px 4px rgba(0, 0, 0, 0.04);
             border: 1px solid rgba(255, 255, 255, 0.9);
@@ -1979,12 +1993,17 @@
             transition: all 0.25s ease;
         }
 
+        .shirt-sales-section.three-shifts .shirt-card {
+            padding: 16px 4px;
+            border-radius: 16px;
+        }
+
         .shirt-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 28px rgba(37, 99, 235, 0.15);
         }
 
-        .shirt-card:first-child::before {
+        .shirt-card.shift-card-1::before {
             content: '';
             position: absolute;
             top: 0;
@@ -1995,7 +2014,22 @@
             border-radius: 18px 18px 0 0;
         }
 
-        .shirt-card:last-child::before {
+        .shirt-card.shift-card-2::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #2563EB, #3B82F6);
+            border-radius: 18px 18px 0 0;
+        }
+
+        .shirt-sales-section:not(.three-shifts) .shirt-card.shift-card-2::before {
+            background: linear-gradient(90deg, #7C3AED, #EC4899);
+        }
+
+        .shirt-card.shift-card-3::before {
             content: '';
             position: absolute;
             top: 0;
@@ -2009,6 +2043,12 @@
         .shirt-icon {
             font-size: 32px;
             margin-bottom: 10px;
+            transition: font-size 0.3s ease;
+        }
+
+        .shirt-sales-section.three-shifts .shirt-icon {
+            font-size: 26px;
+            margin-bottom: 6px;
         }
 
         .shirt-value {
@@ -2016,6 +2056,11 @@
             font-weight: 800;
             color: var(--ios-green);
             margin-bottom: 4px;
+            transition: font-size 0.3s ease;
+        }
+
+        .shirt-sales-section.three-shifts .shirt-value {
+            font-size: 15px;
         }
 
         .shirt-label {
@@ -2024,6 +2069,11 @@
             text-transform: uppercase;
             letter-spacing: 0.8px;
             font-weight: 600;
+        }
+
+        .shirt-sales-section.three-shifts .shirt-label {
+            font-size: 10px;
+            letter-spacing: 0.4px;
         }
 
         .record-bill-number {
@@ -3165,18 +3215,24 @@
                     </div>
 
                     <!-- Shift Sales -->
-                    <div class="shirt-sales-section">
-                        <div class="shirt-card">
+                    <div class="shirt-sales-section" id="shiftSalesSection">
+                        <div class="shirt-card shift-card-1">
                             <div class="shirt-icon">☀️</div>
                             <div class="shirt-value" id="shift1Sales"
                                 style="font-size: 16px; color: #f0a111; font-weight: 900;">RM 0</div>
                             <div class="shirt-label">Shift 1</div>
                         </div>
-                        <div class="shirt-card">
-                            <div class="shirt-icon">🌙</div>
+                        <div class="shirt-card shift-card-2">
+                            <div class="shirt-icon" id="shift2Icon">🌙</div>
                             <div class="shirt-value" id="shift2Sales"
                                 style="font-size: 16px; color: #9706f9; font-weight: 900;">RM 0</div>
                             <div class="shirt-label">Shift 2</div>
+                        </div>
+                        <div class="shirt-card shift-card-3" id="shift3Card" style="display: none;">
+                            <div class="shirt-icon">🌙</div>
+                            <div class="shirt-value" id="shift3Sales"
+                                style="font-size: 16px; color: #9706f9; font-weight: 900;">RM 0</div>
+                            <div class="shirt-label">Shift 3</div>
                         </div>
                     </div>
 
