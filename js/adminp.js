@@ -33,6 +33,9 @@ const storeImageMap = {
     'left': '../shop/left.png',
     'ktsp': '../shop/ktsp.png',
     'tamoi': '../shop/tamoi.png',
+    'nooodles': '../shop/nooodles.png',
+    'kopikita': '../shop/kopikita.png',
+    
     // Fallback options
     'store1': '../shop/dalam.png',
     'store2': '../shop/luar.png',
@@ -951,8 +954,38 @@ async function loadStoreDetailData(storeId, date) {
 
         // Calculate shift sales
         const shiftSales = calculateShiftSales(salesData);
+
+        const storeShiftCount = (store && store.shiftCount !== undefined) ? parseInt(store.shiftCount) : 2;
+        const hasShift3 = (storeShiftCount === 3) || (shiftSales.shift3 > 0) || Object.values(salesData).some(s => s && s.cashierShift && s.cashierShift.includes("3rd Shift"));
+
+        const shiftContainer = document.getElementById('shiftSalesSection');
+        const shift2Icon = document.getElementById('shift2Icon');
+        const shift2Sales = document.getElementById('shift2Sales');
+        const shift3Card = document.getElementById('shift3Card');
+        const shift3Sales = document.getElementById('shift3Sales');
+
         document.getElementById('shift1Sales').textContent = `RM ${shiftSales.shift1.toFixed(2)}`;
-        document.getElementById('shift2Sales').textContent = `RM ${shiftSales.shift2.toFixed(2)}`;
+
+        if (hasShift3) {
+            if (shiftContainer) shiftContainer.classList.add('three-shifts');
+            if (shift2Icon) shift2Icon.textContent = '⛅';
+            if (shift2Sales) {
+                shift2Sales.textContent = `RM ${shiftSales.shift2.toFixed(2)}`;
+                shift2Sales.style.color = '#2563eb';
+                shift2Sales.classList.add('three-shift-mode');
+            }
+            if (shift3Card) shift3Card.style.display = 'block';
+            if (shift3Sales) shift3Sales.textContent = `RM ${shiftSales.shift3.toFixed(2)}`;
+        } else {
+            if (shiftContainer) shiftContainer.classList.remove('three-shifts');
+            if (shift2Icon) shift2Icon.textContent = '🌙';
+            if (shift2Sales) {
+                shift2Sales.textContent = `RM ${shiftSales.shift2.toFixed(2)}`;
+                shift2Sales.style.color = '#9706f9';
+                shift2Sales.classList.remove('three-shift-mode');
+            }
+            if (shift3Card) shift3Card.style.display = 'none';
+        }
 
         // Render sales records
         renderSalesRecords(salesData);
@@ -1149,6 +1182,7 @@ async function calculateWeekData(storeId) {
 function calculateShiftSales(salesData) {
     let shift1Sales = 0;
     let shift2Sales = 0;
+    let shift3Sales = 0;
 
     Object.values(salesData).forEach(sale => {
         if (sale && sale.total_amount) {
@@ -1160,11 +1194,13 @@ function calculateShiftSales(salesData) {
                 shift1Sales += totalAmount;
             } else if (cashierShift.includes("2nd Shift")) {
                 shift2Sales += totalAmount;
+            } else if (cashierShift.includes("3rd Shift")) {
+                shift3Sales += totalAmount;
             }
         }
     });
 
-    return { shift1: shift1Sales, shift2: shift2Sales };
+    return { shift1: shift1Sales, shift2: shift2Sales, shift3: shift3Sales };
 }
 
 // Render store detail sales with real data
