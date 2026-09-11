@@ -33,9 +33,6 @@ const storeImageMap = {
     'left': '../shop/left.png',
     'ktsp': '../shop/ktsp.png',
     'tamoi': '../shop/tamoi.png',
-    'nooodles': '../shop/nooodles.png',
-    'kopikita': '../shop/kopikita.png',
-    
     // Fallback options
     'store1': '../shop/dalam.png',
     'store2': '../shop/luar.png',
