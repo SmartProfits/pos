@@ -763,6 +763,181 @@
             color: #cbd5e1;
         }
 
+        /* ===== 分批付款（Cash + QR / Credit Card） ===== */
+        .payment-split {
+            margin-top: 8px;
+        }
+
+        .split-toggle {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin: 0;
+            padding: 7px 9px;
+            border-radius: 9px;
+            border: 1px dashed #cbd5e1;
+            background: #fff;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            line-height: 1.2;
+            transition: border-color .15s ease, color .15s ease;
+        }
+
+        .split-toggle:hover {
+            border-color: #93c5fd;
+        }
+
+        .split-toggle input {
+            flex: 0 0 auto;
+            width: 15px;
+            height: 15px;
+            margin: 0;
+            padding: 0;
+            accent-color: #3498db;
+            cursor: pointer;
+        }
+
+        .split-toggle > .material-icons {
+            font-size: 16px;
+            color: #3498db;
+        }
+
+        .split-toggle input:checked ~ .split-toggle-text {
+            color: #1d4ed8;
+        }
+
+        .split-amounts {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .split-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .split-row > label {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            min-width: 74px;
+            margin: 0;
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #64748b;
+            white-space: nowrap;
+        }
+
+        .split-row > label .material-icons {
+            font-size: 15px;
+            color: #94a3b8;
+        }
+
+        .split-input {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            height: 34px;
+            padding: 0 8px;
+            box-sizing: border-box;
+            border-radius: 8px;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+        }
+
+        .split-input:focus-within {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, .12);
+        }
+
+        .split-input > span {
+            flex: 0 0 auto;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #94a3b8;
+        }
+
+        .split-input > input {
+            flex: 1;
+            min-width: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            outline: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1e293b;
+            text-align: right;
+        }
+
+        .split-status {
+            padding: 0 2px;
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 1.35;
+            color: #64748b;
+        }
+
+        .split-status.is-ok {
+            color: #16a34a;
+        }
+
+        .split-status.is-error {
+            color: #dc2626;
+        }
+
+        body.dark-mode .split-toggle {
+            background: #1e293b;
+            border-color: #334155;
+            color: #cbd5e1;
+        }
+
+        body.dark-mode .split-toggle:hover {
+            border-color: #475569;
+        }
+
+        body.dark-mode .split-toggle input:checked ~ .split-toggle-text {
+            color: #93c5fd;
+        }
+
+        body.dark-mode .split-row > label {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .split-input {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        body.dark-mode .split-input > input {
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .split-status {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .split-status.is-ok {
+            color: #4ade80;
+        }
+
+        body.dark-mode .split-status.is-error {
+            color: #f87171;
+        }
+
         /* Payment badge in sales history (single default colour, icon + method) */
         .payment-badge {
             display: inline-flex;
@@ -1080,6 +1255,32 @@
                                         <i class="material-icons bank-select-caret">expand_more</i>
                                     </button>
                                     <div class="bank-select-menu" id="paymentBankMenu" role="listbox" aria-label="Bank"></div>
+                                </div>
+                            </div>
+
+                            <!-- 分批付款：一部分付现金，剩下的用 QR / Credit Card -->
+                            <div class="payment-split" id="paymentSplitSection" style="display:none;">
+                                <label class="split-toggle" for="splitPaymentToggle">
+                                    <input type="checkbox" id="splitPaymentToggle">
+                                    <i class="material-icons">call_split</i>
+                                    <span class="split-toggle-text">Split payment (part cash)</span>
+                                </label>
+                                <div class="split-amounts" id="splitAmounts" style="display:none;">
+                                    <div class="split-row">
+                                        <label for="splitCashInput"><i class="material-icons">payments</i> Cash</label>
+                                        <div class="split-input">
+                                            <span>RM</span>
+                                            <input type="text" id="splitCashInput" inputmode="decimal" autocomplete="off" aria-label="Cash amount">
+                                        </div>
+                                    </div>
+                                    <div class="split-row">
+                                        <label for="splitNonCashInput"><i class="material-icons" id="splitNonCashIcon">qr_code_2</i> <span id="splitNonCashLabel">QR</span></label>
+                                        <div class="split-input">
+                                            <span>RM</span>
+                                            <input type="text" id="splitNonCashInput" inputmode="decimal" autocomplete="off" aria-label="Non-cash amount">
+                                        </div>
+                                    </div>
+                                    <div class="split-status" id="splitStatus"></div>
                                 </div>
                             </div>
                         </div>
@@ -1677,7 +1878,7 @@
     <script src="../js/firebase-config.js"></script>
     <script src="../js/database.js"></script>
     <script src="../js/network-monitor.js"></script>
-    <script src="../js/pos.js?v=2.8"></script>
+    <script src="../js/pos.js?v=2.9"></script>
     <script>
         // 
         document.addEventListener('DOMContentLoaded', function () {

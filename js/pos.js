@@ -32,6 +32,13 @@ let announcementScrollingText = null; // 公告滚动文本元素
 let selectedPaymentMethod = 'cash'; // cash | qr | card
 let selectedPaymentBank = ''; // 选中的银行（QR / Credit Card）
 
+// 分批付款（一部分现金 + 一部分 QR/Card）
+let splitPaymentEnabled = false;
+let splitCashAmount = 0;      // 现金部分
+let splitNonCashAmount = 0;   // QR / Card 部分
+let splitLastEdited = 'cash'; // 用户最后改的是哪一栏：cash | noncash
+let splitTouched = false;     // 用户是否手动改过金额（没改过就按总额对半）
+
 // 添加震动反馈辅助函数
 function vibrateDevice(pattern = 50) {
     if ('vibrate' in navigator) {
@@ -1370,6 +1377,7 @@ function renderSalesTable(sales) {
             }
         }
 
+        const payDisplay = getSalePaymentDisplay(sale);
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${sale.billNumber || 'N/A'}</td>
@@ -1377,7 +1385,7 @@ function renderSalesTable(sales) {
             <td>${cashierName}</td>
             <td>${cashierShift}</td>
             <td>${itemCount}</td>
-            <td><span class="payment-badge"><i class="material-icons">${getPaymentIcon(sale.paymentMethod)}</i>${formatPaymentLabel(sale.paymentMethod || 'cash')}</span></td>
+            <td><span class="payment-badge"><i class="material-icons">${payDisplay.icon}</i>${escapePosText(payDisplay.label)}</span></td>
             <td>${bankCellHTML(sale.paymentBank) || '-'}</td>
             <td><span class="discount-badge ${discountBadgeClass}">${discountDisplay}</span></td>
             <td>RM${sale.total_amount.toFixed(2)}</td>
@@ -1480,8 +1488,9 @@ function viewSaleDetails(sale) {
         }
     }
 
-    const salePaymentLabel = formatPaymentLabel(sale.paymentMethod || 'cash');
+    const salePayment = getSalePaymentDisplay(sale);
     const salePaymentBank = sale.paymentBank || '';
+    const saleSplitRows = paymentSplitsRowsHTML(sale);
 
     detailsHTML += `
                 <div class="summary-row total">
@@ -1490,9 +1499,10 @@ function viewSaleDetails(sale) {
                 </div>
                 <div class="summary-row">
                     <p>Payment:</p>
-                    <p>${salePaymentLabel}</p>
+                    <p>${escapePosText(salePayment.label)}</p>
                 </div>
-                ${salePaymentBank ? `
+                ${saleSplitRows}
+                ${(!saleSplitRows && salePaymentBank) ? `
                 <div class="summary-row">
                     <p>Bank:</p>
                     <p>${bankCellHTML(salePaymentBank) || escapePosText(salePaymentBank)}</p>
@@ -2174,6 +2184,49 @@ function getPaymentIcon(method) {
     return PAYMENT_METHODS[key].icon;
 }
 
+// 分拆付款明细：RTDB 里可能是数组，也可能变成 {0:..., 1:...}
+function normalizePaymentSplits(raw) {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.filter(Boolean);
+    if (typeof raw === 'object') {
+        return Object.keys(raw)
+            .sort((a, b) => (Number(a) || 0) - (Number(b) || 0))
+            .map(k => raw[k])
+            .filter(Boolean);
+    }
+    return [];
+}
+
+// 一笔销售怎么显示支付方式（分批付款显示成 Cash + QR / Cash + Card）
+function getSalePaymentDisplay(sale) {
+    const method = (sale && sale.paymentMethod) || 'cash';
+    if (method === 'split') {
+        const splits = normalizePaymentSplits(sale.paymentSplits);
+        const names = splits
+            .map(s => (PAYMENT_METHODS[s.method] ? PAYMENT_METHODS[s.method].short : (s.label || '')))
+            .filter(Boolean);
+        return {
+            label: sale.paymentMethodLabel || (names.length ? names.join(' + ') : 'Split'),
+            icon: 'call_split'
+        };
+    }
+    return { label: formatPaymentLabel(method), icon: getPaymentIcon(method) };
+}
+
+// 分批付款明细（用于销售详情的 summary-row）
+function paymentSplitsRowsHTML(sale) {
+    const splits = normalizePaymentSplits(sale && sale.paymentSplits);
+    if (!splits.length) return '';
+    return splits.map(s => {
+        const label = PAYMENT_METHODS[s.method] ? PAYMENT_METHODS[s.method].label : (s.label || s.method || '');
+        const bank = s.bank ? ` (${s.bank})` : '';
+        return `<div class="summary-row">
+                    <p>${escapePosText(label)}${escapePosText(bank)}:</p>
+                    <p>RM${(Number(s.amount) || 0).toFixed(2)}</p>
+                </div>`;
+    }).join('');
+}
+
 // 计算购物车各项金额（与结账逻辑保持一致）
 function getCartTotals() {
     const subtotal = cart.reduce((sum, item) => {
@@ -2246,6 +2299,227 @@ function paymentMethodButtonHTML(method, isActive, isAvailable) {
         </button>`;
 }
 
+/* ===================== 分批付款（Cash + QR / Credit Card） =====================
+ * 场景：顾客一部分付现金、剩下用 QR 或卡。
+ * split 模式打开后，上方的支付方式按钮代表「非现金那一半」，
+ * 现金部分单独输入金额，两边加起来必须等于购物车总额。
+ */
+function roundMoney2(value) {
+    return Math.round((Number(value) || 0) * 100) / 100;
+}
+
+// 解析金额输入（只留数字和一个小数点，允许用户中途只输入 "3."）
+function parseMoneyInput(value) {
+    const cleaned = String(value == null ? '' : value).replace(/[^0-9.]/g, '');
+    const firstDot = cleaned.indexOf('.');
+    const normalized = firstDot === -1
+        ? cleaned
+        : cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '');
+    const num = parseFloat(normalized);
+    return isNaN(num) ? 0 : num;
+}
+
+// 分批付款时，非现金部分用哪种方式（split 模式下 selectedPaymentMethod 就是它）
+function getSplitNonCashMethod() {
+    const settings = getStorePaymentSettings();
+    const nonCash = PAYMENT_METHOD_ORDER.filter(m => m !== 'cash' && isPaymentMethodAvailable(m, settings));
+    if (nonCash.indexOf(selectedPaymentMethod) !== -1) return selectedPaymentMethod;
+    return nonCash[0] || '';
+}
+
+// 这家店能不能用分批付款：必须有现金 + 至少一种配好银行的 QR/Card
+function canUseSplitPayment() {
+    const settings = getStorePaymentSettings();
+    if (!isPaymentMethodAvailable('cash', settings)) return false;
+    return PAYMENT_METHOD_ORDER.some(m => m !== 'cash' && isPaymentMethodAvailable(m, settings));
+}
+
+// 默认对半，按 0.05 取整（与售价精度一致）
+function defaultSplitCash(total) {
+    return Math.min(total, roundToNearest005(total / 2));
+}
+
+// 设定现金部分，非现金自动补足差额
+function setSplitAmountsByCash(cashAmount) {
+    const total = getCartTotals().total;
+    splitCashAmount = Math.min(Math.max(roundMoney2(cashAmount), 0), total);
+    splitNonCashAmount = roundMoney2(total - splitCashAmount);
+    splitLastEdited = 'cash';
+}
+
+// 设定非现金部分，现金自动补足差额
+function setSplitAmountsByNonCash(nonCashAmount) {
+    const total = getCartTotals().total;
+    splitNonCashAmount = Math.min(Math.max(roundMoney2(nonCashAmount), 0), total);
+    splitCashAmount = roundMoney2(total - splitNonCashAmount);
+    splitLastEdited = 'noncash';
+}
+
+// 当前录入是否合法（两边都 > 0 且合计等于总额）
+function isSplitAmountValid() {
+    const total = getCartTotals().total;
+    if (total <= 0) return false;
+    if (splitCashAmount <= 0 || splitNonCashAmount <= 0) return false;
+    return Math.abs(roundMoney2(splitCashAmount + splitNonCashAmount) - total) < 0.01;
+}
+
+// 更新提示行
+function updateSplitStatus() {
+    const el = document.getElementById('splitStatus');
+    if (!el) return;
+
+    const total = getCartTotals().total;
+    const method = getSplitNonCashMethod();
+    const label = PAYMENT_METHODS[method] ? PAYMENT_METHODS[method].label : 'QR';
+
+    if (total <= 0) {
+        el.className = 'split-status';
+        el.textContent = 'Add items to the cart first';
+        return;
+    }
+    if (splitCashAmount <= 0 || splitNonCashAmount <= 0) {
+        el.className = 'split-status is-error';
+        el.textContent = `Cash and ${label} must both be more than RM0.00`;
+        return;
+    }
+    const diff = roundMoney2(total - splitCashAmount - splitNonCashAmount);
+    if (Math.abs(diff) >= 0.01) {
+        el.className = 'split-status is-error';
+        el.textContent = diff > 0 ? `RM${diff.toFixed(2)} still unpaid` : `Over by RM${Math.abs(diff).toFixed(2)}`;
+        return;
+    }
+    el.className = 'split-status is-ok';
+    el.textContent = `Cash RM${splitCashAmount.toFixed(2)} + ${label} RM${splitNonCashAmount.toFixed(2)} = RM${total.toFixed(2)}`;
+}
+
+// 渲染分批付款区（显隐 + 标签 + 数值）
+function renderSplitSection() {
+    const section = document.getElementById('paymentSplitSection');
+    const amounts = document.getElementById('splitAmounts');
+    const toggle = document.getElementById('splitPaymentToggle');
+    if (!section || !amounts || !toggle) return;
+
+    if (!canUseSplitPayment()) {
+        splitPaymentEnabled = false;
+        section.style.display = 'none';
+        toggle.checked = false;
+        amounts.style.display = 'none';
+        return;
+    }
+
+    section.style.display = '';
+    toggle.checked = splitPaymentEnabled;
+    amounts.style.display = splitPaymentEnabled ? '' : 'none';
+    if (!splitPaymentEnabled) return;
+
+    // 非现金部分的名称 / 图标跟随上方选中的方式
+    const method = getSplitNonCashMethod();
+    const info = PAYMENT_METHODS[method];
+    const labelEl = document.getElementById('splitNonCashLabel');
+    const iconEl = document.getElementById('splitNonCashIcon');
+    if (labelEl) labelEl.textContent = info ? info.label : 'QR';
+    if (iconEl) iconEl.textContent = info ? info.icon : 'qr_code_2';
+
+    // 正在输入的那一栏不要覆盖，避免光标跳动
+    const cashInput = document.getElementById('splitCashInput');
+    const nonCashInput = document.getElementById('splitNonCashInput');
+    if (cashInput && document.activeElement !== cashInput) cashInput.value = splitCashAmount.toFixed(2);
+    if (nonCashInput && document.activeElement !== nonCashInput) nonCashInput.value = splitNonCashAmount.toFixed(2);
+
+    updateSplitStatus();
+}
+
+// 购物车总额变化时：没手动改过就对半，改过就保留那一栏、另一栏补差额
+function syncSplitWithTotal() {
+    if (!splitPaymentEnabled) return;
+    const total = getCartTotals().total;
+
+    if (!splitTouched) {
+        splitCashAmount = defaultSplitCash(total);
+        splitNonCashAmount = roundMoney2(total - splitCashAmount);
+    } else if (splitLastEdited === 'cash') {
+        splitCashAmount = Math.min(splitCashAmount, total);
+        splitNonCashAmount = roundMoney2(total - splitCashAmount);
+    } else {
+        splitNonCashAmount = Math.min(splitNonCashAmount, total);
+        splitCashAmount = roundMoney2(total - splitNonCashAmount);
+    }
+    renderSplitSection();
+}
+
+function resetSplitPayment() {
+    splitPaymentEnabled = false;
+    splitCashAmount = 0;
+    splitNonCashAmount = 0;
+    splitLastEdited = 'cash';
+    splitTouched = false;
+    const toggle = document.getElementById('splitPaymentToggle');
+    if (toggle) toggle.checked = false;
+    renderSplitSection();
+}
+
+// 绑定分批付款的事件（只绑一次）
+function initSplitPayment() {
+    const toggle = document.getElementById('splitPaymentToggle');
+    const cashInput = document.getElementById('splitCashInput');
+    const nonCashInput = document.getElementById('splitNonCashInput');
+
+    if (toggle) {
+        toggle.addEventListener('change', () => {
+            if (!canUseSplitPayment()) {
+                toggle.checked = false;
+                return;
+            }
+            splitPaymentEnabled = !!toggle.checked;
+
+            if (splitPaymentEnabled) {
+                const method = getSplitNonCashMethod();
+                if (!method) {
+                    splitPaymentEnabled = false;
+                    toggle.checked = false;
+                    return;
+                }
+                selectedPaymentMethod = method;
+                selectedPaymentBank = '';
+                splitTouched = false;
+                splitCashAmount = defaultSplitCash(getCartTotals().total);
+                splitNonCashAmount = roundMoney2(getCartTotals().total - splitCashAmount);
+                splitLastEdited = 'cash';
+            }
+            vibrateDevice(20);
+            renderPaymentOptions();
+        });
+    }
+
+    if (cashInput) {
+        cashInput.addEventListener('input', () => {
+            splitTouched = true;
+            setSplitAmountsByCash(parseMoneyInput(cashInput.value));
+            const el = document.getElementById('splitNonCashInput');
+            if (el) el.value = splitNonCashAmount.toFixed(2);
+            updateSplitStatus();
+            updatePaymentHint();
+        });
+        cashInput.addEventListener('blur', () => {
+            cashInput.value = splitCashAmount.toFixed(2);
+        });
+    }
+
+    if (nonCashInput) {
+        nonCashInput.addEventListener('input', () => {
+            splitTouched = true;
+            setSplitAmountsByNonCash(parseMoneyInput(nonCashInput.value));
+            const el = document.getElementById('splitCashInput');
+            if (el) el.value = splitCashAmount.toFixed(2);
+            updateSplitStatus();
+            updatePaymentHint();
+        });
+        nonCashInput.addEventListener('blur', () => {
+            nonCashInput.value = splitNonCashAmount.toFixed(2);
+        });
+    }
+}
+
 // 渲染支付方式按钮
 function renderPaymentOptions() {
     const container = document.getElementById('paymentMethodOptions');
@@ -2259,6 +2533,7 @@ function renderPaymentOptions() {
     if (enabledMethods.length === 0) {
         container.innerHTML = '<div class="payment-empty">No payment method configured for this store</div>';
         if (bankRow) bankRow.style.display = 'none';
+        renderSplitSection();
         updatePaymentHint();
         return;
     }
@@ -2269,6 +2544,7 @@ function renderPaymentOptions() {
             '<div class="payment-empty">No bank configured for QR / Credit Card — ask admin to add a bank.</div>';
         if (bankRow) bankRow.style.display = 'none';
         selectedPaymentBank = '';
+        renderSplitSection();
         updatePaymentHint(settings);
         return;
     }
@@ -2277,6 +2553,18 @@ function renderPaymentOptions() {
     if (availableMethods.indexOf(selectedPaymentMethod) === -1) {
         selectedPaymentMethod = availableMethods[0];
         selectedPaymentBank = '';
+    }
+
+    // 分批付款开着时，选中的必须是「非现金」那一半
+    if (splitPaymentEnabled) {
+        const nonCashMethods = availableMethods.filter(m => m !== 'cash');
+        if (nonCashMethods.length === 0) {
+            splitPaymentEnabled = false;
+            splitTouched = false;
+        } else if (nonCashMethods.indexOf(selectedPaymentMethod) === -1) {
+            selectedPaymentMethod = nonCashMethods[0];
+            selectedPaymentBank = '';
+        }
     }
 
     container.innerHTML = enabledMethods.map(m => {
@@ -2289,6 +2577,22 @@ function renderPaymentOptions() {
         if (btn.disabled) return;
         btn.addEventListener('click', () => {
             const method = btn.dataset.method;
+
+            // 分批付款时点 Cash = 退出分批，改成全额现金
+            if (method === 'cash' && splitPaymentEnabled) {
+                splitPaymentEnabled = false;
+                splitTouched = false;
+                splitCashAmount = 0;
+                splitNonCashAmount = 0;
+                if (method !== selectedPaymentMethod) {
+                    selectedPaymentMethod = method;
+                    selectedPaymentBank = '';
+                }
+                vibrateDevice(30);
+                renderPaymentOptions();
+                return;
+            }
+
             if (method === selectedPaymentMethod) return;
             selectedPaymentMethod = method;
             selectedPaymentBank = '';
@@ -2318,6 +2622,7 @@ function renderPaymentOptions() {
         }
     }
 
+    renderSplitSection();
     updatePaymentHint(settings);
 }
 
@@ -2405,7 +2710,14 @@ function updatePaymentHint(settings) {
     const s = settings || getStorePaymentSettings();
     const info = getSelectedPaymentInfo();
     const availableMethods = getAvailablePaymentMethods(s);
-    const text = availableMethods.length === 0 ? 'Not available' : info.label;
+    let text = availableMethods.length === 0 ? 'Not available' : info.label;
+
+    if (splitPaymentEnabled && availableMethods.length > 0) {
+        const method = getSplitNonCashMethod();
+        const short = PAYMENT_METHODS[method] ? PAYMENT_METHODS[method].short : 'QR';
+        text = `Cash + ${short}`;
+    }
+
     hint.textContent = text;
     hint.title = text;
 }
@@ -2453,6 +2765,7 @@ function initPaymentSection() {
         if (e.key === 'Escape') closeBankMenu();
     });
 
+    initSplitPayment();
     renderPaymentOptions();
 }
 
@@ -2476,6 +2789,7 @@ function renderCart() {
         cartItems.innerHTML = '<div class="empty-cart">Your cart is empty</div>';
         cartTotal.textContent = 'RM0.00';
         checkoutBtn.disabled = true;
+        if (splitPaymentEnabled) resetSplitPayment();
 
         // 优化结账和清空按钮
         const cartActionsContainer = document.querySelector('.cart-actions');
@@ -2764,6 +3078,7 @@ function renderCart() {
 
     cartTotal.textContent = `RM${total.toFixed(2)}`;
     checkoutBtn.disabled = false;
+    syncSplitWithTotal();
 
     // 优化结账和清空按钮
     const cartActionsContainer = document.querySelector('.cart-actions');
@@ -3207,6 +3522,24 @@ function checkout() {
         return;
     }
 
+    // 分批付款：现金 + QR/Card 两边都必须有金额，且合计等于总额
+    const splitOn = splitPaymentEnabled && canUseSplitPayment();
+    if (splitOn) {
+        if (paymentInfo.method === 'cash') {
+            alert('Please choose QR or Credit Card for the non-cash part of the split payment.');
+            return;
+        }
+        const splitTotal = getCartTotals().total;
+        if (splitCashAmount <= 0 || splitNonCashAmount <= 0) {
+            alert('Split payment: cash and ' + PAYMENT_METHODS[paymentInfo.method].label + ' amounts must both be more than RM0.00.');
+            return;
+        }
+        if (Math.abs(roundMoney2(splitCashAmount + splitNonCashAmount) - splitTotal) >= 0.01) {
+            alert('Split payment: the two amounts must add up to RM' + splitTotal.toFixed(2) + '.');
+            return;
+        }
+    }
+
     // 现金支付不需要输入实收金额：直接按购物车总额收款，所以不记录实收/找零
     let cashReceived = null;
     let changeAmount = null;
@@ -3283,9 +3616,24 @@ function checkout() {
             taxAmount: taxAmount,
             total_amount: total,
             isStaffPriceApplied: applyStaffPrice,
-            paymentMethod: paymentInfo.method,
-            paymentMethodLabel: paymentInfo.label,
+            paymentMethod: splitOn ? 'split' : paymentInfo.method,
+            paymentMethodLabel: splitOn
+                ? `Cash + ${PAYMENT_METHODS[paymentInfo.method].short}`
+                : paymentInfo.label,
             paymentBank: paymentInfo.bank || '',
+            paymentSplits: splitOn ? (() => {
+                // 以购物车最终总额为准拆分，保证两边加起来正好等于 total_amount
+                const cashPart = roundMoney2(splitCashAmount);
+                return [
+                    { method: 'cash', label: 'Cash', amount: cashPart, bank: '' },
+                    {
+                        method: paymentInfo.method,
+                        label: PAYMENT_METHODS[paymentInfo.method].label,
+                        amount: roundMoney2(total - cashPart),
+                        bank: paymentInfo.bank || ''
+                    }
+                ];
+            })() : null,
             cashReceived: cashReceived,
             changeAmount: changeAmount,
             cashierName: cashierName, // 添加收银员姓名
@@ -3370,9 +3718,22 @@ function showSuccessModal(saleData, saleId) {
     const totalAmount = saleData.total_amount;
 
     // 支付信息
-    const paymentLabel = formatPaymentLabel(saleData.paymentMethod || 'cash');
+    const paymentDisplay = getSalePaymentDisplay(saleData);
+    const paymentLabel = paymentDisplay.label;
     const paymentBankLabel = saleData.paymentBank || '';
     const hasCashReceived = saleData.cashReceived !== null && saleData.cashReceived !== undefined;
+
+    // 分批付款：列出每一部分的金额
+    const splitRowsHTML = normalizePaymentSplits(saleData.paymentSplits).map(s => {
+        const label = PAYMENT_METHODS[s.method] ? PAYMENT_METHODS[s.method].label : (s.label || s.method || '');
+        const bank = s.bank ? ` (${s.bank})` : '';
+        return `
+                <div style="display: flex; justify-content: space-between; margin-top: 4px; color: #1e293b;">
+                    <span>${escapePosText(label)}${escapePosText(bank)}:</span>
+                    <span>RM${(Number(s.amount) || 0).toFixed(2)}</span>
+                </div>`;
+    }).join('');
+    const hasSplit = !!splitRowsHTML;
 
     // 创建简化的成功提示
     let successHTML = `
@@ -3408,9 +3769,10 @@ function showSuccessModal(saleData, saleId) {
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-top: 8px; color: #1e293b;">
                     <span>Payment:</span>
-                    <span style="font-weight: 600; text-align: right;">${paymentLabel}</span>
+                    <span style="font-weight: 600; text-align: right;">${escapePosText(paymentLabel)}</span>
                 </div>
-                ${paymentBankLabel ? `
+                ${splitRowsHTML}
+                ${(!hasSplit && paymentBankLabel) ? `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; color: #1e293b;">
                     <span>Bank:</span>
                     <span style="font-weight: 600; text-align: right;">${bankCellHTML(paymentBankLabel) || escapePosText(paymentBankLabel)}</span>

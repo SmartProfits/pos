@@ -86,6 +86,15 @@ function addSaleRecord(saleData) {
                 paymentMethod: saleDataCopy.paymentMethod || 'cash',
                 paymentMethodLabel: saleDataCopy.paymentMethodLabel || '',
                 paymentBank: saleDataCopy.paymentBank || '',
+                // 分批付款明细（Cash + QR/Card）：[{ method, label, amount, bank }]
+                paymentSplits: (saleDataCopy.paymentMethod === 'split' && Array.isArray(saleDataCopy.paymentSplits))
+                    ? saleDataCopy.paymentSplits.map(s => ({
+                        method: s.method || '',
+                        label: s.label || '',
+                        amount: Number(s.amount) || 0,
+                        bank: s.bank || ''
+                    }))
+                    : null,
                 cashReceived: (saleDataCopy.cashReceived === null || saleDataCopy.cashReceived === undefined)
                     ? null
                     : Number(saleDataCopy.cashReceived),

@@ -1732,7 +1732,17 @@ function showSaleDetails(sale) {
     paymentP.innerHTML = `Payment: <strong>${formatAdminPaymentLabel(sale)}</strong>`;
     summaryDiv.appendChild(paymentP);
 
-    if (sale.paymentBank) {
+    // 分批付款：每一部分的金额
+    const adminSplits = normalizeAdminPaymentSplits(sale.paymentSplits);
+    adminSplits.forEach(s => {
+        const p = document.createElement('p');
+        const label = s.method === 'qr' ? 'QR' : s.method === 'card' ? 'Credit Card' : (s.label || 'Cash');
+        const bank = s.bank ? ` (${escapeHtml(s.bank)})` : '';
+        p.innerHTML = `${label}${bank}: <strong>RM${(Number(s.amount) || 0).toFixed(2)}</strong>`;
+        summaryDiv.appendChild(p);
+    });
+
+    if (sale.paymentBank && adminSplits.length === 0) {
         const bankP = document.createElement('p');
         bankP.innerHTML = `Bank: ${formatBankCell(sale.paymentBank)}`;
         summaryDiv.appendChild(bankP);
@@ -2246,10 +2256,36 @@ function resetAddStorePaymentSettings() {
     setBankDrafts('add', ADMIN_DEFAULT_QR_BANKS, ADMIN_DEFAULT_CARD_BANKS);
 }
 
+// 分批付款明细：RTDB 里可能是数组，也可能变成 {0:..., 1:...}
+function normalizeAdminPaymentSplits(raw) {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.filter(Boolean);
+    if (typeof raw === 'object') {
+        return Object.keys(raw)
+            .sort((a, b) => (Number(a) || 0) - (Number(b) || 0))
+            .map(k => raw[k])
+            .filter(Boolean);
+    }
+    return [];
+}
+
 // 销售记录里的支付方式显示
 function formatAdminPaymentLabel(sale) {
     if (!sale) return 'Cash';
     const method = sale.paymentMethod;
+
+    // 分批付款：Cash + QR / Cash + Credit Card
+    if (method === 'split') {
+        const names = normalizeAdminPaymentSplits(sale.paymentSplits).map(s => {
+            if (s.method === 'qr') return 'QR';
+            if (s.method === 'card') return 'Credit Card';
+            if (s.method === 'cash') return 'Cash';
+            return s.label || '';
+        }).filter(Boolean);
+        if (names.length) return names.join(' + ');
+        return sale.paymentMethodLabel || 'Split';
+    }
+
     if (method === 'qr') return 'QR';
     if (method === 'card') return 'Credit Card';
     return 'Cash';
@@ -2258,6 +2294,7 @@ function formatAdminPaymentLabel(sale) {
 // 支付方式图标（与 POS Payment 面板按钮一致）
 function getAdminPaymentIcon(sale) {
     const method = sale && sale.paymentMethod;
+    if (method === 'split') return 'call_split';
     if (method === 'qr') return 'qr_code_2';
     if (method === 'card') return 'credit_card';
     return 'payments';
