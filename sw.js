@@ -1,7 +1,7 @@
-const CACHE_NAME = 'pos-system-v3';
-const STATIC_CACHE = 'pos-static-v3';
-const IMAGES_CACHE = 'pos-images-v3';
-const DATA_CACHE = 'pos-data-v3';
+const CACHE_NAME = 'pos-system-v41';
+const STATIC_CACHE = 'pos-static-v41';
+const IMAGES_CACHE = 'pos-images-v41';
+const DATA_CACHE = 'pos-data-v41';
 
 // 静态资源缓存列表
 const staticUrlsToCache = [
@@ -15,6 +15,7 @@ const staticUrlsToCache = [
   '/css/ios-style.css',
   '/js/auth.js',
   '/js/admin.js',
+  '/js/cashier-names.js',
   '/js/adminp.js',
   '/js/pos.js',
   '/js/catalog.js',

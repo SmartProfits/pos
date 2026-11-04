@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>POS System - Admin</title>
-    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/styles.css?v=4.0.9">
     <!-- 添加字体图标 -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
@@ -168,6 +168,1377 @@
             padding-left: 21px;
             font-style: italic;
         }
+
+        /* ===== Sidebar: Settings group ===== */
+        .nav-group { margin-bottom: 8px; }
+        .nav-group-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: #cbd5e1;
+            cursor: pointer;
+            user-select: none;
+            border: 1px solid transparent;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-group-header:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+        .nav-group-header > .material-icons { margin-right: 12px; font-size: 20px; }
+        .nav-group-header span { flex: 1; }
+        .nav-group-header .nav-caret {
+            margin-right: 0;
+            font-size: 18px;
+            opacity: 0.65;
+            transition: transform 0.25s ease;
+        }
+        .nav-group.open .nav-group-header .nav-caret { transform: rotate(180deg); }
+        .nav-group.open .nav-group-header { color: #e2e8f0; }
+        .nav-submenu {
+            display: none;
+            margin: 2px 0 4px 20px;
+            padding-left: 8px;
+            border-left: 1px solid rgba(255, 255, 255, 0.14);
+        }
+        .nav-group.open .nav-submenu { display: block; }
+        .nav-item.sub { padding: 9px 12px; margin-bottom: 4px; font-size: 13.5px; border-radius: 10px; }
+        .nav-item.sub > .material-icons { font-size: 18px; margin-right: 10px; }
+        .nav-item.sub:hover { transform: translateX(2px); }
+
+        /* Settings 分组整组仅超级管理员 (sadmin) 可见 */
+        .nav-group.sadmin-only { display: none !important; }
+        body.is-sadmin .nav-group.sadmin-only { display: block !important; }
+
+        /* ===== Cashier Name Cleanup ===== */
+        #cashier-namesView { padding-bottom: 40px; }
+        #cashier-namesView h2 { margin-bottom: 4px; }
+        #cashier-namesView .cn-sub { color: #7b8a9c; font-size: 13px; margin: 0 0 14px; }
+
+        .cn-hint {
+            display: flex;
+            gap: 10px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-left: 4px solid #3498db;
+            border-radius: 10px;
+            padding: 13px 16px;
+            margin: 0 0 18px;
+            color: #1e3a5f;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .cn-hint .material-icons { color: #2563eb; font-size: 20px; margin-top: 1px; }
+        .cn-hint code {
+            background: rgba(37, 99, 235, 0.10);
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .cn-panel {
+            background: #ffffff;
+            border: 1px solid #e6eef7;
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 12px rgba(15, 60, 110, 0.05);
+        }
+        .cn-panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .cn-panel-head h3 {
+            margin: 0;
+            font-size: 15px;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .cn-panel-head h3 .material-icons { font-size: 19px; color: #3498db; }
+
+        .cn-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: flex-end;
+        }
+        .cn-field { display: flex; flex-direction: column; gap: 6px; min-width: 155px; }
+        .cn-field.grow { flex: 1 1 220px; }
+        .cn-field label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #7b8a9c;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .cn-field label .material-icons { font-size: 15px; }
+        .cn-field select, .cn-field input[type="text"], .cn-field input[type="date"] {
+            padding: 9px 11px;
+            border: 1px solid #d7e3f1;
+            border-radius: 8px;
+            font-size: 13.5px;
+            color: #0f172a;
+            background: #fbfdff;
+            font-family: inherit;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .cn-field select:focus, .cn-field input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+        }
+        .cn-field .action-button { height: 38px; justify-content: center; }
+
+        .cn-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-top: 14px;
+            font-size: 11.5px;
+            color: #8fa0b3;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .cn-chip {
+            border: 1px solid #dbe6f3;
+            background: #f6fafd;
+            color: #3b5a78;
+            border-radius: 999px;
+            padding: 5px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.15s ease;
+        }
+        .cn-chip:hover { background: #e8f3fc; border-color: #a9cdea; color: #1d6fa5; }
+
+        .cn-progress { display: none; align-items: center; gap: 12px; margin-top: 14px; }
+        .cn-progress-track {
+            flex: 1;
+            height: 8px;
+            background: #e8eef6;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .cn-progress-fill {
+            height: 100%;
+            width: 0;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #3498db, #22c55e);
+            transition: width 0.2s ease;
+        }
+        .cn-progress span { font-size: 12.5px; color: #64748b; white-space: nowrap; }
+
+        .cn-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        .cn-stat {
+            background: #ffffff;
+            border: 1px solid #e6eef7;
+            border-radius: 12px;
+            padding: 14px 16px;
+            box-shadow: 0 2px 10px rgba(15, 60, 110, 0.04);
+        }
+        .cn-stat span {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+            font-weight: 700;
+        }
+        .cn-stat strong { display: block; margin-top: 6px; font-size: 22px; color: #0f172a; font-weight: 600; }
+
+        .cn-merge-bar {
+            position: sticky;
+            top: 0;
+            z-index: 6;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: flex-end;
+            background: linear-gradient(135deg, #1e3a5f, #16293f);
+            color: #ffffff;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
+        }
+        .cn-merge-info { flex: 1 1 260px; font-size: 13px; color: #cbd8e6; line-height: 1.5; }
+        .cn-merge-info strong { color: #ffffff; }
+        .cn-merge-bar .cn-field label { color: #9fb4cb; }
+        .cn-merge-bar .cn-field { min-width: 220px; }
+        .cn-merge-bar .action-button { height: 38px; background: #22c55e !important; }
+        .cn-merge-bar .action-button:hover { background: #16a34a !important; }
+        .cn-merge-bar .action-button:disabled {
+            background: #3d5570 !important;
+            color: #7f93a9;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .cn-merge-bar .cn-mini-btn.ghost { color: #cbd8e6; border-color: rgba(255, 255, 255, 0.25); }
+        .cn-merge-hint { font-size: 11.5px; color: #8fa8c2; margin-top: 4px; }
+
+        .cn-table-wrap { max-height: 62vh; overflow: auto; border-radius: 10px; border: 1px solid #eef4fa; }
+        .cn-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .cn-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            text-align: left;
+            padding: 10px 12px;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #64748b;
+            background: #f8fbfe;
+            border-bottom: 1px solid #e6eef7;
+            white-space: nowrap;
+        }
+        .cn-table tbody td {
+            padding: 9px 12px;
+            border-bottom: 1px solid #f1f6fb;
+            color: #213547;
+            vertical-align: middle;
+        }
+        .cn-row:hover { background: #f7fbff; }
+        .cn-row.is-selected { background: #eef8f1; }
+        .cn-name { font-weight: 600; color: #0f172a; word-break: break-word; }
+        .cn-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .cn-nowrap { white-space: nowrap; color: #64748b; font-size: 12.5px; }
+        .cn-stores {
+            max-width: 190px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #64748b;
+            font-size: 12.5px;
+        }
+        .cn-col-check { width: 34px; text-align: center; }
+        .cn-col-check input { width: 16px; height: 16px; cursor: pointer; accent-color: #22c55e; }
+        .cn-col-action { text-align: right; }
+        .cn-badge {
+            display: inline-block;
+            font-size: 10.5px;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: #eef2f7;
+            color: #64748b;
+            font-weight: 700;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .cn-badge.warn { background: #fef3c7; color: #b45309; }
+        .cn-group-row td {
+            background: #f4f9fd;
+            border-top: 2px solid #e2edf7;
+            border-bottom: 1px solid #e6eef7;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #5a7290;
+        }
+        .cn-group-chip {
+            display: inline-block;
+            background: #1e3a5f;
+            color: #fff;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            margin-right: 8px;
+        }
+        .cn-group-text { font-weight: 600; color: #476582; }
+
+        .cn-mini-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border: 1px solid #cfe0f0;
+            background: #ffffff;
+            color: #2b6ca3;
+            border-radius: 7px;
+            padding: 4px 9px;
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+        .cn-mini-btn .material-icons { font-size: 14px; }
+        .cn-mini-btn:hover { background: #eff7fe; border-color: #a9cdea; }
+        .cn-mini-btn.ghost { background: transparent; border-color: #cfe0f0; }
+        .cn-group-row .cn-mini-btn { margin-left: 8px; }
+
+        .cn-search {
+            padding: 8px 11px;
+            border: 1px solid #d7e3f1;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+            min-width: 200px;
+            color: #0f172a;
+            background: #fbfdff;
+        }
+        .cn-search:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 3px rgba(52,152,219,0.15); }
+        .cn-empty { text-align: center; padding: 44px 20px; color: #94a3b8; }
+        .cn-empty.small { padding: 18px; }
+        .cn-empty .material-icons { font-size: 42px; color: #c9d9e8; }
+        .cn-empty h4 { margin: 8px 0 4px; color: #64748b; font-size: 14px; }
+        .cn-empty p { margin: 0; font-size: 12.5px; }
+
+        .cn-banner {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 14px;
+        }
+        .cn-banner.success { background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; }
+        .cn-banner.error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
+        .cn-banner .material-icons { font-size: 18px; }
+
+        .cn-audit-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border: 1px solid #eef4fa;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            background: #fbfdff;
+        }
+        .cn-audit-main { flex: 1; min-width: 0; }
+        .cn-audit-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #0f172a;
+            flex-wrap: wrap;
+        }
+        .cn-audit-title .material-icons { font-size: 15px; color: #94a3b8; }
+        .cn-audit-title .cn-old { color: #64748b; }
+        .cn-audit-meta { font-size: 11.5px; color: #94a3b8; margin-top: 3px; }
+
+        .cn-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 3000;
+            background: rgba(15, 23, 42, 0.55);
+            padding: 24px;
+            overflow: auto;
+        }
+        .cn-modal.open { display: flex; align-items: flex-start; justify-content: center; }
+        .cn-modal-card {
+            background: #ffffff;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 560px;
+            margin: auto;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.32);
+            overflow: hidden;
+        }
+        .cn-modal-head {
+            padding: 16px 20px;
+            border-bottom: 1px solid #eef4fa;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .cn-modal-head h3 { margin: 0; font-size: 15.5px; color: #0f172a; }
+        .cn-modal-head .material-icons { color: #f59e0b; font-size: 20px; }
+        .cn-modal-body { padding: 18px 20px; max-height: 58vh; overflow: auto; }
+        .cn-modal-foot {
+            padding: 14px 20px;
+            border-top: 1px solid #eef4fa;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            background: #fbfdff;
+        }
+        .cn-btn-cancel {
+            border: 1px solid #d7e3f1;
+            background: #ffffff;
+            color: #475569;
+            border-radius: 8px;
+            padding: 9px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .cn-btn-confirm {
+            border: none;
+            background: #22c55e;
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 9px 18px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .cn-btn-confirm:hover { background: #16a34a; }
+        .cn-btn-confirm:disabled { background: #cbd5e1; cursor: not-allowed; }
+        .cn-confirm-target {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            font-size: 12px;
+            color: #047857;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            font-weight: 700;
+        }
+        .cn-confirm-target strong {
+            font-size: 16px;
+            color: #065f46;
+            text-transform: none;
+            letter-spacing: 0;
+            word-break: break-word;
+        }
+        .cn-confirm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .cn-confirm-table th {
+            text-align: left;
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+            padding: 6px 8px;
+            border-bottom: 1px solid #eef4fa;
+        }
+        .cn-confirm-table td { padding: 7px 8px; border-bottom: 1px solid #f5f9fd; color: #213547; }
+        .cn-confirm-table tfoot td { font-weight: 700; color: #0f172a; border-top: 2px solid #eef4fa; }
+        .cn-confirm-note {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #64748b;
+            background: #f8fbfe;
+            border-radius: 10px;
+            padding: 11px 13px;
+        }
+        .cn-confirm-note .material-icons { font-size: 16px; color: #3498db; }
+
+        /* ===== Store payment settings ===== */
+        .payment-config {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 16px;
+            background: #f8fafc;
+        }
+        .payment-config-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+        .payment-config-title .material-icons { font-size: 18px; color: #3498db; }
+        .payment-toggle-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .payment-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            margin: 0;
+        }
+        .payment-toggle input { margin: 0; width: 14px; height: 14px; padding: 0; flex: 0 0 auto; }
+        .payment-toggle .material-icons { font-size: 16px; color: #64748b; }
+        .payment-toggle.active {
+            border-color: #3498db;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+        .payment-toggle.active .material-icons { color: #2563eb; }
+        .bank-editor { margin-top: 10px; }
+        .bank-editor-head {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+        .bank-editor-head .material-icons { font-size: 15px; color: #94a3b8; }
+        .bank-editor-head span,
+        .bank-editor-head .material-icons { flex-shrink: 0; white-space: nowrap; }
+        .bank-clear {
+            margin-left: auto;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 6px;
+        }
+        .bank-clear:hover { background: #fee2e2; color: #b91c1c; }
+        .bank-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            min-height: 30px;
+            padding: 6px;
+            border: 1px dashed #dbe4ee;
+            border-radius: 9px;
+            background: #fff;
+        }
+        .bank-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 11.5px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .bank-chip button {
+            border: none;
+            background: transparent;
+            color: #60a5fa;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            padding: 0;
+            margin: 0;
+            width: auto;
+            flex: 0 0 auto;
+        }
+        .bank-chip button:hover { color: #dc2626; }
+        .bank-empty { font-size: 11.5px; color: #94a3b8; font-weight: 500; padding: 2px 4px; }
+        .bank-add-row { display: flex; gap: 6px; margin-top: 6px; }
+        .bank-add-row input {
+            flex: 1;
+            width: auto;
+            height: 34px;
+            margin: 0;
+            padding: 0 10px;
+            font-size: 12.5px;
+            border-radius: 8px;
+        }
+        .bank-add-row input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.12);
+        }
+        .bank-add-row button {
+            border: none;
+            background: #3498db;
+            color: #fff;
+            border-radius: 8px;
+            padding: 0 14px;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            width: auto;
+            flex: 0 0 auto;
+            margin: 0;
+            height: 34px;
+        }
+        .bank-add-row button:hover { background: #2980b9; }
+
+        /* ===== 银行 Logo 管理（Payment Methods 内） ===== */
+        .bank-logo-block {
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px dashed #dbe4ee;
+        }
+        .bank-logo-head {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .bank-logo-head > .material-icons {
+            font-size: 15px;
+            color: #94a3b8;
+        }
+        .bank-logo-head > span:first-of-type {
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+        }
+        .bank-logo-sub {
+            flex: 1 1 100%;
+            font-size: 10.5px;
+            font-weight: 500;
+            color: #94a3b8;
+            line-height: 1.45;
+        }
+        .bank-logo-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 9px;
+            min-height: 34px;
+        }
+        .bank-logo-empty {
+            font-size: 11.5px;
+            color: #94a3b8;
+            font-weight: 500;
+            padding: 2px 0;
+        }
+        .bank-logo-tile {
+            position: relative;
+            width: 66px;
+            height: 46px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            box-sizing: border-box;
+        }
+        .bank-logo-tile img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        .bank-logo-tile .bank-logo-del {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            background: #ef4444;
+            color: #fff;
+            font-size: 11px;
+            line-height: 1;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+            margin: 0;
+            box-sizing: content-box;
+        }
+        .bank-logo-tile:hover { border-color: #bfdbfe; }
+        .bank-logo-tile:hover .bank-logo-del { display: flex; }
+
+        .bank-logo-form {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .bank-logo-form input[type="text"] {
+            flex: 1 1 130px;
+            width: auto;
+            height: 34px;
+            margin: 0;
+            padding: 0 10px;
+            font-size: 12.5px;
+            border-radius: 8px;
+        }
+        .bank-logo-form input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.12);
+        }
+        .bank-logo-pick {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            height: 34px;
+            padding: 0 11px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+            max-width: 170px;
+            margin: 0;
+        }
+        .bank-logo-pick:hover {
+            border-color: #93c5fd;
+            background: #eff6ff;
+            color: #2563eb;
+        }
+        .bank-logo-pick .material-icons { font-size: 16px; }
+        .bank-logo-pick span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .bank-logo-upload-btn {
+            height: 34px;
+            padding: 0 14px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: #fff;
+            font-family: inherit;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            width: auto;
+            flex: 0 0 auto;
+            margin: 0;
+        }
+        .bank-logo-upload-btn:hover { background: #1d4ed8; }
+        .bank-logo-upload-btn:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        /* 银行 chip 里的小 logo */
+        .bank-chip-logo {
+            width: 16px;
+            height: 16px;
+            object-fit: contain;
+            border-radius: 3px;
+            background: #fff;
+            flex: 0 0 auto;
+            display: block;
+        }
+
+        /* 销售明细 / 详情里的银行单元（logo + 名称） */
+        .bank-cell {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .bank-cell-logo {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+            border-radius: 4px;
+            background: #fff;
+            border: 1px solid #eef2f7;
+            padding: 1px;
+            flex: 0 0 auto;
+        }
+        .bank-cell-none { color: #cbd5e1; }
+        .store-pay-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+        .pay-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            white-space: nowrap;
+        }
+        .pay-inline .material-icons {
+            font-size: 16px;
+            color: #64748b;
+        }
+        .store-pay-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 7px;
+            border-radius: 999px;
+            font-size: 10.5px;
+            font-weight: 700;
+            background: #eff6ff;
+            color: #1d4ed8;
+            white-space: nowrap;
+        }
+        .store-pay-tag.none { background: #fef2f2; color: #b91c1c; }
+
+        /* ===== 修正全局规则泄漏 ===== */
+        /* styles.css 里给登录页写的 button{width:100%;margin-top:10px} 会波及后台，
+           导致工具栏按钮被拉成整条。这里让操作按钮回到内容宽度。 */
+        .action-button,
+        button.action-button,
+        .header-actions .action-button,
+        .dashboard-actions .action-button {
+            width: auto;
+            margin-top: 0;
+            flex: 0 0 auto;
+        }
+
+        /* 销售明细表：窄屏可横向滚动，不再把 Total / Details 列裁掉 */
+        .sale-details-container {
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        #saleDetailsTable {
+            min-width: 880px;
+        }
+        /* 数据表不换行：宁可横向滚动，也不要单号/店名折成两三行 */
+        #saleDetailsTable th,
+        #saleDetailsTable td {
+            white-space: nowrap;
+        }
+        #saleDetailsTable th:last-child,
+        #saleDetailsTable td:last-child {
+            text-align: center;
+        }
+
+        /* 弹窗表单里的下拉框与输入框同宽同高 */
+        .modal-content .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+            color: #333;
+            background-color: #fff;
+            cursor: pointer;
+        }
+        .modal-content .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, .12);
+        }
+
+        /* 下拉框不要一打开就红框：只有用户动过 / 提交校验失败才显示错误态 */
+        select:required:invalid {
+            border-color: #ddd;
+            background-color: #fff;
+        }
+        select.required-touched:required:invalid,
+        form.was-validated select:required:invalid {
+            border-color: #ff5252;
+            background-color: rgba(255, 82, 82, 0.05);
+        }
+
+        /* ===================================================================
+           B 批：视觉层级与信息密度
+           1) 按钮主 / 次 / 警示 / 危险四档
+           2) 统计卡固定三列网格
+           3) 表格数字右对齐 + 等宽数字
+           4) 空状态（图标 + 标题 + 引导语）
+           =================================================================== */
+
+        /* ---------- 1. 按钮层级 ---------- */
+        /* 注意：styles.css 里 .action-button 的 background 带 !important，
+           这里要压过它必须同样用 !important；变体靠更高特异性（两个类）取胜。 */
+        .action-button {
+            background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+            padding: 9px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: .01em;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .06);
+        }
+        .action-button:hover {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px -8px rgba(37, 99, 235, .6);
+        }
+        .action-button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .08);
+        }
+        .action-button:disabled,
+        .action-button[disabled] {
+            opacity: .45;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .action-button .material-icons {
+            font-size: 17px;
+        }
+
+        /* 次要操作：白底描边，用于和主按钮并列的第二动作 */
+        .action-button.secondary {
+            background: #fff !important;
+            color: #334155 !important;
+            border: 1px solid #d8e0ea;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .06);
+        }
+        .action-button.secondary:hover {
+            background: #f8fafc !important;
+            border-color: #c3cedd;
+            box-shadow: 0 8px 18px -12px rgba(15, 23, 42, .6);
+        }
+
+        /* 警示操作：维护 / 批量修复，刻意做得低调，避免和主按钮抢注意力 */
+        .action-button.warn {
+            background: #fff7ed !important;
+            color: #b45309 !important;
+            border: 1px solid #fcd9a0;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .06);
+        }
+        .action-button.warn:hover {
+            background: #ffedd5 !important;
+            border-color: #f6bb70;
+            box-shadow: 0 8px 18px -12px rgba(180, 83, 9, .65);
+        }
+
+        /* 危险操作：删除类 */
+        .action-button.danger {
+            background: #fef2f2 !important;
+            color: #b91c1c !important;
+            border: 1px solid #fbcaca;
+        }
+        .action-button.danger:hover {
+            background: #fee2e2 !important;
+            border-color: #f7a8a8;
+        }
+
+        /* 小号按钮：弹窗头部这类次级工具条 */
+        .action-button.action-button-sm {
+            padding: 6px 12px;
+            font-size: 12.5px;
+            border-radius: 7px;
+        }
+        .action-button.action-button-sm .material-icons {
+            font-size: 16px;
+        }
+
+        /* 迁移工具的第 2 步：未扫描前是禁用灰，扫描通过后才亮起来 */
+        #migrationExecuteBtn:disabled {
+            background: #e2e8f0 !important;
+            color: #94a3b8 !important;
+            border: 1px solid #cbd5e1;
+        }
+        #migrationExecuteBtn.is-ready {
+            background: linear-gradient(135deg, #10b981, #059669) !important;
+            color: #fff !important;
+            box-shadow: 0 8px 18px -10px rgba(5, 150, 105, .75);
+        }
+
+        /* 弹窗提交按钮原来继承登录页的绿色 #4CAF50，统一成主色 */
+        .modal-content form > button[type="submit"],
+        .modal-content form .form-actions button[type="submit"] {
+            background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+            color: #fff !important;
+            border: none;
+            border-radius: 8px;
+            padding: 11px 18px;
+            font-weight: 600;
+            font-size: 13.5px;
+            box-shadow: 0 8px 18px -10px rgba(37, 99, 235, .7);
+        }
+        .modal-content form > button[type="submit"]:hover,
+        .modal-content form .form-actions button[type="submit"]:hover {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+        }
+        .modal-content .action-button.secondary {
+            background: #fff !important;
+            color: #334155 !important;
+            border: 1px solid #d8e0ea;
+        }
+
+        /* ---------- 2. 统计卡（Hero 总计 + 班次 + 分店） ---------- */
+        .stats-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 26px;
+        }
+
+        /* ---- Hero 大卡：总计 ---- */
+        .stat-hero {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 24px 28px;
+            border-radius: 18px;
+            color: #fff;
+            overflow: hidden;
+            background: linear-gradient(120deg, #2563eb 0%, #3b82f6 42%, #0ea5e9 100%);
+            box-shadow: 0 10px 30px -12px rgba(37, 99, 235, .55);
+        }
+        .stat-hero::after {
+            content: '';
+            position: absolute;
+            right: -40px;
+            top: -40px;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, .18), rgba(255, 255, 255, 0) 70%);
+            pointer-events: none;
+        }
+        .stat-hero-icon {
+            flex: 0 0 auto;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .18);
+            backdrop-filter: blur(2px);
+        }
+        .stat-hero-icon .material-icons { font-size: 30px; }
+        .stat-hero-body {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+        .stat-hero-label {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, .82);
+        }
+        .stat-hero-value {
+            font-size: 2.4rem;
+            line-height: 1.05;
+            font-weight: 800;
+            letter-spacing: -.02em;
+            font-variant-numeric: tabular-nums;
+        }
+        .stat-hero-meta {
+            margin-left: auto;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .stat-hero-metric {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .16);
+            font-size: 12.5px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .stat-hero-metric .material-icons { font-size: 16px; }
+
+        /* ---- 班次行 ---- */
+        .stat-shift-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        /* ---- 分店网格 ---- */
+        .stat-store-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        /* ---- 通用卡片 ---- */
+        .stat-card {
+            position: relative;
+            background: #fff;
+            border: 1px solid #eef2f7;
+            border-radius: 16px;
+            padding: 18px 20px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 14px 30px -24px rgba(15, 23, 42, .55);
+            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+            border-color: #dbeafe;
+            box-shadow: 0 2px 4px rgba(15, 23, 42, .06), 0 22px 40px -24px rgba(37, 99, 235, .45);
+        }
+        .stat-card-top {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .stat-card-icon {
+            flex: 0 0 auto;
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-size: 18px;
+            background: #eff6ff;
+            color: #2563eb;
+        }
+        .stat-card-icon .material-icons { font-size: 18px; }
+        .stat-card-icon.icon-store { background: #ecfdf5; color: #059669; }
+        .stat-card-icon.shift-1 { background: #fffbeb; color: #d97706; }
+        .stat-card-icon.shift-2 { background: #f5f3ff; color: #7c3aed; }
+        .stat-card-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            line-height: 1.3;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .stat-card-value {
+            font-size: 1.65rem;
+            line-height: 1.1;
+            font-weight: 700;
+            letter-spacing: -.01em;
+            color: #0f172a;
+            font-variant-numeric: tabular-nums;
+            margin-bottom: 12px;
+        }
+        .stat-card-bar {
+            height: 6px;
+            border-radius: 999px;
+            background: #eef2f7;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .stat-card-bar span {
+            display: block;
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #60a5fa, #2563eb);
+            transition: width .4s ease;
+        }
+        .stat-card-sub {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12.5px;
+            font-weight: 500;
+            color: #94a3b8;
+            font-variant-numeric: tabular-nums;
+        }
+        .stat-card-sub .material-icons { font-size: 15px; }
+
+        /* ---- 零销售额分店：降灰，弱化但不删除 ---- */
+        .stat-card.is-zero {
+            background: #fafbfc;
+            border-color: #f0f2f5;
+            box-shadow: none;
+        }
+        .stat-card.is-zero:hover {
+            transform: none;
+            border-color: #f0f2f5;
+            box-shadow: none;
+        }
+        .stat-card.is-zero .stat-card-icon {
+            background: #f1f5f9;
+            color: #cbd5e1;
+        }
+        .stat-card.is-zero .stat-card-value { color: #cbd5e1; }
+        .stat-card.is-zero .stat-card-bar { background: #f1f5f9; }
+        .stat-card.is-zero .stat-card-bar span { background: #e2e8f0; }
+        .stat-zero-badge {
+            margin-left: auto;
+            flex: 0 0 auto;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: .03em;
+            text-transform: uppercase;
+            color: #94a3b8;
+            background: #f1f5f9;
+            padding: 3px 8px;
+            border-radius: 999px;
+        }
+
+        @media (max-width: 720px) {
+            .stat-hero { flex-wrap: wrap; padding: 20px; }
+            .stat-hero-meta { margin-left: 0; width: 100%; justify-content: flex-start; }
+            .stat-hero-value { font-size: 2rem; }
+            .stat-shift-row { grid-template-columns: minmax(0, 1fr); }
+        }
+
+        /* ---------- 3. 表格数字对齐 ---------- */
+        /* 钱 / 数量右对齐并用等宽数字，纵向才能一眼比对 */
+        #saleDetailsTable th,
+        #saleDetailsTable td,
+        #storesTable th,
+        #storesTable td,
+        #productsTable th,
+        #productsTable td,
+        #inventoryTable th,
+        #inventoryTable td {
+            font-variant-numeric: tabular-nums;
+        }
+
+        #saleDetailsTable th:nth-child(8),
+        #saleDetailsTable td:nth-child(8) {
+            text-align: right;
+            font-weight: 600;
+            color: #0f172a;
+        }
+        #saleDetailsTable th:nth-child(3),
+        #saleDetailsTable td:nth-child(3),
+        #saleDetailsTable th:nth-child(5),
+        #saleDetailsTable td:nth-child(5) {
+            text-align: center;
+        }
+        /* 单号等宽字体，扫读时列宽稳定 */
+        #saleDetailsTable td:nth-child(1),
+        #storesTable td:nth-child(1),
+        #productsTable td:nth-child(1) {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 12.5px;
+            color: #475569;
+        }
+
+        #storesTable th:nth-child(5),
+        #storesTable td:nth-child(5) {
+            text-align: center;
+        }
+        #storesTable th:nth-child(6),
+        #storesTable td:nth-child(6) {
+            text-align: right;
+        }
+
+        #productsTable th:nth-child(3),
+        #productsTable td:nth-child(3),
+        #productsTable th:nth-child(4),
+        #productsTable td:nth-child(4) {
+            text-align: right;
+        }
+
+        #inventoryTable th:nth-child(5),
+        #inventoryTable td:nth-child(5),
+        #inventoryTable th:nth-child(6),
+        #inventoryTable td:nth-child(6) {
+            text-align: right;
+        }
+
+        /* ---------- 4. 空状态 / 加载 / 错误 ---------- */
+        /* 表格行内：图标压在上面，下面一行标题 + 一行引导语 */
+        td.no-data,
+        td.loading,
+        td.error {
+            text-align: center;
+            padding: 44px 16px;
+            color: #64748b;
+            font-style: normal;
+            font-weight: 500;
+            font-size: 13.5px;
+            line-height: 1.5;
+        }
+        td.no-data i,
+        td.loading i,
+        td.error i {
+            display: block;
+            font-size: 34px;
+            margin: 0 0 8px;
+            color: #cbd5e1;
+        }
+        td.no-data strong,
+        td.loading strong,
+        td.error strong {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #475569;
+        }
+        td.no-data small,
+        td.loading small,
+        td.error small {
+            display: block;
+            margin-top: 4px;
+            font-size: 12.5px;
+            font-weight: 400;
+            color: #94a3b8;
+        }
+        td.error i {
+            color: #fca5a5;
+        }
+        td.error strong {
+            color: #b91c1c;
+        }
+
+        /* 统计区等非表格容器里的空状态 */
+        .stats-container > .no-data {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 40px 16px;
+            background: #fff;
+            border: 1px dashed #dbe3ec;
+            border-radius: 14px;
+            color: #64748b;
+            font-style: normal;
+            font-weight: 500;
+        }
+        .stats-container > .no-data i {
+            font-size: 34px;
+            color: #cbd5e1;
+            margin: 0;
+        }
+        .stats-container > .no-data strong {
+            font-size: 14px;
+            font-weight: 600;
+            color: #475569;
+        }
+        .stats-container > .no-data small {
+            font-size: 12.5px;
+            font-weight: 400;
+            color: #94a3b8;
+        }
+
+        /* 仪表盘里“Sales Details”这类区块小标题：降一档重量，给表格让位 */
+        #dashboardView > h2 {
+            margin: 0 0 10px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #334155;
+            letter-spacing: .01em;
+        }
     </style>
 </head>
 <body>
@@ -200,9 +1571,21 @@
                 <div class="nav-item" data-view="stock-history"><i class="material-icons">local_shipping</i> Stock History</div>
                 <div class="nav-item" onclick="location.href='./product_catalog.html'"><i class="material-icons">menu_book</i> Product Catalog</div>
                 <div class="nav-item" data-view="users"><i class="material-icons">people</i> Users</div>
-                <div class="nav-item sadmin-only" data-view="online-users"><i class="material-icons">online_prediction</i> Online Users</div>
-                <div class="nav-item sadmin-only" data-view="announcement"><i class="material-icons">campaign</i> Announce</div>
-                <div class="nav-item sadmin-only" id="maintenanceToggle"><i class="material-icons">build</i> System Maintenance</div>
+
+                <div class="nav-group open sadmin-only" id="settingsNavGroup">
+                    <div class="nav-group-header" id="settingsNavHeader" role="button" tabindex="0" aria-expanded="true">
+                        <i class="material-icons">settings</i>
+                        <span>Settings</span>
+                        <i class="material-icons nav-caret">expand_more</i>
+                    </div>
+                    <div class="nav-submenu" id="settingsNavSubmenu">
+                        <div class="nav-item sub" data-view="cashier-names"><i class="material-icons">manage_accounts</i> Cashier Names</div>
+                        <div class="nav-item sub" data-view="online-users"><i class="material-icons">online_prediction</i> Online Users</div>
+                        <div class="nav-item sub" data-view="announcement"><i class="material-icons">campaign</i> Announce</div>
+                        <div class="nav-item sub" id="maintenanceToggle"><i class="material-icons">build</i> System Maintenance</div>
+                    </div>
+                </div>
+
                 <div class="nav-item" onclick="logout()"><i class="material-icons">logout</i> Logout</div>
             </div>
         </div>
@@ -222,10 +1605,10 @@
                     </div>
                     
                     <div class="dashboard-actions">
-                        <button id="refreshStatsBtn" class="icon-button" title="刷新数据">
+                        <button id="refreshStatsBtn" class="icon-button" title="Refresh data">
                             <i class="material-icons">refresh</i>
                         </button>
-                        <button id="viewSalesSummaryBtn" class="action-button">
+                        <button id="viewSalesSummaryBtn" class="action-button sadmin-only">
                             <i class="material-icons">assessment</i>
                             <span>Sales Summary</span>
                         </button>
@@ -254,7 +1637,8 @@
                                 <th>Time</th>
                                 <th>Cashier</th>
                                 <th>Shift</th>
-                                <th>Items</th>
+                                <th>Payment</th>
+                                <th>Bank</th>
                                 <th>Total</th>
                                 <th>Details</th>
                             </tr>
@@ -268,7 +1652,6 @@
             
             <!-- Stores Management View -->
             <div id="storesView" class="view">
-                <h2>Store Management</h2>
                 
                 <div class="page-header">
                     <div class="header-title">
@@ -292,6 +1675,7 @@
                                 <th>POS Mode</th>
                                 <th>Shifts</th>
                                 <th>Tax Rate</th>
+                                <th>Payments</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -304,7 +1688,6 @@
             
             <!-- Products Management View -->
             <div id="productsView" class="view">
-                <h2>Product Management</h2>
                 
                 <div class="page-header">
                     <div class="filter-section">
@@ -350,14 +1733,18 @@
                             </select>
                         </div>
                     </div>
-                    <div class="header-actions" style="display: flex; gap: 10px;">
+                    <div class="header-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
                         <button id="addProductBtn" class="action-button">
                             <i class="material-icons">add_shopping_cart</i>
                             <span>Add Product</span>
                         </button>
-                        <button id="addProductProBtn" class="action-button" style="background: linear-gradient(135deg, #10b981, #059669); border-color: transparent;">
+                        <button id="addProductProBtn" class="action-button secondary">
                             <i class="material-icons">dashboard_customize</i>
                             <span>Add Product Pro</span>
+                        </button>
+                        <button id="openMigrationModalBtn" class="action-button warn">
+                            <i class="material-icons">published_with_changes</i>
+                            <span>Fix &amp; Migrate Sales</span>
                         </button>
                     </div>
                 </div>
@@ -384,7 +1771,6 @@
             
             <!-- Users Management View -->
             <div id="usersView" class="view">
-                <h2>User Management</h2>
                 
                 <div class="page-header">
                     <div class="header-title">
@@ -419,7 +1805,6 @@
             
             <!-- Inventory Management View -->
             <div id="inventoryView" class="view">
-                <h2>Inventory Management</h2>
                 
                 <div class="inventory-header">
                     <div class="inventory-filters">
@@ -459,7 +1844,7 @@
                     </div>
                     
                     <div class="inventory-actions">
-                        <button id="refreshInventoryBtn" class="icon-button" title="刷新库存">
+                        <button id="refreshInventoryBtn" class="icon-button" title="Refresh inventory">
                             <i class="material-icons">refresh</i>
                         </button>
                         <button id="bulkUpdateBtn" class="action-button">
@@ -508,7 +1893,6 @@
             
             <!-- Online Users View -->
             <div id="online-usersView" class="view">
-                <h2>Online Users</h2>
                 
                 <div class="page-header">
                     <div class="header-title">
@@ -541,7 +1925,6 @@
             
             <!-- Announcement Management View -->
             <div id="announcementView" class="view">
-                <h2>Announcement Management</h2>
                 
                 <div class="page-header">
                     <div class="header-title">
@@ -615,7 +1998,7 @@
                             </label>
                             <input type="date" id="stockHistoryDatePicker" value="">
                         </div>
-                        <button id="refreshStockHistoryBtn" class="icon-button" title="刷新库存历史">
+                        <button id="refreshStockHistoryBtn" class="icon-button" title="Refresh stock history">
                             <i class="material-icons">refresh</i>
                         </button>
                     </div>
@@ -677,6 +2060,117 @@
                     </table>
                 </div>
             </div>
+
+        <!-- Cashier Name Cleanup View -->
+        <div id="cashier-namesView" class="view">
+            <p class="cn-sub">One person, many spellings — merge them into one standard name.</p>
+
+            <div class="cn-hint">
+                <i class="material-icons">info</i>
+                <div>
+                    Each sales record keeps the cashier name exactly as it was typed at the POS, so the same staff member
+                    can appear as <em>AisyahM</em>, <em>Aisyah M</em>, <em>Aisyah.m</em> or <em>AISYAH M</em>.
+                    Scan a date range, tick the spellings that belong to the same person and merge them into one name.
+                    Only <code>cashierName</code> is rewritten — totals, items, shifts and statistics are never touched,
+                    and every merge is logged so it can be undone.
+                </div>
+            </div>
+
+            <div class="cn-panel">
+                <div class="cn-controls">
+                    <div class="cn-field grow">
+                        <label><i class="material-icons">store</i> Store</label>
+                        <select id="cnStoreSelect">
+                            <option value="all">All Stores</option>
+                        </select>
+                    </div>
+                    <div class="cn-field">
+                        <label><i class="material-icons">event</i> From</label>
+                        <input type="date" id="cnDateFrom">
+                    </div>
+                    <div class="cn-field">
+                        <label><i class="material-icons">event</i> To</label>
+                        <input type="date" id="cnDateTo">
+                    </div>
+                    <div class="cn-field">
+                        <button type="button" id="cnScanBtn" class="action-button">
+                            <i class="material-icons">search</i>
+                            <span>Scan Names</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="cn-presets">
+                    <span>Quick range</span>
+                    <button type="button" class="cn-chip" data-range="month">This Month</button>
+                    <button type="button" class="cn-chip" data-range="30">Last 30 Days</button>
+                    <button type="button" class="cn-chip" data-range="90">Last 90 Days</button>
+                    <button type="button" class="cn-chip" data-range="year">This Year</button>
+                </div>
+
+                <div class="cn-progress" id="cnProgressWrap">
+                    <div class="cn-progress-track"><div class="cn-progress-fill" id="cnProgressFill"></div></div>
+                    <span id="cnProgressText"></span>
+                </div>
+            </div>
+
+            <div id="cnBanner" class="cn-banner"></div>
+
+            <div class="cn-stats" id="cnStats">
+                <div class="cn-stat"><span>Records scanned</span><strong>0</strong></div>
+                <div class="cn-stat"><span>Distinct names</span><strong>0</strong></div>
+                <div class="cn-stat"><span>Possible duplicate groups</span><strong>0</strong></div>
+                <div class="cn-stat"><span>Records in those groups</span><strong>0</strong></div>
+            </div>
+
+            <div class="cn-merge-bar" id="cnMergeBar">
+                <div class="cn-merge-info">
+                    <div id="cnSelectionCount">Select the spellings that belong to the same person (tick the boxes)</div>
+                    <div class="cn-merge-hint">Tip: tick every version of the name, type the correct name, then merge.</div>
+                </div>
+                <div class="cn-field">
+                    <label><i class="material-icons">badge</i> Standard name</label>
+                    <input type="text" id="cnTargetName" list="cnKnownNames" placeholder="e.g. Aisyah M" autocomplete="off">
+                    <datalist id="cnKnownNames"></datalist>
+                </div>
+                <div class="cn-field" style="min-width:auto;">
+                    <button type="button" id="cnMergeBtn" class="action-button" disabled>
+                        <i class="material-icons">merge_type</i>
+                        <span>Merge</span>
+                    </button>
+                </div>
+                <button type="button" id="cnClearSelectionBtn" class="cn-mini-btn ghost">
+                    <i class="material-icons">clear_all</i> Clear
+                </button>
+            </div>
+
+            <div class="cn-panel">
+                <div class="cn-panel-head">
+                    <h3><i class="material-icons">manage_accounts</i> Cashier names</h3>
+                    <input type="text" id="cnSearchInput" class="cn-search" placeholder="Filter names…">
+                </div>
+                <div class="cn-table-wrap" id="cnNameList">
+                    <div class="cn-empty">
+                        <i class="material-icons">manage_accounts</i>
+                        <h4>No cashier names loaded</h4>
+                        <p>Pick a store and a date range above, then press <strong>Scan Names</strong>.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cn-panel">
+                <div class="cn-panel-head">
+                    <h3><i class="material-icons">history</i> Recent merges (audit log)</h3>
+                    <button type="button" id="cnRefreshAuditBtn" class="cn-mini-btn ghost">
+                        <i class="material-icons">refresh</i> Refresh
+                    </button>
+                </div>
+                <div id="cnAuditList">
+                    <div class="cn-empty small"><p>No merge has been recorded yet.</p></div>
+                </div>
+            </div>
+        </div>
+
         </div>
     </div>
     
@@ -749,6 +2243,74 @@
                         <option value="3">3 Shifts</option>
                     </select>
                 </div>
+                <div class="payment-config">
+                    <div class="payment-config-title">
+                        <i class="material-icons">account_balance_wallet</i>
+                        <span>Payment Methods</span>
+                    </div>
+                    <div class="payment-toggle-row">
+                        <label class="payment-toggle active">
+                            <input type="checkbox" id="storePayCash" checked>
+                            <i class="material-icons">payments</i>
+                            <span>Cash</span>
+                        </label>
+                        <label class="payment-toggle active">
+                            <input type="checkbox" id="storePayQR" checked>
+                            <i class="material-icons">qr_code_2</i>
+                            <span>QR</span>
+                        </label>
+                        <label class="payment-toggle active">
+                            <input type="checkbox" id="storePayCard" checked>
+                            <i class="material-icons">credit_card</i>
+                            <span>Credit Card</span>
+                        </label>
+                    </div>
+                    <div class="bank-editor">
+                        <div class="bank-editor-head">
+                            <i class="material-icons">qr_code_2</i>
+                            <span>QR Banks</span>
+                            
+                            <button type="button" class="bank-clear" data-scope="add" data-type="qr">Clear</button>
+                        </div>
+                        <div class="bank-chips" id="storeQRBankChips"></div>
+                        <div class="bank-add-row">
+                            <input type="text" id="storeQRBankInput" list="bankNameSuggestions" placeholder="e.g. Maybank">
+                            <button type="button" id="storeQRBankAdd">Add</button>
+                        </div>
+                    </div>
+                    <div class="bank-editor">
+                        <div class="bank-editor-head">
+                            <i class="material-icons">credit_card</i>
+                            <span>Credit Card Banks</span>
+                            
+                            <button type="button" class="bank-clear" data-scope="add" data-type="card">Clear</button>
+                        </div>
+                        <div class="bank-chips" id="storeCardBankChips"></div>
+                        <div class="bank-add-row">
+                            <input type="text" id="storeCardBankInput" list="bankNameSuggestions" placeholder="e.g. CIMB Bank">
+                            <button type="button" id="storeCardBankAdd">Add</button>
+                        </div>
+                    </div>
+                    <div class="bank-logo-block">
+                        <div class="bank-logo-head">
+                            <i class="material-icons">photo_library</i>
+                            <span>Bank Logos</span>
+                            <span class="bank-logo-sub">Upload a logo once — it will show up on the sales list and receipt wherever that bank name is used.</span>
+                        </div>
+                        <div class="bank-logo-list" id="bankLogoList_add">
+                            <span class="bank-logo-empty">No logo uploaded yet</span>
+                        </div>
+                        <div class="bank-logo-form">
+                            <input type="text" id="bankLogoName_add" placeholder="Bank name (e.g. Maybank)" maxlength="40" autocomplete="off">
+                            <label class="bank-logo-pick" for="bankLogoFile_add">
+                                <i class="material-icons">add_photo_alternate</i>
+                                <span id="bankLogoFileName_add">Choose image</span>
+                            </label>
+                            <input type="file" id="bankLogoFile_add" accept="image/*" hidden>
+                            <button type="button" id="bankLogoUpload_add" class="bank-logo-upload-btn">Upload</button>
+                        </div>
+                    </div>
+                </div>
                 <button type="submit"><i class="material-icons">save</i> Save</button>
             </form>
         </div>
@@ -787,11 +2349,105 @@
                         <option value="3">3 Shifts</option>
                     </select>
                 </div>
+                <div class="payment-config">
+                    <div class="payment-config-title">
+                        <i class="material-icons">account_balance_wallet</i>
+                        <span>Payment Methods</span>
+                    </div>
+                    <div class="payment-toggle-row">
+                        <label class="payment-toggle">
+                            <input type="checkbox" id="editStorePayCash" checked>
+                            <i class="material-icons">payments</i>
+                            <span>Cash</span>
+                        </label>
+                        <label class="payment-toggle">
+                            <input type="checkbox" id="editStorePayQR" checked>
+                            <i class="material-icons">qr_code_2</i>
+                            <span>QR</span>
+                        </label>
+                        <label class="payment-toggle">
+                            <input type="checkbox" id="editStorePayCard" checked>
+                            <i class="material-icons">credit_card</i>
+                            <span>Credit Card</span>
+                        </label>
+                    </div>
+                    <div class="bank-editor">
+                        <div class="bank-editor-head">
+                            <i class="material-icons">qr_code_2</i>
+                            <span>QR Banks</span>
+                            
+                            <button type="button" class="bank-clear" data-scope="edit" data-type="qr">Clear</button>
+                        </div>
+                        <div class="bank-chips" id="editQRBankChips"></div>
+                        <div class="bank-add-row">
+                            <input type="text" id="editQRBankInput" list="bankNameSuggestions" placeholder="e.g. Maybank">
+                            <button type="button" id="editQRBankAdd">Add</button>
+                        </div>
+                    </div>
+                    <div class="bank-editor">
+                        <div class="bank-editor-head">
+                            <i class="material-icons">credit_card</i>
+                            <span>Credit Card Banks</span>
+                            
+                            <button type="button" class="bank-clear" data-scope="edit" data-type="card">Clear</button>
+                        </div>
+                        <div class="bank-chips" id="editCardBankChips"></div>
+                        <div class="bank-add-row">
+                            <input type="text" id="editCardBankInput" list="bankNameSuggestions" placeholder="e.g. CIMB Bank">
+                            <button type="button" id="editCardBankAdd">Add</button>
+                        </div>
+                    </div>
+                    <div class="bank-logo-block">
+                        <div class="bank-logo-head">
+                            <i class="material-icons">photo_library</i>
+                            <span>Bank Logos</span>
+                            <span class="bank-logo-sub">Upload a logo once — it will show up on the sales list and receipt wherever that bank name is used.</span>
+                        </div>
+                        <div class="bank-logo-list" id="bankLogoList_edit">
+                            <span class="bank-logo-empty">No logo uploaded yet</span>
+                        </div>
+                        <div class="bank-logo-form">
+                            <input type="text" id="bankLogoName_edit" placeholder="Bank name (e.g. Maybank)" maxlength="40" autocomplete="off">
+                            <label class="bank-logo-pick" for="bankLogoFile_edit">
+                                <i class="material-icons">add_photo_alternate</i>
+                                <span id="bankLogoFileName_edit">Choose image</span>
+                            </label>
+                            <input type="file" id="bankLogoFile_edit" accept="image/*" hidden>
+                            <button type="button" id="bankLogoUpload_edit" class="bank-logo-upload-btn">Upload</button>
+                        </div>
+                    </div>
+                </div>
                 <button type="submit"><i class="material-icons">save</i> Save</button>
             </form>
         </div>
     </div>
     
+    <!-- Bank name suggestions (autocomplete only, nothing is added automatically) -->
+    <datalist id="bankNameSuggestions">
+        <option value="Maybank"></option>
+        <option value="CIMB Bank"></option>
+        <option value="Public Bank"></option>
+        <option value="RHB Bank"></option>
+        <option value="Hong Leong Bank"></option>
+        <option value="Bank Islam"></option>
+        <option value="AmBank"></option>
+        <option value="Bank Rakyat"></option>
+        <option value="BSN"></option>
+        <option value="Alliance Bank"></option>
+        <option value="Affin Bank"></option>
+        <option value="OCBC Bank"></option>
+        <option value="UOB"></option>
+        <option value="Standard Chartered"></option>
+        <option value="HSBC"></option>
+        <option value="Citibank"></option>
+        <option value="Touch 'n Go eWallet"></option>
+        <option value="GrabPay"></option>
+        <option value="Boost"></option>
+        <option value="ShopeePay"></option>
+        <option value="Alipay"></option>
+        <option value="WeChat Pay"></option>
+    </datalist>
+
     <!-- Add Product Modal -->
     <div id="addProductModal" class="modal">
         <div class="modal-content">
@@ -1076,6 +2732,220 @@
         </div>
     </div>
     
+    <!-- Product & Sales Migration Modal -->
+    <div id="productMigrationModal" class="modal">
+        <div class="modal-content migration-modal-content">
+            <span class="close" id="closeMigrationModalBtn">&times;</span>
+            <div class="migration-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="material-icons migration-header-icon">published_with_changes</i>
+                    <div>
+                        <h2 class="migration-header-title">Product & Sales Migration Tool</h2>
+                        <p class="migration-header-subtitle">Standardize store products and batch-align historical sales orders across stores to unify reports and totals.</p>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-right: 32px;">
+                    <button type="button" id="toggleMigrationHistoryBtn" class="action-button secondary action-button-sm">
+                        <i class="material-icons">history</i>
+                        <span>Audit Logs &amp; Undo</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Migration Audit & Undo History Panel (Initially Collapsed) -->
+            <div id="migrationHistoryPanel" style="display: none; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div style="font-weight: 700; color: #0369a1; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                        <i class="material-icons" style="font-size: 18px;">restore</i>
+                        <span>Migration Audit History & Rollback (Undo)</span>
+                    </div>
+                    <span id="migrationHistoryCount" style="font-size: 0.75rem; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 10px; font-weight: 600;">0 records</span>
+                </div>
+                <div style="font-size: 0.8rem; color: #0c4a6e; margin-bottom: 8px;">
+                    Below are the products that were migrated. You can inspect their original names and IDs, or click <b>"Rollback"</b> to restore both the active product and past sales receipts back to the original values.
+                </div>
+                <div id="migrationHistoryList" style="max-height: 220px; overflow-y: auto; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px;">
+                    <div style="text-align: center; color: #94a3b8; padding: 16px; font-size: 0.82rem;">Loading audit logs...</div>
+                </div>
+            </div>
+
+            <!-- Tip Info Box -->
+            <div class="migration-tip-box">
+                <i class="material-icons">info</i>
+                <div>
+                    <strong>Safety First:</strong> Click <b>"1. Scan & Preview (Dry Run)"</b> to verify affected sales orders and total revenue before applying changes. When confirmed, click <b>"2. Apply & Migrate Sales"</b>. Original IDs and product names are archived within each order for accounting and audit compliance.
+                </div>
+            </div>
+
+            <!-- Inline result banner (stays on the page, no popup / no auto-close) -->
+            <div id="migrationResultBanner" class="migration-result-banner" style="display: none;"></div>
+
+            <form id="productMigrationForm" onsubmit="return false;">
+                <!-- Step 1: Source Products (Store + Product rows) -->
+                <div class="form-group migration-section-box migration-pairs-box">
+                    <div class="migration-section-title">
+                        <i class="material-icons" style="font-size: 18px; color: #e11d48;">store</i>
+                        <span>1. Source Products to Replace (Store + Product)</span>
+                        <span id="migrationPairCount" class="migration-pair-count">0 row(s)</span>
+                    </div>
+
+                    <!-- Catalog coverage summary + filter toggle -->
+                    <div class="migration-source-filter-bar">
+                        <span id="migrationSourceCatalogSummary" class="migration-source-summary">
+                            Checking Master Catalog...
+                        </span>
+                        <label class="migration-source-toggle" title="Tick to also list products that already exist in the Master Catalog">
+                            <input type="checkbox" id="migrationShowAllSourceProducts">
+                            <span>Show products already in Master Catalog</span>
+                        </label>
+                    </div>
+
+                    <div class="migration-pair-head">
+                        <span>Store</span>
+                        <span>Product (not matching Master Catalog)</span>
+                        <span>Current Price</span>
+                        <span></span>
+                    </div>
+
+                    <div id="migrationPairRows" class="migration-pair-rows">
+                        <!-- Rows are generated dynamically -->
+                    </div>
+
+                    <div class="migration-pair-footer">
+                        <button type="button" id="migrationAddPairBtn" class="migration-add-pair-btn">
+                            <i class="material-icons" style="font-size: 18px;">add</i>
+                            <span>Add Store / Product</span>
+                        </button>
+
+                        <div class="migration-match-mode-inline">
+                            <label for="migrationMatchMode">Historical Sales Matching Rule:</label>
+                            <select id="migrationMatchMode">
+                                <option value="contains_keyword">Contains Keyword (Fuzzy / Partial Match on ID or Name - Catches All Variations)</option>
+                                <option value="id_or_name">Match by Product ID OR Product Name (Exact)</option>
+                                <option value="id_only">Exact Match on Product ID Only</option>
+                                <option value="name_only">Exact Match on Product Name Only</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Standard Product (Target Master) -->
+                <div class="form-group migration-section-box migration-target-box">
+                    <div class="migration-section-title">
+                        <i class="material-icons" style="font-size: 18px; color: #15803d;">verified</i>
+                        <span>2. Standard Product (Target Master)</span>
+                    </div>
+
+                    <div class="migration-target-grid">
+                        <div class="form-group migration-target-search">
+                            <label for="migrationCatalogSearch" style="font-size: 0.84rem; font-weight: 500; display: block; margin-bottom: 4px;">
+                                Quick Search Master Catalog:
+                            </label>
+                            <div class="migration-search-wrap">
+                                <div class="migration-search-input-box">
+                                    <i class="material-icons">search</i>
+                                    <input type="text" id="migrationCatalogSearch" class="migration-search-input" placeholder="Search catalog by name or ID..." autocomplete="off">
+                                    <button type="button" id="clearCatalogSearchBtn" class="migration-search-clear" title="Clear search">&times;</button>
+                                </div>
+                                <div id="migrationCatalogResults" class="migration-dropdown-list"></div>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="migrationNewProductId" style="font-size: 0.84rem; font-weight: 500; display: block; margin-bottom: 4px;">
+                                Standard Product ID <span style="color: #ef4444;">*</span>:
+                            </label>
+                            <input type="text" id="migrationNewProductId" placeholder="e.g. CAT-COKE-330" required style="width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.88rem; font-weight: 600;">
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="migrationNewProductName" style="font-size: 0.84rem; font-weight: 500; display: block; margin-bottom: 4px;">
+                                Standard Product Name <span style="color: #ef4444;">*</span>:
+                            </label>
+                            <input type="text" id="migrationNewProductName" placeholder="e.g. Coca Cola 330ml" required style="width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.88rem; font-weight: 600;">
+                        </div>
+
+                        <div class="form-group migration-target-category" style="margin-bottom: 0;">
+                            <label for="migrationNewCategory" style="font-size: 0.84rem; font-weight: 500; display: block; margin-bottom: 4px;">
+                                Category (Optional):
+                            </label>
+                            <input type="text" id="migrationNewCategory" placeholder="e.g. Beverages" style="width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.88rem;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Options -->
+                <div class="form-group migration-section-box">
+                    <div class="migration-section-title">3. Application Scope:</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.88rem;">
+                            <input type="checkbox" id="migrationOptSales" checked style="width: 18px; height: 18px;">
+                            <span><b>Batch-update Historical Sales Orders</b> (Traverse past receipts in selected store(s) and replace items with standard ID & Name)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.88rem;">
+                            <input type="checkbox" id="migrationOptStoreProduct" checked style="width: 18px; height: 18px;">
+                            <span><b>Update Active Store Inventory (store_products)</b> (Migrate active store product key to standard ID, keeping current stock & price)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Step 4: Preview Result Dashboard -->
+                <div id="migrationPreviewDashboard" class="migration-stats-panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span style="font-weight: 600; font-size: 0.88rem; display: flex; align-items: center; gap: 6px;">
+                            <i class="material-icons" style="font-size: 18px; color: #3b82f6;">analytics</i>
+                            <span>Scan & Impact Assessment (Dry Run Preview):</span>
+                        </span>
+                        <span id="migrationStatusBadge" style="font-size: 0.78rem; padding: 3px 10px; border-radius: 12px; background: #e2e8f0; color: #64748b; font-weight: 500;">Not Scanned Yet</span>
+                    </div>
+
+                    <div class="migration-stats-grid">
+                        <div class="migration-stat-card">
+                            <div class="migration-stat-label">Matched Sales Orders</div>
+                            <div id="migrationScanOrderCount" class="migration-stat-value" style="color: #2563eb;">0</div>
+                        </div>
+                        <div class="migration-stat-card">
+                            <div class="migration-stat-label">Total Units Sold</div>
+                            <div id="migrationScanQtyCount" class="migration-stat-value" style="color: #059669;">0</div>
+                        </div>
+                        <div class="migration-stat-card">
+                            <div class="migration-stat-label">Total Sales Revenue</div>
+                            <div id="migrationScanSalesTotal" class="migration-stat-value" style="color: #d97706;">RM 0.00</div>
+                        </div>
+                    </div>
+
+                    <div id="migrationSampleContainer" style="display: none; max-height: 140px; overflow-y: auto; font-size: 0.8rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px;">
+                        <div style="font-weight: 600; margin-bottom: 4px; color: #475569;">Matched Receipt Samples (Up to 5):</div>
+                        <div id="migrationSampleList"></div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Action Buttons -->
+                <div class="migration-actions-bar" style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <button type="button" id="migrationCancelBtn" class="action-button secondary" style="margin-right: auto;">
+                        <i class="material-icons">close</i>
+                        <span>Close</span>
+                    </button>
+
+                    <div id="migrationLoadingIndicator" style="display: none; align-items: center; gap: 6px; color: #2563eb; font-size: 0.88rem;">
+                        <i class="material-icons" style="animation: spin 1s linear infinite;">refresh</i>
+                        <span id="migrationLoadingText">Scanning database...</span>
+                    </div>
+
+                    <button type="button" id="migrationScanBtn" class="action-button secondary">
+                        <i class="material-icons">search</i>
+                        <span>1. Scan &amp; Preview (Dry Run)</span>
+                    </button>
+
+                    <button type="button" id="migrationExecuteBtn" class="action-button" disabled>
+                        <i class="material-icons">check_circle</i>
+                        <span>2. Apply &amp; Migrate Sales</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <!-- Sales Summary Modal -->
     <div id="salesSummaryModal" class="modal sales-summary-fullscreen">
         <div class="modal-content sales-summary-modal">
@@ -1086,6 +2956,16 @@
             
             <!-- Scrollable content wrapper -->
             <div class="sales-summary-scrollable">
+
+            <!-- Offline JSON import status -->
+            <div id="importJsonStatus" class="import-json-status" style="display:none;">
+                <i class="material-icons">offline_pin</i>
+                <span id="importJsonStatusText">No file imported</span>
+                <button type="button" id="importJsonClearBtn" class="import-json-clear-btn">
+                    <i class="material-icons">sync</i>
+                    <span>Use Live Data</span>
+                </button>
+            </div>
             
             <!-- Control Panel -->
             <div class="summary-control-panel">
@@ -1123,15 +3003,48 @@
                         </div>
                     </div>
 
+                    <!-- Product Multi-select Dropdown -->
+                    <div class="control-group product-filter-group">
+                        <label><i class="material-icons">inventory_2</i> Filter by Product</label>
+                        <div class="store-dropdown-wrapper product-dropdown-wrapper">
+                            <button type="button" id="productDropdownTrigger" class="store-dropdown-trigger">
+                                <i class="material-icons">inventory_2</i>
+                                <span id="productDropdownLabel">All Products</span>
+                                <i class="material-icons store-dropdown-arrow">expand_more</i>
+                            </button>
+                            <div class="store-dropdown-popup product-dropdown-popup" id="productDropdownPopup">
+                                <div class="dropdown-search-wrapper">
+                                    <i class="material-icons">search</i>
+                                    <input type="text" id="summaryProductSearchInput" class="dropdown-filter-search" placeholder="Search product name/id...">
+                                </div>
+                                <div class="dropdown-quick-actions">
+                                    <button type="button" id="productSelectAllBtn" class="dropdown-text-btn">Select All</button>
+                                    <span class="action-divider">|</span>
+                                    <button type="button" id="productDeselectAllBtn" class="dropdown-text-btn">Clear</button>
+                                </div>
+                                <div class="store-dropdown-header">
+                                    <label class="store-checkbox-item store-all-item">
+                                        <input type="checkbox" id="summaryProductAll" value="all" checked>
+                                        <span class="store-checkbox-label">All Products (<span id="productTotalCountLabel">0</span>)</span>
+                                    </label>
+                                </div>
+                                <div class="store-dropdown-list product-dropdown-list" id="summaryProductCheckboxList">
+                                    <!-- Product checkboxes dynamically loaded -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Sort -->
                     <div class="control-group">
                         <label><i class="material-icons">sort</i> Sort By</label>
                         <select id="summarySortBy" class="summary-select">
-                            <option value="quantity">Qty: High to Low</option>
-                            <option value="revenue">Revenue: High to Low</option>
-                            <option value="name">Product Name</option>
-                            <option value="profit">Profit: High to Low</option>
+                            <option value="quantity">Total Qty: High to Low</option>
+                            <option value="quantity_asc">Total Qty: Low to High</option>
+                            <option value="revenue">Total Sales: High to Low</option>
+                            <option value="revenue_asc">Total Sales: Low to High</option>
+                            <option value="name">Product Name (A - Z)</option>
+                            <option value="name_desc">Product Name (Z - A)</option>
                         </select>
                     </div>
 
@@ -1139,8 +3052,8 @@
                     <div class="control-group">
                         <label><i class="material-icons">layers</i> Group By</label>
                         <select id="summaryGroupBy" class="summary-select">
-                            <option value="id">Product ID</option>
                             <option value="name">Product Name</option>
+                            <option value="id">Product ID</option>
                         </select>
                     </div>
 
@@ -1154,15 +3067,31 @@
                     </div>
                 </div>
 
-                
                 <div class="action-section">
                     <label><i class="material-icons">more_horiz</i> Actions</label>
                     <div class="action-mode-selector">
-                        <button id="exportSummaryBtn" class="action-mode-btn">
+                        <button id="importJsonBtn" class="action-mode-btn import-json-btn" title="Generate reports offline from a Firebase RTDB JSON export (no database connection; you can select multiple files to merge)">
+                            <i class="material-icons">upload_file</i>
+                            <span>Import JSON</span>
+                        </button>
+                        <input type="file" id="importJsonInput" accept=".json,application/json" multiple style="display:none;">
+                        <button id="exportHtmlBtn" class="action-mode-btn" title="Download standalone interactive HTML Report">
+                            <i class="material-icons">html</i>
+                            <span>HTML (.html)</span>
+                        </button>
+                        <button id="exportHtmlLandscapeBtn" class="action-mode-btn" title="Download Mobile Landscape HTML Report">
+                            <i class="material-icons">stay_current_landscape</i>
+                            <span>📱 Mobile Landscape</span>
+                        </button>
+                        <button id="exportSummaryBtn" class="action-mode-btn" title="Export as CSV (Excel UTF-8 Compatible)">
                             <i class="material-icons">download</i>
                             <span>Export CSV</span>
                         </button>
-                        <button id="printSummaryBtn" class="action-mode-btn">
+                        <button id="exportExcelBtn" class="action-mode-btn" title="Export formatted Excel Spreadsheet (.xls)">
+                            <i class="material-icons">grid_on</i>
+                            <span>Excel (.xls)</span>
+                        </button>
+                        <button id="printSummaryBtn" class="action-mode-btn" title="Print Report">
                             <i class="material-icons">print</i>
                             <span>Print</span>
                         </button>
@@ -1170,11 +3099,174 @@
                 </div>
             </div>
 
-            
+            <!-- View Tabs & Meta Badges -->
+            <div class="summary-view-tabs-container">
+                <div class="summary-view-tabs">
+                    <button type="button" class="summary-tab-btn active" id="tabCrossTabBtn" data-view="crosstab">
+                        <i class="material-icons">pivot_table_chart</i>
+                        <span>Product Sales Analysis</span>
+                    </button>
+                    <button type="button" class="summary-tab-btn" id="tabStoreSalesBtn" data-view="storesales">
+                        <i class="material-icons">store</i>
+                        <span>Store Total Sales</span>
+                    </button>
+                    <button type="button" class="summary-tab-btn" id="tabStandardBtn" data-view="table">
+                        <i class="material-icons">format_list_bulleted</i>
+                        <span>Standard Summary</span>
+                    </button>
+                </div>
+                <div class="crosstab-meta-badges">
+                    <span class="meta-badge" id="crosstabStoreBadge"><i class="material-icons">store</i> <span>0 Stores</span></span>
+                    <span class="meta-badge" id="crosstabProductBadge"><i class="material-icons">inventory_2</i> <span>0 Products</span></span>
+                    <span class="meta-badge highlight" id="crosstabTotalRevenueBadge"><i class="material-icons">payments</i> <span>RM 0.00</span></span>
+                </div>
+            </div>
+
             <!-- Summary Stats Bar -->
             <div class="summary-content-area">
-                <!-- Table View (only view) -->
-                <div id="summaryTableView" class="summary-view active">
+                <!-- Dynamic Cross-Tab Pivot Matrix View (Primary) -->
+                <div id="summaryCrossTabView" class="summary-view active">
+                    <div class="crosstab-toolbar">
+                        <div class="crosstab-search-box">
+                            <i class="material-icons">search</i>
+                            <input type="text" id="crosstabQuickSearch" placeholder="Type to filter product name in table...">
+                            <button type="button" id="crosstabClearSearchBtn" class="clear-search-btn" style="display:none;" title="Clear search">&times;</button>
+                        </div>
+                        <div class="crosstab-info-text">
+                            <span id="crosstabShowingCount">Showing 0 of 0 products</span>
+                            <span class="crosstab-tip"><i class="material-icons">view_column</i> Frozen product column & sticky headers enabled</span>
+                        </div>
+                    </div>
+                    <div class="crosstab-container" id="crosstabContainer">
+                        <table class="crosstab-table" id="crosstabTable">
+                            <thead id="crosstabThead">
+                                <!-- Generated dynamically -->
+                            </thead>
+                            <tbody id="crosstabTbody">
+                                <!-- Generated dynamically -->
+                            </tbody>
+                            <tfoot id="crosstabTfoot">
+                                <!-- Generated dynamically -->
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Store Total Sales View (每间店销售总览 & 每日走势图) -->
+                <div id="summaryStoreSalesView" class="summary-view">
+                    <!-- Top KPI Stat Cards Focused on Daily Sales & Totals -->
+                    <div class="store-sales-kpi-grid">
+                        <div class="store-kpi-card total-sales-card">
+                            <div class="kpi-icon-wrap"><i class="material-icons">payments</i></div>
+                            <div class="kpi-info">
+                                <span class="kpi-label">Total Revenue</span>
+                                <span class="kpi-value" id="storeKpiTotalSales">RM 0.00</span>
+                                <span class="kpi-sub" id="storeKpiDateRangeText">Date Range</span>
+                            </div>
+                        </div>
+                        <div class="store-kpi-card peak-sales-card">
+                            <div class="kpi-icon-wrap"><i class="material-icons">trending_up</i></div>
+                            <div class="kpi-info">
+                                <span class="kpi-label">Peak Sales Day</span>
+                                <span class="kpi-value" id="storeKpiPeakDay">RM 0.00</span>
+                                <span class="kpi-sub" id="storeKpiPeakDateSub">Highest day in range</span>
+                            </div>
+                        </div>
+                        <div class="store-kpi-card lowest-sales-card">
+                            <div class="kpi-icon-wrap"><i class="material-icons">trending_down</i></div>
+                            <div class="kpi-info">
+                                <span class="kpi-label">Lowest Sales Day</span>
+                                <span class="kpi-value" id="storeKpiLowestDay">RM 0.00</span>
+                                <span class="kpi-sub" id="storeKpiLowestDateSub">Lowest day in range</span>
+                            </div>
+                        </div>
+                        <div class="store-kpi-card avg-daily-card">
+                            <div class="kpi-icon-wrap"><i class="material-icons">analytics</i></div>
+                            <div class="kpi-info">
+                                <span class="kpi-label">Daily Average</span>
+                                <span class="kpi-value" id="storeKpiAvgDaily">RM 0.00</span>
+                                <span class="kpi-sub" id="storeKpiAvgSub">Daily sales average</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Daily Sales Trend Chart (每天 Sales 波动走势图) -->
+                    <div class="daily-sales-chart-section">
+                        <div class="chart-section-header">
+                            <div class="chart-header-left">
+                                <h3 class="chart-section-title">
+                                    <i class="material-icons">show_chart</i>
+                                    <span>Daily Sales Trend</span>
+                                </h3>
+                                <span class="chart-section-subtitle">Daily sales ups &amp; downs across selected date range</span>
+                            </div>
+                            <div class="chart-legend-badge" id="dailyChartPeakBadge">
+                                <i class="material-icons">trending_up</i>
+                                <span>Peak: RM 0.00</span>
+                            </div>
+                        </div>
+                        <div class="chart-lines-selector-toolbar">
+                            <div class="chart-selector-label">
+                                <i class="material-icons">tune</i>
+                                <span>Trend Lines:</span>
+                            </div>
+                            <div class="chart-selector-chips" id="chartTrendChipsContainer">
+                                <!-- Populated dynamically with Total & Store checkboxes -->
+                            </div>
+                            <div class="chart-selector-actions">
+                                <button type="button" class="chart-action-pill" id="chartSelectAllLinesBtn" title="Show all lines">All</button>
+                                <button type="button" class="chart-action-pill" id="chartTotalOnlyBtn" title="Show only Total line">Total Only</button>
+                                <button type="button" class="chart-action-pill" id="chartStoresOnlyBtn" title="Show only Store lines">Stores Only</button>
+                            </div>
+                        </div>
+
+                        <div class="daily-chart-wrapper">
+                            <canvas id="dailySalesChartCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Toolbar & Controls for Store View -->
+                    <div class="crosstab-toolbar">
+                        <div class="crosstab-search-box">
+                            <i class="material-icons">search</i>
+                            <input type="text" id="storeSalesQuickSearch" placeholder="Type to filter store name...">
+                            <button type="button" id="storeSalesClearSearchBtn" class="clear-search-btn" style="display:none;" title="Clear search">&times;</button>
+                        </div>
+                        <div class="crosstab-info-text">
+                            <span id="storeSalesShowingCount">Showing 0 stores</span>
+                            <span class="crosstab-tip"><i class="material-icons">store</i> Total sales summary by store</span>
+                        </div>
+                        <button type="button" id="storeSalesDownloadHtmlBtn" class="store-download-html-btn" title="Download standalone interactive HTML Report">
+                            <i class="material-icons">html</i>
+                            <span>Download HTML</span>
+                        </button>
+                        <button type="button" id="storeSalesDownloadHtmlLandscapeBtn" class="store-download-html-btn landscape-btn" title="Download Mobile Landscape HTML Report">
+                            <i class="material-icons">stay_current_landscape</i>
+                            <span>📱 Mobile Landscape</span>
+                        </button>
+                    </div>
+
+                    <!-- Store Sales Table Container (Simplified: Store Name & Total Sales) -->
+                    <div class="crosstab-container store-sales-table-container">
+                        <table class="crosstab-table store-sales-table" id="storeSalesTable">
+                            <thead>
+                                <tr>
+                                    <th class="crosstab-th">Store Name</th>
+                                    <th class="crosstab-th text-right" style="width: 220px;">Total Sales (RM)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="storeSalesTbody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                            <tfoot id="storeSalesTfoot">
+                                <!-- Populated dynamically -->
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Standard Table View -->
+                <div id="summaryTableView" class="summary-view">
                     <div class="table-container">
                         <table class="summary-table">
                             <thead>
@@ -1194,14 +3286,14 @@
                         </table>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Loading State -->
-            <div id="summaryLoadingState" class="loading-state">
-                <div class="loading-spinner">
-                    <i class="material-icons">hourglass_empty</i>
+
+                <!-- Loading State inside content area so top controls remain interactive -->
+                <div id="summaryLoadingState" class="loading-state">
+                    <div class="loading-spinner">
+                        <i class="material-icons">hourglass_empty</i>
+                    </div>
+                    <div class="loading-text">Loading sales data, please wait...</div>
                 </div>
-                <div class="loading-text">Loading sales data, please wait...</div>
             </div>
             
             </div> <!-- End scrollable wrapper -->
@@ -1359,7 +3451,23 @@
                 </div>
             </form>
         </div>
+
     </div>
+    
+        <!-- Confirm merge modal -->
+        <div id="cnConfirmModal" class="cn-modal">
+            <div class="cn-modal-card">
+                <div class="cn-modal-head">
+                    <i class="material-icons">warning_amber</i>
+                    <h3>Confirm cashier name merge</h3>
+                </div>
+                <div class="cn-modal-body" id="cnConfirmBody"></div>
+                <div class="cn-modal-foot">
+                    <button type="button" id="cnConfirmCancel" class="cn-btn-cancel">Cancel</button>
+                    <button type="button" id="cnConfirmBtn" class="cn-btn-confirm">Confirm merge</button>
+                </div>
+            </div>
+        </div>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -1370,6 +3478,7 @@
     <script src="../js/database.js"></script>
     <script src="../js/network-monitor.js"></script>
     <script src="../js/sw-helper.js"></script>
-    <script src="../js/admin.js"></script>
+    <script src="../js/admin.js?v=4.0.33"></script>
+    <script src="../js/cashier-names.js?v=1.0.0"></script>
 </body>
 </html>

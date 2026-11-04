@@ -28,6 +28,10 @@ let currentAnnouncement = null; // 当前活跃的公告
 let announcementBanner = null; // 公告横幅元素
 let announcementScrollingText = null; // 公告滚动文本元素
 
+// 支付方式相关状态
+let selectedPaymentMethod = 'cash'; // cash | qr | card
+let selectedPaymentBank = ''; // 选中的银行（QR / Credit Card）
+
 // 添加震动反馈辅助函数
 function vibrateDevice(pattern = 50) {
     if ('vibrate' in navigator) {
@@ -359,8 +363,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // 加载店铺信息后再加载商品数据，保证storeData已就绪
     loadStoreInfo(userStoreId).then(() => {
+        // 初始化支付方式（需读取店铺的支付配置）
+        initPaymentSection();
         loadProducts(userStoreId);
     });
+
+    // 银行 logo（与 Admin 共用 bankLogos 节点），加载完会自动重绘支付区与销售历史
+    loadBankLogos();
 
     // 加载最后一个账单号
     loadLastBillNumber();
@@ -427,6 +436,8 @@ function loadStoreInfo(storeId) {
         .then(snapshot => {
             const store = snapshot.val() || { name: 'Unknown Store' };
             storeData = store;
+            // 店铺节点里带着 logo 镜像（staff 一定有读权限），先合并进来
+            applyStoreBankLogos(store);
             // 不再更新storeName元素，因为已在UI中移除
             document.title = `POS - ${store.name}`; // 仅更新页面标题
             return store;
@@ -478,7 +489,7 @@ function loadProducts(storeId) {
         })
         .catch(error => {
             console.error('加载商品失败:', error);
-            productGrid.innerHTML = '<div class="error-message"><i class="material-icons">error</i> 加载商品失败，请刷新页面重试。</div>';
+            productGrid.innerHTML = '<div class="error-message"><i class="material-icons">error</i> Failed to load products. Please refresh the page and try again.</div>';
         });
 }
 
@@ -1054,7 +1065,7 @@ function loadSalesHistory() {
     const selectedShift = shiftFilter ? shiftFilter.value : 'all';
 
     // 显示加载中状态
-    salesTableBody.innerHTML = '<tr><td colspan="8" class="loading-message">Loading sales data...</td></tr>';
+    salesTableBody.innerHTML = '<tr><td colspan="10" class="loading-message">Loading sales data...</td></tr>';
 
     // 使用优化的函数获取按日期的所有销售记录（无视班次过滤，获取全部数据）
     getSalesByDateOptimized(userStoreId, currentDate)
@@ -1091,7 +1102,7 @@ function loadSalesHistory() {
         })
         .catch(error => {
             console.error("加载销售历史失败:", error);
-            salesTableBody.innerHTML = `<tr><td colspan="8" class="error-message">加载销售数据失败：${error.message}</td></tr>`;
+            salesTableBody.innerHTML = `<tr><td colspan="10" class="error-message">Failed to load sales data: ${error.message}</td></tr>`;
         });
 }
 
@@ -1233,6 +1244,9 @@ function getDailySalesDiscountInfo(storeId, date, existingSales = null) {
 
 // 渲染销售记录表格
 function renderSalesTable(sales) {
+    // 记录这次渲染的数据，银行 logo 到位后可原地重绘
+    lastRenderedSalesTable = sales || null;
+
     // 添加样式确保操作按钮水平排列
     if (!document.getElementById('action-buttons-style')) {
         const style = document.createElement('style');
@@ -1254,7 +1268,7 @@ function renderSalesTable(sales) {
     salesTableBody.innerHTML = '';
 
     if (Object.keys(sales).length === 0) {
-        salesTableBody.innerHTML = '<tr><td colspan="8" class="no-data"><i class="material-icons">info</i> No sales data available for this date</td></tr>';
+        salesTableBody.innerHTML = '<tr><td colspan="10" class="no-data"><i class="material-icons">info</i> No sales data available for this date</td></tr>';
         // 清空总销售额显示
         document.getElementById('totalSalesAmount').textContent = 'RM0.00';
         document.getElementById('totalTransactions').textContent = '0';
@@ -1363,6 +1377,8 @@ function renderSalesTable(sales) {
             <td>${cashierName}</td>
             <td>${cashierShift}</td>
             <td>${itemCount}</td>
+            <td><span class="payment-badge"><i class="material-icons">${getPaymentIcon(sale.paymentMethod)}</i>${formatPaymentLabel(sale.paymentMethod || 'cash')}</span></td>
+            <td>${bankCellHTML(sale.paymentBank) || '-'}</td>
             <td><span class="discount-badge ${discountBadgeClass}">${discountDisplay}</span></td>
             <td>RM${sale.total_amount.toFixed(2)}</td>
             <td>
@@ -1464,11 +1480,34 @@ function viewSaleDetails(sale) {
         }
     }
 
+    const salePaymentLabel = formatPaymentLabel(sale.paymentMethod || 'cash');
+    const salePaymentBank = sale.paymentBank || '';
+
     detailsHTML += `
                 <div class="summary-row total">
                     <p>Total:</p>
                     <p><strong>RM${sale.total_amount.toFixed(2)}</strong></p>
                 </div>
+                <div class="summary-row">
+                    <p>Payment:</p>
+                    <p>${salePaymentLabel}</p>
+                </div>
+                ${salePaymentBank ? `
+                <div class="summary-row">
+                    <p>Bank:</p>
+                    <p>${bankCellHTML(salePaymentBank) || escapePosText(salePaymentBank)}</p>
+                </div>
+                ` : ''}
+                ${(sale.cashReceived !== null && sale.cashReceived !== undefined) ? `
+                <div class="summary-row">
+                    <p>Cash Received:</p>
+                    <p>RM${Number(sale.cashReceived).toFixed(2)}</p>
+                </div>
+                <div class="summary-row">
+                    <p>Change:</p>
+                    <p>RM${Number(sale.changeAmount || 0).toFixed(2)}</p>
+                </div>
+                ` : ''}
             </div>
         </div>
     `;
@@ -1916,6 +1955,507 @@ function hideModal(modal) {
 }
 
 // 渲染购物车
+/* ===================== 支付方式（Payment） ===================== */
+const PAYMENT_METHODS = {
+    cash: { label: 'Cash', short: 'Cash', icon: 'payments' },
+    qr: { label: 'QR', short: 'QR', icon: 'qr_code_2' },
+    card: { label: 'Credit Card', short: 'Card', icon: 'credit_card' }
+};
+const PAYMENT_METHOD_ORDER = ['cash', 'qr', 'card'];
+
+// 店铺未配置银行时不预填任何银行（由 Admin 为每家店设置）
+const DEFAULT_QR_BANKS = [];
+const DEFAULT_CARD_BANKS = [];
+
+/* ===================== 银行 Logo（与 Admin 共用） =====================
+ * 来源有两个，按优先级取：
+ *   1. 全局 bankLogos/<key>     —— Admin 后台上传的原件
+ *   2. 店铺 stores/<id>/paymentLogos/<key> —— Admin 自动镜像过来的一份
+ * staff 只保证有 stores 的读权限，全局节点被规则限制时靠第 2 个兜底，
+ * 所以「刷新页面后 logo 消失」不会发生。
+ */
+const BANK_LOGOS_CACHE_KEY = 'posBankLogos';
+const STORE_BANK_LOGOS_CACHE_KEY = 'posStoreBankLogos';
+const bankLogoCache = {};        // 全局 bankLogos
+const storeBankLogoCache = {};   // 店铺节点里的镜像
+// 最近一次渲染的销售历史数据（logo 到位后重新渲染用）
+let lastRenderedSalesTable = null;
+
+// 银行名字 -> key（与 admin.js 的 bankLogoKey 保持完全一致）
+function bankLogoKey(name) {
+    return String(name || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+// 名字 -> dataUrl（没有就返回空串）
+function getBankLogo(name) {
+    const key = bankLogoKey(name);
+    if (!key) return '';
+    const fromGlobal = bankLogoCache[key];
+    if (fromGlobal && fromGlobal.dataUrl) return fromGlobal.dataUrl;
+    const fromStore = storeBankLogoCache[key];
+    return fromStore && fromStore.dataUrl ? fromStore.dataUrl : '';
+}
+
+// 简单的 HTML 转义（银行名字来自 Admin 配置）
+function escapePosText(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// 银行单元格：logo 在前、名字在后（与 Admin 的 Sales Details 一致）
+function bankCellHTML(name) {
+    const label = String(name == null ? '' : name).trim();
+    if (!label) return '';
+    const logo = getBankLogo(label);
+    const safe = escapePosText(label);
+    const logoHTML = logo ? `<img class="bank-cell-logo" src="${logo}" alt="">` : '';
+    return `<span class="bank-cell" title="${safe}">${logoHTML}<span class="bank-cell-name">${safe}</span></span>`;
+}
+
+// 先用本地缓存的 logo 立即渲染（离线/冷启动也能显示）
+function readCachedBankLogos() {
+    const fill = (storageKey, target) => {
+        try {
+            const raw = localStorage.getItem(storageKey);
+            if (!raw) return;
+            const data = JSON.parse(raw) || {};
+            Object.keys(data).forEach(key => {
+                const item = data[key];
+                if (item && item.dataUrl) target[key] = { name: item.name || key, dataUrl: item.dataUrl };
+            });
+        } catch (err) {
+            console.warn('[BankLogos] cache read failed:', err);
+        }
+    };
+    fill(BANK_LOGOS_CACHE_KEY, bankLogoCache);
+    fill(STORE_BANK_LOGOS_CACHE_KEY, storeBankLogoCache);
+}
+
+function writeCachedBankLogos() {
+    try {
+        localStorage.setItem(BANK_LOGOS_CACHE_KEY, JSON.stringify(bankLogoCache));
+        localStorage.setItem(STORE_BANK_LOGOS_CACHE_KEY, JSON.stringify(storeBankLogoCache));
+    } catch (err) {
+        console.warn('[BankLogos] cache write failed:', err);
+    }
+}
+
+// logo 加载/更新后刷新所有依赖它的界面
+function refreshBankLogoUI() {
+    // 支付区的银行下拉（logo + 名字）
+    if (typeof renderPaymentOptions === 'function' && storeData && storeData.paymentSettings) {
+        renderPaymentOptions();
+    }
+    // 销售历史表格的 Bank 列
+    if (lastRenderedSalesTable) {
+        renderSalesTable(lastRenderedSalesTable);
+    }
+}
+
+// 把 bankLogos 节点数据写入本地缓存并刷新界面
+function applyBankLogos(data) {
+    const source = data || {};
+    const next = {};
+    Object.keys(source).forEach(key => {
+        const item = source[key];
+        if (item && item.dataUrl) {
+            next[key] = { name: item.name || key, dataUrl: item.dataUrl };
+        }
+    });
+    // 读到空（无数据 / 规则拒绝）时不清空，避免把已显示的 logo 抹掉
+    if (!Object.keys(next).length && Object.keys(bankLogoCache).length) {
+        console.warn('[BankLogos] empty snapshot — keeping cached logos');
+        refreshBankLogoUI();
+        return;
+    }
+    Object.keys(bankLogoCache).forEach(key => delete bankLogoCache[key]);
+    Object.keys(next).forEach(key => { bankLogoCache[key] = next[key]; });
+    writeCachedBankLogos();
+    refreshBankLogoUI();
+}
+
+// 把店铺节点里的镜像 logo 合并进来（store 变化/重新登录都会走这里）
+function applyStoreBankLogos(store) {
+    if (!store || typeof store !== 'object') return;
+    const map = (store.paymentLogos && typeof store.paymentLogos === 'object') ? store.paymentLogos : null;
+    if (!map) return;
+
+    let changed = false;
+    Object.keys(map).forEach(key => {
+        const entry = map[key];
+        const dataUrl = typeof entry === 'string' ? entry : (entry && entry.dataUrl);
+        if (!dataUrl) return;
+        const current = storeBankLogoCache[key];
+        if (!current || current.dataUrl !== dataUrl) {
+            storeBankLogoCache[key] = { name: key, dataUrl: dataUrl };
+            changed = true;
+        }
+    });
+    // 店铺里已经删掉的银行，本地镜像也清掉
+    Object.keys(storeBankLogoCache).forEach(key => {
+        if (!(key in map)) {
+            delete storeBankLogoCache[key];
+            changed = true;
+        }
+    });
+
+    if (changed) writeCachedBankLogos();
+    refreshBankLogoUI();
+}
+
+// 从 RTDB 读取所有银行 logo（先一次性读取，再实时监听更新）
+function loadBankLogos() {
+    if (typeof database === 'undefined' || !database) return Promise.resolve();
+
+    const ref = database.ref('bankLogos');
+    const initial = ref.once('value')
+        .then(snapshot => applyBankLogos(snapshot.val() || {}))
+        .catch(err => console.warn('[BankLogos] load failed (using local cache):', err));
+
+    // Admin 新上传的 logo 无需刷新页面即可生效
+    try {
+        if (ref && typeof ref.on === 'function') {
+            ref.on('value',
+                snapshot => applyBankLogos(snapshot.val() || {}),
+                err => console.warn('[BankLogos] listen failed:', err));
+        }
+    } catch (err) {
+        console.warn('[BankLogos] listen failed:', err);
+    }
+
+    return initial;
+
+}
+
+// 页面启动时先用缓存
+readCachedBankLogos();
+
+// 读取当前店铺的支付配置
+function getStorePaymentSettings() {
+    const ps = (storeData && storeData.paymentSettings) || {};
+
+    const banksFor = (node, fallback) => {
+        if (!node || !Array.isArray(node.banks)) return fallback;
+        const list = node.banks.filter(b => typeof b === 'string' && b.trim() !== '');
+        return list.length ? list : fallback;
+    };
+
+    const isEnabled = (node) => !node || node.enabled !== false;
+
+    return {
+        enabled: {
+            cash: isEnabled(ps.cash),
+            qr: isEnabled(ps.qr),
+            card: isEnabled(ps.card)
+        },
+        banks: {
+            qr: banksFor(ps.qr, DEFAULT_QR_BANKS),
+            card: banksFor(ps.card, DEFAULT_CARD_BANKS)
+        }
+    };
+}
+
+// 生成支付方式显示文本（只显示方式，银行单独一列）
+function formatPaymentLabel(method) {
+    const key = PAYMENT_METHODS[method] ? method : 'cash';
+    return PAYMENT_METHODS[key].label;
+}
+
+// 支付方式对应的图标（与 Payment 面板按钮一致）
+function getPaymentIcon(method) {
+    const key = PAYMENT_METHODS[method] ? method : 'cash';
+    return PAYMENT_METHODS[key].icon;
+}
+
+// 计算购物车各项金额（与结账逻辑保持一致）
+function getCartTotals() {
+    const subtotal = cart.reduce((sum, item) => {
+        if (item.isFree) return sum;
+        const activePrice = (applyStaffPrice && item.staffPriceEnabled && item.staffPrice !== null && item.staffPrice !== undefined)
+            ? item.staffPrice
+            : item.price;
+        return sum + activePrice * item.quantity;
+    }, 0);
+
+    let discountValue = 0;
+    if (discountType === 'percent') {
+        discountValue = subtotal * (discountPercent / 100);
+    } else {
+        discountValue = Math.min(discountAmount, subtotal);
+    }
+
+    const taxRate = (storeData && storeData.taxRate !== undefined) ? parseFloat(storeData.taxRate) : 0;
+    const taxAmount = (subtotal - discountValue) * (taxRate / 100);
+    const total = roundToNearest005(subtotal - discountValue + taxAmount);
+
+    return { subtotal, discountValue, taxRate, taxAmount, total };
+}
+
+// 支付方式是否可用：Cash 只要店铺启用即可；QR / Credit Card 还需要 Admin 配了银行
+function isPaymentMethodAvailable(method, settings) {
+    const s = settings || getStorePaymentSettings();
+    if (!s.enabled[method]) return false;
+    if (method === 'cash') return true;
+    return (s.banks[method] || []).length > 0;
+}
+
+// 当前店铺真正可用的支付方式（顺序：cash → qr → card）
+function getAvailablePaymentMethods(settings) {
+    const s = settings || getStorePaymentSettings();
+    return PAYMENT_METHOD_ORDER.filter(m => isPaymentMethodAvailable(m, s));
+}
+
+// 获取当前选中的支付方式信息
+function getSelectedPaymentInfo() {
+    const settings = getStorePaymentSettings();
+    const availableMethods = getAvailablePaymentMethods(settings);
+    const method = availableMethods.indexOf(selectedPaymentMethod) !== -1
+        ? selectedPaymentMethod
+        : (availableMethods[0] || 'cash');
+    let bank = '';
+    if (method === 'qr' || method === 'card') {
+        const banks = settings.banks[method] || [];
+        bank = selectedPaymentBank && banks.indexOf(selectedPaymentBank) !== -1
+            ? selectedPaymentBank
+            : (banks[0] || '');
+    }
+    return { method, bank, label: formatPaymentLabel(method), settings };
+}
+
+// 生成单个支付方式按钮
+function paymentMethodButtonHTML(method, isActive, isAvailable) {
+    const info = PAYMENT_METHODS[method];
+    const classes = ['payment-method-btn'];
+    if (isActive && isAvailable) classes.push('active');
+    if (!isAvailable) classes.push('is-unavailable');
+
+    // 未配置银行的 QR / Credit Card：半透明 + 不可点击
+    const disableAttr = isAvailable ? '' : ' disabled aria-disabled="true"';
+    const titleAttr = isAvailable ? '' : ' title="No bank configured — ask admin to add a bank"';
+
+    return `<button type="button" class="${classes.join(' ')}" data-method="${method}"${disableAttr}${titleAttr}>
+            <i class="material-icons">${info.icon}</i>
+            <span>${info.label}</span>
+        </button>`;
+}
+
+// 渲染支付方式按钮
+function renderPaymentOptions() {
+    const container = document.getElementById('paymentMethodOptions');
+    const bankRow = document.getElementById('paymentBankRow');
+    if (!container) return;
+
+    const settings = getStorePaymentSettings();
+    const enabledMethods = PAYMENT_METHOD_ORDER.filter(m => settings.enabled[m]);
+    const availableMethods = enabledMethods.filter(m => isPaymentMethodAvailable(m, settings));
+
+    if (enabledMethods.length === 0) {
+        container.innerHTML = '<div class="payment-empty">No payment method configured for this store</div>';
+        if (bankRow) bankRow.style.display = 'none';
+        updatePaymentHint();
+        return;
+    }
+
+    // 一个都用不了（例如只开了 QR/Card 但两家银行都没配）：全部半透明禁用 + 提示
+    if (availableMethods.length === 0) {
+        container.innerHTML = enabledMethods.map(m => paymentMethodButtonHTML(m, false, false)).join('') +
+            '<div class="payment-empty">No bank configured for QR / Credit Card — ask admin to add a bank.</div>';
+        if (bankRow) bankRow.style.display = 'none';
+        selectedPaymentBank = '';
+        updatePaymentHint(settings);
+        return;
+    }
+
+    // 当前选中的方式不可用时，自动回退到第一个可用方式
+    if (availableMethods.indexOf(selectedPaymentMethod) === -1) {
+        selectedPaymentMethod = availableMethods[0];
+        selectedPaymentBank = '';
+    }
+
+    container.innerHTML = enabledMethods.map(m => {
+        const isAvailable = availableMethods.indexOf(m) !== -1;
+        return paymentMethodButtonHTML(m, m === selectedPaymentMethod, isAvailable);
+    }).join('');
+
+    container.querySelectorAll('.payment-method-btn').forEach(btn => {
+        // 未配置银行的方式保持 disabled，点击不会触发任何切换
+        if (btn.disabled) return;
+        btn.addEventListener('click', () => {
+            const method = btn.dataset.method;
+            if (method === selectedPaymentMethod) return;
+            selectedPaymentMethod = method;
+            selectedPaymentBank = '';
+            vibrateDevice(30);
+            renderPaymentOptions();
+        });
+    });
+
+    if (selectedPaymentMethod === 'cash') {
+        // 现金支付：不需要输入实收金额，也不显示银行栏
+        if (bankRow) bankRow.style.display = 'none';
+        closeBankMenu();
+    } else {
+        const banks = settings.banks[selectedPaymentMethod] || [];
+
+        if (banks.length === 0) {
+            // 理论不会走到（无银行的方式已被禁用），保留兜底
+            if (bankRow) bankRow.style.display = 'none';
+            selectedPaymentBank = '';
+            renderBankSelect([], '');
+        } else {
+            if (bankRow) bankRow.style.display = 'flex';
+            if (banks.indexOf(selectedPaymentBank) === -1) {
+                selectedPaymentBank = banks[0];
+            }
+            renderBankSelect(banks, selectedPaymentBank);
+        }
+    }
+
+    updatePaymentHint(settings);
+}
+
+/* ---------- 银行下拉（自定义组件：logo + 名字） ---------- */
+function renderBankSelect(banks, selected) {
+    const wrap = document.getElementById('paymentBankSelect');
+    const btn = document.getElementById('paymentBankBtn');
+    const valueEl = document.getElementById('paymentBankValue');
+    const menu = document.getElementById('paymentBankMenu');
+    if (!wrap || !btn || !valueEl || !menu) return;
+
+    const list = (banks || []).filter(b => typeof b === 'string' && b.trim() !== '');
+
+    if (list.length === 0) {
+        btn.disabled = true;
+        wrap.classList.remove('is-open');
+        btn.setAttribute('aria-expanded', 'false');
+        valueEl.innerHTML = '<span class="bank-select-placeholder">No bank configured</span>';
+        menu.innerHTML = '';
+        return;
+    }
+
+    btn.disabled = false;
+    const current = list.indexOf(selected) !== -1 ? selected : list[0];
+    valueEl.innerHTML = bankCellHTML(current);
+
+    menu.innerHTML = list.map(bank => {
+        const isActive = bank === current;
+        return `<button type="button" class="bank-option${isActive ? ' is-active' : ''}" data-bank="${escapePosText(bank)}" role="option" aria-selected="${isActive}">
+                ${bankCellHTML(bank)}
+                <i class="material-icons">check</i>
+            </button>`;
+    }).join('');
+}
+
+function openBankMenu() {
+    const wrap = document.getElementById('paymentBankSelect');
+    const btn = document.getElementById('paymentBankBtn');
+    const menu = document.getElementById('paymentBankMenu');
+    if (!wrap || !btn || !menu || btn.disabled) return;
+
+    wrap.classList.add('is-open');
+    btn.setAttribute('aria-expanded', 'true');
+
+    // 支付面板通常在屏幕底部：上方空间更大就向上展开，并限制高度避免超出屏幕
+    menu.classList.remove('open-up');
+    menu.style.maxHeight = '';
+    const rect = btn.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom - 12;
+    const spaceAbove = rect.top - 12;
+    const openUp = spaceAbove > spaceBelow;
+    if (openUp) menu.classList.add('open-up');
+    const available = Math.max(120, (openUp ? spaceAbove : spaceBelow) - 4);
+    menu.style.maxHeight = Math.min(260, available) + 'px';
+
+    // 让当前选中项进入可视区域（只滚动菜单自身）
+    const active = menu.querySelector('.bank-option.is-active');
+    if (active) {
+        const offset = active.offsetTop - (menu.clientHeight - active.offsetHeight) / 2;
+        if (offset > 0) menu.scrollTop = offset;
+    }
+}
+
+function closeBankMenu() {
+    const wrap = document.getElementById('paymentBankSelect');
+    const btn = document.getElementById('paymentBankBtn');
+    if (wrap) wrap.classList.remove('is-open');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+
+function toggleBankMenu() {
+    const wrap = document.getElementById('paymentBankSelect');
+    if (!wrap) return;
+    if (wrap.classList.contains('is-open')) {
+        closeBankMenu();
+    } else {
+        openBankMenu();
+    }
+}
+
+// 更新右上角提示文本
+function updatePaymentHint(settings) {
+    const hint = document.getElementById('paymentHint');
+    if (!hint) return;
+    const s = settings || getStorePaymentSettings();
+    const info = getSelectedPaymentInfo();
+    const availableMethods = getAvailablePaymentMethods(s);
+    const text = availableMethods.length === 0 ? 'Not available' : info.label;
+    hint.textContent = text;
+    hint.title = text;
+}
+
+// 初始化支付区域事件
+function initPaymentSection() {
+    const bankBtn = document.getElementById('paymentBankBtn');
+    const bankMenu = document.getElementById('paymentBankMenu');
+
+    if (bankBtn) {
+        bankBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (bankBtn.disabled) return;
+            toggleBankMenu();
+        });
+    }
+
+    // 选项用事件委托（菜单内容每次渲染都会重建）
+    if (bankMenu) {
+        bankMenu.addEventListener('click', (e) => {
+            const option = e.target.closest('.bank-option');
+            if (!option) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const bank = option.dataset.bank || '';
+            if (bank && bank !== selectedPaymentBank) {
+                selectedPaymentBank = bank;
+                vibrateDevice(20);
+            }
+            closeBankMenu();
+            renderBankSelect(getStorePaymentSettings().banks[selectedPaymentMethod] || [], selectedPaymentBank);
+            updatePaymentHint();
+        });
+    }
+
+    // 点击外部 / 按 Esc 关闭
+    document.addEventListener('click', (e) => {
+        const wrap = document.getElementById('paymentBankSelect');
+        if (!wrap || !wrap.classList.contains('is-open')) return;
+        if (!wrap.contains(e.target)) closeBankMenu();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeBankMenu();
+    });
+
+    renderPaymentOptions();
+}
+
 function renderCart() {
     // 确保购物车容器使用我们的紧凑样式
     document.querySelectorAll('.cart-items, .cart-container, .cart-discount, .cart-summary, .cart-actions').forEach(elem => {
@@ -2650,6 +3190,27 @@ function checkout() {
         return;
     }
 
+    // 校验支付方式（只有该店铺为该方式配置了银行时才要求选择）
+    const paymentInfo = getSelectedPaymentInfo();
+
+    // 一个可用方式都没有时不允许结账（例如只开了 QR/Card 但都没配银行）
+    if (getAvailablePaymentMethods(paymentInfo.settings).length === 0) {
+        alert('No available payment method for this store. Please ask admin to add a bank for QR / Credit Card.');
+        return;
+    }
+
+    const configuredBanks = (paymentInfo.settings && paymentInfo.settings.banks)
+        ? (paymentInfo.settings.banks[paymentInfo.method] || [])
+        : [];
+    if (paymentInfo.method !== 'cash' && configuredBanks.length > 0 && !paymentInfo.bank) {
+        alert(`Please select a bank for ${PAYMENT_METHODS[paymentInfo.method].label} payment`);
+        return;
+    }
+
+    // 现金支付不需要输入实收金额：直接按购物车总额收款，所以不记录实收/找零
+    let cashReceived = null;
+    let changeAmount = null;
+
     // 查找新的结账按钮
     const checkoutButton = document.getElementById('checkoutBtn');
 
@@ -2722,6 +3283,11 @@ function checkout() {
             taxAmount: taxAmount,
             total_amount: total,
             isStaffPriceApplied: applyStaffPrice,
+            paymentMethod: paymentInfo.method,
+            paymentMethodLabel: paymentInfo.label,
+            paymentBank: paymentInfo.bank || '',
+            cashReceived: cashReceived,
+            changeAmount: changeAmount,
             cashierName: cashierName, // 添加收银员姓名
             cashierShift: cashierShift, // 添加收银员班次
             shiftInfo: {
@@ -2776,7 +3342,7 @@ function checkout() {
                 // 尽管出错，仍然显示成功模态框，但提示用户数据可能未完全保存
                 let saleId = "ERROR-" + new Date().getTime();
                 showSuccessModal(saleData, saleId);
-                alert("注意: 销售记录可能未完全保存到数据库，但收据已生成。请保存收据以备参考。");
+                alert("Note: the sale may not be fully saved to the database, but the receipt has been generated. Please keep a copy of the receipt.");
             })
             .finally(() => {
                 // 确保按钮恢复正常状态
@@ -2802,6 +3368,11 @@ function showSuccessModal(saleData, saleId) {
     vibrateDevice([100, 50, 100]);
     // 确保显示的总金额是按照Nearest 0.05规则舍入的
     const totalAmount = saleData.total_amount;
+
+    // 支付信息
+    const paymentLabel = formatPaymentLabel(saleData.paymentMethod || 'cash');
+    const paymentBankLabel = saleData.paymentBank || '';
+    const hasCashReceived = saleData.cashReceived !== null && saleData.cashReceived !== undefined;
 
     // 创建简化的成功提示
     let successHTML = `
@@ -2835,6 +3406,26 @@ function showSuccessModal(saleData, saleId) {
                     <span>Grand Total:</span>
                     <span>RM${totalAmount.toFixed(2)}</span>
                 </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 8px; color: #1e293b;">
+                    <span>Payment:</span>
+                    <span style="font-weight: 600; text-align: right;">${paymentLabel}</span>
+                </div>
+                ${paymentBankLabel ? `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; color: #1e293b;">
+                    <span>Bank:</span>
+                    <span style="font-weight: 600; text-align: right;">${bankCellHTML(paymentBankLabel) || escapePosText(paymentBankLabel)}</span>
+                </div>
+                ` : ''}
+                ${hasCashReceived ? `
+                <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                    <span>Cash Received:</span>
+                    <span>RM${Number(saleData.cashReceived).toFixed(2)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                    <span>Change:</span>
+                    <span>RM${Number(saleData.changeAmount || 0).toFixed(2)}</span>
+                </div>
+                ` : ''}
             </div>
         </div>
     `;
@@ -2986,7 +3577,7 @@ function showSuccessModal(saleData, saleId) {
 // 打印小票
 function printReceipt() {
     const printWindow = window.open('', '_blank');
-    printWindow.document.write('<html><head><title>销售小票</title>');
+    printWindow.document.write('<html><head><title>Sales Receipt</title>');
 
     // 添加打印样式
     printWindow.document.write(`
@@ -4565,7 +5156,7 @@ function filterProductsByCategory(category) {
             })
             .catch(error => {
                 console.error('加载所有商品失败:', error);
-                productGrid.innerHTML = '<div class="error-message"><i class="material-icons">error</i> 加载商品失败，请刷新页面重试。</div>';
+                productGrid.innerHTML = '<div class="error-message"><i class="material-icons">error</i> Failed to load products. Please refresh the page and try again.</div>';
             });
     } else {
         // 否则使用按类别查询
@@ -4576,7 +5167,7 @@ function filterProductsByCategory(category) {
             })
             .catch(error => {
                 console.error(`加载"${category}"类别商品失败:`, error);
-                productGrid.innerHTML = '<div class="error-message"><i class="material-icons">error</i> 加载商品失败，请刷新页面重试。</div>';
+                productGrid.innerHTML = '<div class="error-message"><i class="material-icons">error</i> Failed to load products. Please refresh the page and try again.</div>';
             });
     }
 }

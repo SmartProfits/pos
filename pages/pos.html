@@ -423,11 +423,448 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
             z-index: 10;
         }
+
+        /* ===================== Payment Section (Cart) ===================== */
+        .cart-payment {
+            margin: 2px 0 10px;
+            padding: 12px;
+            border-radius: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .cart-payment-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .cart-payment-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .4px;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+
+        .cart-payment-title i {
+            font-size: 16px;
+            color: #3498db;
+        }
+
+        .payment-hint {
+            font-size: 11px;
+            font-weight: 600;
+            color: #94a3b8;
+            max-width: 55%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .payment-methods {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .payment-method-btn {
+            flex: 1 1 0;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 8px 4px;
+            min-height: 54px;
+            border-radius: 10px;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+            color: #475569;
+            font-family: inherit;
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .18s ease;
+            line-height: 1.15;
+        }
+
+        .payment-method-btn i {
+            font-size: 20px;
+            color: #64748b;
+        }
+
+        .payment-method-btn:hover {
+            border-color: #93c5fd;
+            transform: translateY(-1px);
+        }
+
+        .payment-method-btn.active {
+            border-color: #3498db;
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            color: #1d4ed8;
+            box-shadow: 0 3px 10px rgba(52, 152, 219, .18);
+        }
+
+        .payment-method-btn.active i {
+            color: #2563eb;
+        }
+
+        /* 未配置银行的 QR / Credit Card：半透明且不可点击 */
+        .payment-method-btn:disabled,
+        .payment-method-btn[disabled],
+        .payment-method-btn.is-unavailable {
+            opacity: .4;
+            cursor: not-allowed;
+            filter: grayscale(.15);
+        }
+
+        .payment-method-btn:disabled:hover,
+        .payment-method-btn[disabled]:hover,
+        .payment-method-btn.is-unavailable:hover {
+            border-color: #e2e8f0;
+            transform: none;
+            box-shadow: none;
+        }
+
+        body.dark-mode .payment-method-btn:disabled:hover,
+        body.dark-mode .payment-method-btn[disabled]:hover,
+        body.dark-mode .payment-method-btn.is-unavailable:hover {
+            border-color: #334155;
+        }
+
+        .payment-empty {
+            flex: 1 1 100%;
+            text-align: center;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #94a3b8;
+            padding: 8px 4px;
+            line-height: 1.35;
+        }
+
+        .payment-detail-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .payment-detail-row > label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #64748b;
+            white-space: nowrap;
+            margin: 0;
+        }
+
+        .payment-detail-row > label i {
+            font-size: 15px;
+            color: #94a3b8;
+        }
+
+        .payment-detail-row select {
+            flex: 1;
+            min-width: 0;
+            height: 34px;
+            border-radius: 8px;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+            font-family: inherit;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #1e293b;
+            padding: 0 8px;
+            box-sizing: border-box;
+        }
+
+        .payment-detail-row select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, .12);
+        }
+
+        /* ===== 银行下拉（自定义，可显示 logo） ===== */
+        .bank-select {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bank-select-btn {
+            width: 100%;
+            height: 34px;
+            margin: 0;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 8px;
+            border-radius: 8px;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+            font-family: inherit;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #1e293b;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .bank-select-btn:hover {
+            border-color: #cbd5e1;
+        }
+
+        .bank-select-btn:focus-visible,
+        .bank-select.is-open .bank-select-btn {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, .12);
+        }
+
+        .bank-select-btn:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+        }
+
+        .bank-select-value {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .bank-select-placeholder {
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .bank-select-caret {
+            flex: 0 0 auto;
+            font-size: 18px;
+            color: #94a3b8;
+            transition: transform .15s ease;
+        }
+
+        .bank-select.is-open .bank-select-caret {
+            transform: rotate(180deg);
+        }
+
+        .bank-select-menu {
+            display: none;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 6px);
+            z-index: 1300;
+            padding: 4px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, .18);
+            max-height: 260px;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .bank-select.is-open .bank-select-menu {
+            display: block;
+        }
+
+        .bank-select-menu.open-up {
+            top: auto;
+            bottom: calc(100% + 6px);
+        }
+
+        .bank-option {
+            width: 100%;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 8px;
+            border: 0;
+            border-radius: 7px;
+            background: transparent;
+            font-family: inherit;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #1e293b;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .bank-option:hover {
+            background: #eff6ff;
+        }
+
+        .bank-option.is-active {
+            background: #e0efff;
+        }
+
+        .bank-option > .bank-cell {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bank-option > .material-icons {
+            flex: 0 0 auto;
+            font-size: 16px;
+            color: #3498db;
+            opacity: 0;
+        }
+
+        .bank-option.is-active > .material-icons {
+            opacity: 1;
+        }
+
+        /* ===== 银行单元格：logo 在前、名字在后（与 Admin 一致） ===== */
+        .bank-cell {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+            max-width: 100%;
+            vertical-align: middle;
+        }
+
+        .bank-cell-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .bank-cell-logo {
+            flex: 0 0 auto;
+            width: 20px;
+            height: 20px;
+            padding: 1px;
+            box-sizing: border-box;
+            object-fit: contain;
+            border-radius: 4px;
+            background: #fff;
+            border: 1px solid #eef2f7;
+            display: block;
+        }
+
+        .bank-cell-none {
+            color: #cbd5e1;
+        }
+
+        /* Payment badge in sales history (single default colour, icon + method) */
+        .payment-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .payment-badge .material-icons {
+            font-size: 15px;
+            color: #64748b;
+        }
+
+        /* Dark mode */
+        body.dark-mode .cart-payment {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        body.dark-mode .cart-payment-title {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .payment-method-btn {
+            background: #1e293b;
+            border-color: #334155;
+            color: #cbd5e1;
+        }
+
+        body.dark-mode .payment-method-btn i {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .payment-method-btn.active {
+            background: linear-gradient(135deg, #1e3a8a, #1e293b);
+            border-color: #60a5fa;
+            color: #dbeafe;
+        }
+
+        body.dark-mode .payment-detail-row > label {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .payment-detail-row select {
+            background: #1e293b;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .bank-select-btn {
+            background: #1e293b;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .bank-select-btn:hover {
+            border-color: #475569;
+        }
+
+        body.dark-mode .bank-select-menu {
+            background: #0f172a;
+            border-color: #334155;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, .55);
+        }
+
+        body.dark-mode .bank-option {
+            color: #cbd5e1;
+        }
+
+        body.dark-mode .bank-option:hover {
+            background: #1e293b;
+        }
+
+        body.dark-mode .bank-option.is-active {
+            background: #1e3a8a;
+            color: #dbeafe;
+        }
+
+        body.dark-mode .bank-cell-logo {
+            background: #f8fafc;
+            border-color: #1e293b;
+        }
+
+        body.dark-mode .payment-badge {
+            background: #1e293b;
+            color: #cbd5e1;
+        }
+
+        body.dark-mode .payment-badge .material-icons {
+            color: #94a3b8;
+        }
     </style>
 </head>
 
 <body>
-    <!-- 收银员姓名输入模态框 -->
+    <!-- Cashier name input modal -->
     <div id="cashierNameModal" class="modal">
         <div class="modal-content cashier-modal">
             <div class="cashier-modal-header">
@@ -548,7 +985,7 @@
             <div id="salesView" class="view active">
                 <div class="pos-grid">
                     <div class="product-container">
-                        <!-- 热销商品区域 -->
+                        <!-- Hot items section -->
                         <div class="hot-items-section" id="hotItemsSection">
                             <div class="hot-items-header">
                                 <h3><i class="material-icons">whatshot</i> Hot Items</h3>
@@ -611,13 +1048,49 @@
                         <div class="cart-items" id="cartItems">
                             <!-- Cart items will be loaded dynamically by JavaScript -->
                         </div>
-                        <div class="cart-total">Total: <span id="cartTotal">$0.00</span></div>
+
+                        <!-- Payment Method -->
+                        <div class="cart-payment" id="cartPaymentSection">
+                            <div class="cart-payment-header">
+                                <span class="cart-payment-title">
+                                    <i class="material-icons">account_balance_wallet</i>
+                                    <span>Payment</span>
+                                </span>
+                                <span class="payment-hint" id="paymentHint">Cash</span>
+                            </div>
+                            <div class="payment-methods" id="paymentMethodOptions">
+                                <button type="button" class="payment-method-btn active" data-method="cash">
+                                    <i class="material-icons">payments</i>
+                                    <span>Cash</span>
+                                </button>
+                                <button type="button" class="payment-method-btn" data-method="qr">
+                                    <i class="material-icons">qr_code_2</i>
+                                    <span>QR</span>
+                                </button>
+                                <button type="button" class="payment-method-btn" data-method="card">
+                                    <i class="material-icons">credit_card</i>
+                                    <span>Credit Card</span>
+                                </button>
+                            </div>
+                            <div class="payment-detail-row" id="paymentBankRow" style="display:none;">
+                                <label for="paymentBankBtn"><i class="material-icons">account_balance</i> Bank</label>
+                                <div class="bank-select" id="paymentBankSelect">
+                                    <button type="button" class="bank-select-btn" id="paymentBankBtn" aria-haspopup="listbox" aria-expanded="false">
+                                        <span class="bank-select-value" id="paymentBankValue"><span class="bank-select-placeholder">Select bank...</span></span>
+                                        <i class="material-icons bank-select-caret">expand_more</i>
+                                    </button>
+                                    <div class="bank-select-menu" id="paymentBankMenu" role="listbox" aria-label="Bank"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="cart-total">Total: <span id="cartTotal">RM0.00</span></div>
                         <div class="cart-actions">
-                            <button id="checkoutBtn" class="checkout-btn" aria-label="结算购物车">
+                            <button id="checkoutBtn" class="checkout-btn" aria-label="Checkout cart">
                                 <i class="material-icons" aria-hidden="true">payment</i>
                                 <span>Checkout</span>
                             </button>
-                            <button id="clearCartBtn" aria-label="清空购物车">
+                            <button id="clearCartBtn" aria-label="Clear cart">
                                 <i class="material-icons" aria-hidden="true">remove_shopping_cart</i>
                                 <span>Clear Cart</span>
                             </button>
@@ -675,6 +1148,8 @@
                                 <th>Cashier</th>
                                 <th>Shift</th>
                                 <th>Items</th>
+                                <th>Payment</th>
+                                <th>Bank</th>
                                 <th>Discount</th>
                                 <th>Total</th>
                                 <th>Actions</th>
@@ -725,14 +1200,14 @@
                             </div>
                         </div>
                         <div class="inventory-actions">
-                            <button id="refreshInventoryBtn" class="icon-button" aria-label="刷新库存">
+                            <button id="refreshInventoryBtn" class="icon-button" aria-label="Refresh inventory">
                                 <i class="material-icons" aria-hidden="true">refresh</i>
                             </button>
-                            <button id="addProductBtn" class="action-button" aria-label="添加新产品">
+                            <button id="addProductBtn" class="action-button" aria-label="Add new product">
                                 <i class="material-icons" aria-hidden="true">add</i>
                                 <span>Add Product</span>
                             </button>
-                            <button id="stockTransferBtn" class="action-button" aria-label="批量库存转移" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); margin-left: 8px;">
+                            <button id="stockTransferBtn" class="action-button" aria-label="Batch stock transfer" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); margin-left: 8px;">
                                 <i class="material-icons" aria-hidden="true">swap_horiz</i>
                                 <span>Stock Transfer</span>
                             </button>
@@ -780,7 +1255,7 @@
                             </label>
                             <input type="date" id="stockHistoryDatePicker" value="">
                         </div>
-                        <button id="refreshStockHistoryBtn" class="icon-button" aria-label="刷新进货记录">
+                        <button id="refreshStockHistoryBtn" class="icon-button" aria-label="Refresh stock history">
                             <i class="material-icons" aria-hidden="true">refresh</i>
                         </button>
                     </div>
@@ -856,7 +1331,7 @@
                         </div>
                     </div>
                     <div class="view-header-actions">
-                        <button id="refreshPendingTransfersBtn" class="icon-button" aria-label="刷新待处理转移">
+                        <button id="refreshPendingTransfersBtn" class="icon-button" aria-label="Refresh pending transfers">
                             <i class="material-icons" aria-hidden="true">refresh</i>
                         </button>
                     </div>
@@ -898,11 +1373,11 @@
             <h2><i class="material-icons">check_circle</i> Checkout Successful</h2>
             <p>Order has been submitted successfully!</p>
             <div id="receiptDetails"></div>
-            <button id="printReceiptBtn" aria-label="打印收据">
+            <button id="printReceiptBtn" aria-label="Print receipt">
                 <i class="material-icons" aria-hidden="true">print</i>
                 <span>Print Receipt</span>
             </button>
-            <button id="newSaleBtn" aria-label="开始新交易">
+            <button id="newSaleBtn" aria-label="Start new transaction">
                 <i class="material-icons" aria-hidden="true">add_shopping_cart</i>
                 <span>New Transaction</span>
             </button>
@@ -916,7 +1391,7 @@
             <h2><i class="material-icons">receipt</i> Sale Details</h2>
             <div id="saleDetailContent"></div>
             <div class="modal-footer">
-                <button id="deleteSaleBtn" aria-label="删除销售记录">
+                <button id="deleteSaleBtn" aria-label="Delete sale record">
                     <i class="material-icons" aria-hidden="true">delete</i>
                     <span>Delete</span>
                 </button>
@@ -936,11 +1411,11 @@
                 <div class="cart-total">Total: <span id="editCartTotal">RM0.00</span></div>
             </div>
             <div class="modal-footer">
-                <button id="updateSaleBtn" aria-label="更新销售记录">
+                <button id="updateSaleBtn" aria-label="Update sale record">
                     <i class="material-icons" aria-hidden="true">save</i>
                     <span>Update Sale</span>
                 </button>
-                <button id="cancelEditBtn" aria-label="取消编辑">
+                <button id="cancelEditBtn" aria-label="Cancel editing">
                     <i class="material-icons" aria-hidden="true">cancel</i>
                     <span>Cancel</span>
                 </button>
@@ -1202,9 +1677,9 @@
     <script src="../js/firebase-config.js"></script>
     <script src="../js/database.js"></script>
     <script src="../js/network-monitor.js"></script>
-    <script src="../js/pos.js"></script>
+    <script src="../js/pos.js?v=2.8"></script>
     <script>
-        // 根据班次更新收银员名字显示样式
+        // 
         document.addEventListener('DOMContentLoaded', function () {
             const cashierNameForm = document.getElementById('cashierNameForm');
             const cashierNameDisplay = document.getElementById('cashierNameDisplay');
@@ -1256,7 +1731,7 @@
         });
     </script>
 
-    <!-- 屏幕迷你软键盘 (Custom Virtual Keyboard) -->
+    <!-- On-screen mini keyboard -->
     <div id="virtualKeyboard" class="virtual-keyboard-overlay hidden">
         <div class="virtual-keyboard-header" id="virtualKeyboardHeader">
             <div class="kb-drag-handle" title="Drag to move"><i class="material-icons">drag_indicator</i></div>

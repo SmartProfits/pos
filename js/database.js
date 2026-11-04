@@ -82,6 +82,16 @@ function addSaleRecord(saleData) {
                 isStaffPriceApplied: saleDataCopy.isStaffPriceApplied || false,
                 taxRate: saleDataCopy.taxRate !== undefined ? saleDataCopy.taxRate : 0,
                 taxAmount: saleDataCopy.taxAmount !== undefined ? saleDataCopy.taxAmount : 0,
+                // 支付方式（Cash / QR / Credit Card）及银行
+                paymentMethod: saleDataCopy.paymentMethod || 'cash',
+                paymentMethodLabel: saleDataCopy.paymentMethodLabel || '',
+                paymentBank: saleDataCopy.paymentBank || '',
+                cashReceived: (saleDataCopy.cashReceived === null || saleDataCopy.cashReceived === undefined)
+                    ? null
+                    : Number(saleDataCopy.cashReceived),
+                changeAmount: (saleDataCopy.changeAmount === null || saleDataCopy.changeAmount === undefined)
+                    ? null
+                    : Number(saleDataCopy.changeAmount),
                 date: currentDate,
                 timestamp: currentDateTime,
                 staff_id: user.uid,

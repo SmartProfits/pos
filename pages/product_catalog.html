@@ -63,6 +63,350 @@
         .store-details {
             width: 100%;
         }
+
+        /* ================= Batch Add (full screen) ================= */
+        .action-button.batch-open-btn {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9) !important;
+            box-shadow: 0 3px 10px rgba(124, 58, 237, 0.3);
+        }
+        .action-button.batch-open-btn:hover {
+            background: linear-gradient(135deg, #7c3aed, #5b21b6) !important;
+            box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+        }
+
+        #batchAddProductsModal {
+            z-index: 2600;
+        }
+        #closeBatchAddBtn {
+            margin-top: 0;
+        }
+
+        .batch-header-sub {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .batch-counter {
+            font-size: 13px;
+            font-weight: 600;
+            color: #047857;
+            background: rgba(16, 185, 129, 0.12);
+            padding: 7px 14px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        .batch-counter.has-issues {
+            color: #b91c1c;
+            background: rgba(239, 68, 68, 0.12);
+        }
+
+        .batch-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 12px;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed rgba(0, 0, 0, 0.09);
+            flex-shrink: 0;
+        }
+
+        .batch-grow { flex: 1; }
+
+        .batch-sep {
+            width: 1px;
+            height: 22px;
+            background: rgba(0, 0, 0, 0.1);
+            margin: 0 4px;
+        }
+
+        .batch-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .batch-inline > .material-icons {
+            font-size: 18px;
+            color: #8b5cf6;
+        }
+        .batch-inline input {
+            width: auto;
+            min-width: 0;
+            height: 34px;
+            padding: 0 10px;
+            border: 1px solid rgba(0, 0, 0, 0.14);
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+            box-sizing: border-box;
+            flex: 0 0 auto;
+        }
+        #batchBulkCategory { width: 210px; }
+        #batchIdPrefix { width: 104px; }
+
+        .batch-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #475569;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .batch-check input,
+        .batch-check input[type="checkbox"] {
+            width: 15px;
+            height: 15px;
+            min-width: 15px;
+            padding: 0;
+            margin: 0;
+            border: none;
+            flex: 0 0 auto;
+            cursor: pointer;
+            accent-color: #7c3aed;
+        }
+        #batchPasteReplace { width: 15px; }
+
+        .batch-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            width: auto;
+            flex: 0 0 auto;
+            height: 34px;
+            padding: 0 12px;
+            margin-top: 0;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            background: #ffffff;
+            color: #334155;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            line-height: 1;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            white-space: nowrap;
+        }
+        .batch-btn .material-icons { font-size: 17px; }
+        .batch-btn:hover {
+            background: #f1f5f9;
+            border-color: rgba(0, 0, 0, 0.2);
+        }
+        .batch-btn.primary {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.28);
+        }
+        .batch-btn.primary:hover {
+            background: linear-gradient(135deg, #7c3aed, #5b21b6);
+        }
+        .batch-btn.ghost {
+            background: rgba(124, 58, 237, 0.08);
+            border-color: rgba(124, 58, 237, 0.18);
+            color: #6d28d9;
+        }
+        .batch-btn.ghost:hover { background: rgba(124, 58, 237, 0.16); }
+        .batch-btn.danger { color: #b91c1c; border-color: rgba(239, 68, 68, 0.25); background: rgba(239, 68, 68, 0.06); }
+        .batch-btn.danger:hover { background: rgba(239, 68, 68, 0.14); }
+        .batch-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .batch-paste-panel {
+            background: #f8fafc;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+        .batch-paste-panel textarea {
+            width: 100%;
+            height: 120px;
+            resize: vertical;
+            box-sizing: border-box;
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            border-radius: 8px;
+            padding: 10px;
+            font-family: ui-monospace, Consolas, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            outline: none;
+        }
+        .batch-paste-panel textarea:focus {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.14);
+        }
+        .batch-paste-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .batch-grid-wrap {
+            flex: 1;
+            min-height: 0;
+            overflow: auto;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+            background: #fff;
+        }
+
+        .batch-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            table-layout: fixed;
+        }
+        .batch-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.09);
+            white-space: nowrap;
+        }
+        .batch-table th .req { color: #ef4444; }
+
+        .batch-table td {
+            padding: 0;
+            border-bottom: 1px solid #eef2f7;
+            vertical-align: middle;
+        }
+        .batch-table td input {
+            width: 100%;
+            height: 38px;
+            border: none;
+            background: transparent;
+            padding: 0 12px;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 14px;
+            color: #1e293b;
+            outline: none;
+        }
+        .batch-table td input:focus {
+            background: #eff6ff;
+            box-shadow: inset 0 0 0 2px #3b82f6;
+            border-radius: 3px;
+        }
+        .batch-table td input::placeholder { color: #cbd5e1; }
+        .batch-table input[type="number"]::-webkit-outer-spin-button,
+        .batch-table input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .batch-table input[type="number"] { -moz-appearance: textfield; }
+
+        .batch-table td.batch-row-num {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 12px;
+            font-weight: 600;
+            background: #fbfcfe;
+        }
+        .batch-table tr.row-invalid td.batch-row-num { color: #ef4444; background: #fef2f2; }
+        .batch-table td.cell-invalid input { background: #fee2e2; color: #991b1b; }
+        .batch-table td.cell-invalid input:focus { box-shadow: inset 0 0 0 2px #ef4444; }
+        .batch-table tr:hover td { background: #fafbff; }
+
+        .batch-table td.batch-row-del { text-align: center; }
+        .batch-del-btn {
+            width: 26px;
+            height: 26px;
+            margin-top: 0;
+            padding: 0;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #cbd5e1;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        .batch-del-btn .material-icons { font-size: 17px; }
+        .batch-del-btn:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+        .batch-tip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            font-size: 12.5px;
+            color: #64748b;
+            flex-shrink: 0;
+        }
+        .batch-tip .material-icons { font-size: 16px; color: #f59e0b; }
+        .batch-tip b { color: #475569; }
+
+        .batch-status {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .batch-status .ok { color: #047857; }
+        .batch-status .bad { color: #b91c1c; }
+        .batch-footer-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* dark mode */
+        body.dark-mode .batch-header-sub,
+        body.dark-mode .batch-tip,
+        body.dark-mode .batch-check { color: #94a3b8; }
+        body.dark-mode .batch-btn {
+            background: #1e293b;
+            border-color: rgba(255, 255, 255, 0.12);
+            color: #e2e8f0;
+        }
+        body.dark-mode .batch-btn:hover { background: #334155; }
+        body.dark-mode .batch-btn.primary {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            color: #fff;
+        }
+        body.dark-mode .batch-inline input {
+            background: #0f172a;
+            border-color: rgba(255, 255, 255, 0.15);
+            color: #f8fafc;
+        }
+        body.dark-mode .batch-grid-wrap { background: #1e293b; border-color: rgba(255, 255, 255, 0.08); }
+        body.dark-mode .batch-table thead th { background: #0f172a; color: #cbd5e1; border-color: rgba(255, 255, 255, 0.08); }
+        body.dark-mode .batch-table td { border-color: rgba(255, 255, 255, 0.06); }
+        body.dark-mode .batch-table td input { color: #f8fafc; }
+        body.dark-mode .batch-table td.batch-row-num { background: #16233a; color: #64748b; }
+        body.dark-mode .batch-table tr:hover td { background: #22304a; }
+        body.dark-mode .batch-paste-panel { background: #16233a; border-color: rgba(255, 255, 255, 0.08); }
+        body.dark-mode .batch-paste-panel textarea { background: #0f172a; color: #f8fafc; border-color: rgba(255, 255, 255, 0.15); }
+        body.dark-mode .batch-status { color: #cbd5e1; }
+        body.dark-mode .batch-sep { background: rgba(255, 255, 255, 0.12); }
+
+        @media (max-width: 900px) {
+            .batch-inline input { min-width: 130px !important; }
+            .batch-toolbar { gap: 6px; }
+            .batch-header-sub { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -120,6 +464,10 @@
                         </div>
                     </div>
                     <div class="header-actions">
+                        <button id="batchAddCatalogBtn" class="action-button batch-open-btn">
+                            <i class="material-icons">playlist_add</i>
+                            <span>Batch Add</span>
+                        </button>
                         <button id="addCatalogProductBtn" class="action-button">
                             <i class="material-icons">add_shopping_cart</i>
                             <span>Add Product</span>
@@ -264,6 +612,125 @@
         </div>
     </div>
     
+    <!-- ============ Batch Add Products (Full Screen) ============ -->
+    <div id="batchAddProductsModal" class="modal-full">
+        <div class="modal-full-content">
+            <div class="modal-full-header">
+                <div class="modal-full-header-left">
+                    <h2><i class="material-icons" style="color:#7c3aed;">playlist_add</i> Batch Add Products</h2>
+                    <div class="batch-header-sub">
+                        Type directly in the grid, or paste rows copied from Excel / Google Sheets / CSV.
+                    </div>
+                </div>
+                <div class="modal-full-header-right">
+                    <span class="batch-counter" id="batchCounter">0 rows</span>
+                    <button class="icon-button" id="closeBatchAddBtn" title="Close (Esc)">
+                        <i class="material-icons">close</i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-full-body">
+                <div class="batch-toolbar">
+                    <button type="button" class="batch-btn primary" id="batchAddRowBtn">
+                        <i class="material-icons">add</i><span>Add Row</span>
+                    </button>
+                    <button type="button" class="batch-btn" id="batchAdd5RowsBtn">
+                        <i class="material-icons">add_box</i><span>+5 Rows</span>
+                    </button>
+                    <button type="button" class="batch-btn" id="batchPasteBtn">
+                        <i class="material-icons">content_paste</i><span>Paste Data</span>
+                    </button>
+                    <button type="button" class="batch-btn" id="batchCsvBtn">
+                        <i class="material-icons">upload_file</i><span>Import CSV</span>
+                    </button>
+                    <input type="file" id="batchCsvFileInput" accept=".csv,.txt,text/csv" style="display:none">
+
+                    <span class="batch-sep"></span>
+
+                    <span class="batch-inline">
+                        <i class="material-icons">category</i>
+                        <input list="batchCategoryOptions" id="batchBulkCategory" placeholder="Category for all rows">
+                        <button type="button" class="batch-btn ghost" id="batchApplyCategoryBtn">Apply</button>
+                    </span>
+
+                    <span class="batch-sep"></span>
+
+                    <span class="batch-inline">
+                        <i class="material-icons">tag</i>
+                        <input id="batchIdPrefix" placeholder="ID prefix" style="width:104px; text-transform:uppercase;">
+                        <label class="batch-check">
+                            <input type="checkbox" id="batchAutoId" checked>
+                            <span>Auto-fill empty ID</span>
+                        </label>
+                    </span>
+
+                    <span class="batch-grow"></span>
+
+                    <button type="button" class="batch-btn danger" id="batchClearBtn">
+                        <i class="material-icons">delete_sweep</i><span>Clear</span>
+                    </button>
+                </div>
+
+                <div class="batch-paste-panel" id="batchPastePanel" style="display:none;">
+                    <textarea id="batchPasteArea" spellcheck="false"
+                        placeholder="Paste here (Ctrl+V)...&#10;One row per line. Column order: Product ID | Product Name | Price | Category&#10;Header row is optional — it is detected automatically."></textarea>
+                    <div class="batch-paste-actions">
+                        <label class="batch-check">
+                            <input type="checkbox" id="batchPasteReplace">
+                            <span>Replace current rows</span>
+                        </label>
+                        <span class="batch-grow"></span>
+                        <button type="button" class="batch-btn ghost" id="batchPasteCancelBtn">Cancel</button>
+                        <button type="button" class="batch-btn primary" id="batchPasteInsertBtn">
+                            <i class="material-icons">playlist_add_check</i><span>Insert Rows</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="batch-grid-wrap">
+                    <table class="batch-table">
+                        <colgroup>
+                            <col style="width:56px">
+                            <col style="width:190px">
+                            <col>
+                            <col style="width:150px">
+                            <col style="width:230px">
+                            <col style="width:50px">
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Product ID <span class="req">*</span></th>
+                                <th>Product Name <span class="req">*</span></th>
+                                <th>Price (RM) <span class="req">*</span></th>
+                                <th>Category</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="batchRowsBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="batch-tip">
+                    <i class="material-icons">tips_and_updates</i>
+                    <span>Tip: click a cell and press <b>Ctrl+V</b> to paste a block of data — rows and columns fill in automatically.
+                        <b>Enter</b> jumps to the next row, <b>Tab</b> to the next column.</span>
+                </div>
+            </div>
+
+            <div class="modal-full-footer">
+                <div class="batch-status" id="batchStatus">No rows yet</div>
+                <div class="batch-footer-actions">
+                    <button type="button" class="batch-btn ghost" id="batchCancelBtn">Cancel</button>
+                    <button type="button" class="batch-btn primary" id="batchSaveBtn">
+                        <i class="material-icons">save</i><span>Save Products</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Catalog Product Modal -->
     <div id="addCatalogProductModal" class="modal">
         <div class="modal-content">

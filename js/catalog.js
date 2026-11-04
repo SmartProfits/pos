@@ -168,6 +168,13 @@ function initEventListeners() {
     
     // 添加目录商品表单提交
     addCatalogProductForm.addEventListener('submit', handleAddCatalogProduct);
+
+    // 批量添加商品（全屏）
+    const batchAddBtn = document.getElementById('batchAddCatalogBtn');
+    if (batchAddBtn) {
+        batchAddBtn.addEventListener('click', openBatchAdd);
+    }
+    initBatchEvents();
     
     // 导入类别过滤器
     importCategoryFilter.addEventListener('change', () => {
@@ -1436,5 +1443,752 @@ function applyAllCatalogMatches() {
         .catch(error => {
             console.error('Failed to apply all catalog matches:', error);
             alert('Failed to update some products. Please try again.');
+        });
+}
+/* =====================================================================
+   BATCH ADD PRODUCTS  —  full-screen editable grid
+   Supports: typing, Excel/Sheets block paste, CSV import, auto ID,
+   bulk category, per-row validation before a single atomic save.
+   ===================================================================== */
+
+const BATCH_FIELDS = ['id', 'name', 'price', 'category'];
+const BATCH_CLASSES = ['b-id', 'b-name', 'b-price', 'b-category'];
+const BATCH_INITIAL_ROWS = 5;
+const BATCH_TRAILING_BLANKS = 3;
+
+let batchRows = [];
+
+function batchEl(id) {
+    return document.getElementById(id);
+}
+
+function emptyBatchRow() {
+    return { id: '', name: '', price: '', category: '' };
+}
+
+function rowIsBlank(r) {
+    return !String(r.id || '').trim()
+        && !String(r.name || '').trim()
+        && !String(r.price || '').trim()
+        && !String(r.category || '').trim();
+}
+
+function escapeHtmlAttr(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function parsePrice(value) {
+    const s = String(value == null ? '' : value).replace(/[^\d.\-]/g, '');
+    if (s === '') return NaN;
+    const n = parseFloat(s);
+    return isNaN(n) ? NaN : Math.round(n * 100) / 100;
+}
+
+/* ---------- open / close ---------- */
+
+function openBatchAdd() {
+    const modal = batchEl('batchAddProductsModal');
+    if (!modal) return;
+
+    batchRows = [];
+    for (let i = 0; i < BATCH_INITIAL_ROWS; i++) batchRows.push(emptyBatchRow());
+
+    const prefixInput = batchEl('batchIdPrefix');
+    if (prefixInput) prefixInput.value = guessCatalogIdPrefix();
+
+    const pastePanel = batchEl('batchPastePanel');
+    if (pastePanel) pastePanel.style.display = 'none';
+    const pasteArea = batchEl('batchPasteArea');
+    if (pasteArea) pasteArea.value = '';
+    const pasteReplace = batchEl('batchPasteReplace');
+    if (pasteReplace) pasteReplace.checked = false;
+
+    fillBatchCategoryOptions();
+    renderBatchRows();
+    showModal(modal);
+
+    setTimeout(() => {
+        const first = document.querySelector('#batchRowsBody tr[data-index="0"] .b-id');
+        if (first) first.focus();
+    }, 80);
+}
+
+function closeBatchAdd() {
+    const modal = batchEl('batchAddProductsModal');
+    if (!modal) return;
+    hideModal(modal);
+    batchRows = [];
+}
+
+/* ---------- id helpers ---------- */
+
+function guessCatalogIdPrefix() {
+    const counts = {};
+    Object.keys(catalogProducts || {}).forEach(id => {
+        const m = /^([A-Za-z]+)(\d+)$/.exec(id);
+        if (!m) return;
+        const p = m[1].toUpperCase();
+        counts[p] = (counts[p] || 0) + 1;
+    });
+    let best = '';
+    let bestCount = 0;
+    Object.keys(counts).forEach(k => {
+        if (counts[k] > bestCount) { best = k; bestCount = counts[k]; }
+    });
+    return best;
+}
+
+function nextIdNumberForPrefix(prefix, extraIds) {
+    const p = String(prefix || '').toUpperCase();
+    if (!p) return 1;
+    let max = 0;
+    const scan = id => {
+        const m = /^([A-Za-z]+)(\d+)$/.exec(String(id || ''));
+        if (m && m[1].toUpperCase() === p) {
+            max = Math.max(max, parseInt(m[2], 10));
+        }
+    };
+    Object.keys(catalogProducts || {}).forEach(scan);
+    (extraIds || []).forEach(scan);
+    return max + 1;
+}
+
+function padBatchNumber(n) {
+    return n < 100 ? ('00' + n).slice(-3) : String(n);
+}
+
+/* ---------- render ---------- */
+
+function createBatchRowElement(row, index) {
+    const tr = document.createElement('tr');
+    tr.dataset.index = index;
+    tr.innerHTML = `
+        <td class="batch-row-num cell-num">${index + 1}</td>
+        <td class="cell-id"><input type="text" class="b-id" maxlength="48" spellcheck="false" autocomplete="off" placeholder="e.g. BH093" value="${escapeHtmlAttr(row.id)}"></td>
+        <td class="cell-name"><input type="text" class="b-name" maxlength="120" spellcheck="false" autocomplete="off" placeholder="Product name" value="${escapeHtmlAttr(row.name)}"></td>
+        <td class="cell-price"><input type="number" class="b-price" step="0.01" min="0" placeholder="0.00" value="${escapeHtmlAttr(row.price)}"></td>
+        <td class="cell-category"><input type="text" class="b-category" list="batchCategoryOptions" maxlength="60" spellcheck="false" autocomplete="off" placeholder="Category" value="${escapeHtmlAttr(row.category)}"></td>
+        <td class="batch-row-del cell-del"><button type="button" class="batch-del-btn" title="Remove row"><i class="material-icons">close</i></button></td>
+    `;
+    return tr;
+}
+
+function renderBatchRows() {
+    const tbody = batchEl('batchRowsBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    batchRows.forEach((row, i) => tbody.appendChild(createBatchRowElement(row, i)));
+    updateBatchStatus();
+}
+
+function appendBatchRows(count) {
+    const tbody = batchEl('batchRowsBody');
+    const start = batchRows.length;
+    for (let i = 0; i < count; i++) {
+        batchRows.push(emptyBatchRow());
+        if (tbody) tbody.appendChild(createBatchRowElement(batchRows[start + i], start + i));
+    }
+    return start;
+}
+
+function trimTrailingBlankRows() {
+    while (batchRows.length && rowIsBlank(batchRows[batchRows.length - 1])) batchRows.pop();
+}
+
+function ensureTrailingBlankRows(min = BATCH_TRAILING_BLANKS) {
+    let blanks = 0;
+    for (let i = batchRows.length - 1; i >= 0 && rowIsBlank(batchRows[i]); i--) blanks++;
+    while (blanks < min) {
+        batchRows.push(emptyBatchRow());
+        blanks++;
+    }
+}
+
+function fillBatchCategoryOptions() {
+    const list = batchEl('batchCategoryOptions');
+    if (!list) return;
+    list.innerHTML = '';
+    Array.from(categories || []).sort().forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        list.appendChild(opt);
+    });
+}
+
+/* ---------- validation ---------- */
+
+function analyzeBatch() {
+    const autoIdEl = batchEl('batchAutoId');
+    const autoId = !!(autoIdEl && autoIdEl.checked);
+    const prefixEl = batchEl('batchIdPrefix');
+    const prefix = (prefixEl ? prefixEl.value : '').trim().toUpperCase();
+
+    const typedIdsInBatch = batchRows.map(r => String(r.id || '').trim()).filter(Boolean);
+    let seq = prefix ? nextIdNumberForPrefix(prefix, typedIdsInBatch) : 0;
+    const seen = {};
+    const entries = [];
+
+    batchRows.forEach((row, index) => {
+        const isEmpty = rowIsBlank(row);
+        if (isEmpty) {
+            entries.push({ index, empty: true, invalid: false, errs: {} });
+            return;
+        }
+
+        const typedId = String(row.id || '').trim();
+        const name = String(row.name || '').trim();
+        const priceRaw = String(row.price == null ? '' : row.price).trim();
+        const category = String(row.category || '').trim();
+
+        let id = typedId;
+        let autoFilled = false;
+        if (!id && autoId && prefix) {
+            id = prefix + padBatchNumber(seq);
+            seq++;
+            autoFilled = true;
+        }
+
+        const errs = {};
+        if (!id) {
+            errs.id = 'Product ID is required';
+        } else if (Object.prototype.hasOwnProperty.call(catalogProducts, id)) {
+            errs.id = `ID "${id}" already exists in catalog`;
+        } else if (seen[id]) {
+            errs.id = `ID "${id}" is duplicated in this batch`;
+        }
+
+        if (!name) errs.name = 'Product name is required';
+
+        const price = parsePrice(priceRaw);
+        if (priceRaw === '' || isNaN(price)) errs.price = 'Valid price is required';
+
+        if (id && !errs.id) seen[id] = true;
+
+        entries.push({
+            index,
+            id,
+            name,
+            price,
+            category,
+            autoFilled,
+            errs,
+            invalid: Object.keys(errs).length > 0
+        });
+    });
+
+    return entries;
+}
+
+function paintBatchValidation(entries) {
+    const tbody = batchEl('batchRowsBody');
+    if (!tbody) return;
+
+    tbody.querySelectorAll('tr').forEach(tr => {
+        tr.classList.remove('row-invalid');
+        tr.querySelectorAll('td').forEach(td => td.classList.remove('cell-invalid'));
+        const idInput = tr.querySelector('.b-id');
+        if (idInput) idInput.removeAttribute('title');
+    });
+
+    entries.forEach(en => {
+        if (en.empty || !en.invalid) return;
+        const tr = tbody.querySelector(`tr[data-index="${en.index}"]`);
+        if (!tr) return;
+        tr.classList.add('row-invalid');
+        if (en.errs.id) tr.querySelector('.cell-id').classList.add('cell-invalid');
+        if (en.errs.name) tr.querySelector('.cell-name').classList.add('cell-invalid');
+        if (en.errs.price) tr.querySelector('.cell-price').classList.add('cell-invalid');
+        const idInput = tr.querySelector('.b-id');
+        if (idInput) {
+            const msg = [en.errs.id, en.errs.name, en.errs.price].filter(Boolean).join(' • ');
+            if (msg) idInput.title = msg;
+        }
+    });
+}
+
+function updateBatchStatus(entries) {
+    entries = entries || analyzeBatch();
+    paintBatchValidation(entries);
+
+    const filled = entries.filter(e => !e.empty);
+    const ready = filled.filter(e => !e.invalid);
+    const bad = filled.length - ready.length;
+
+    const counter = batchEl('batchCounter');
+    if (counter) {
+        counter.textContent = `${filled.length} row${filled.length === 1 ? '' : 's'} · ${ready.length} ready`;
+        counter.classList.toggle('has-issues', bad > 0);
+    }
+
+    const status = batchEl('batchStatus');
+    if (status) {
+        if (filled.length === 0) {
+            status.innerHTML = 'No rows yet — add rows or paste data to begin';
+        } else {
+            status.innerHTML =
+                `<span class="ok">${ready.length} ready to save</span>` +
+                (bad ? ` <span class="bad">· ${bad} row${bad === 1 ? '' : 's'} need fixing</span>` : '') +
+                `<span style="opacity:.6;">· ${batchRows.length} row${batchRows.length === 1 ? '' : 's'} in grid</span>`;
+        }
+    }
+
+    // Ghost preview of auto-generated IDs
+    const tbody = batchEl('batchRowsBody');
+    if (tbody) {
+        entries.forEach(en => {
+            if (en.empty) return;
+            const tr = tbody.querySelector(`tr[data-index="${en.index}"]`);
+            if (!tr) return;
+            const idInput = tr.querySelector('.b-id');
+            if (!idInput) return;
+            if (en.autoFilled && !idInput.value.trim()) {
+                idInput.placeholder = en.id + ' (auto)';
+            } else {
+                idInput.placeholder = 'e.g. BH093';
+            }
+        });
+    }
+}
+
+/* ---------- paste / csv parsing ---------- */
+
+function parseCsvText(text, delimiter) {
+    const clean = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    if (!delimiter) {
+        const firstLine = clean.split('\n')[0] || '';
+        delimiter = (firstLine.indexOf(';') !== -1 && firstLine.indexOf(',') === -1) ? ';' : ',';
+    }
+    const rows = [];
+    let current = [];
+    let field = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < clean.length; i++) {
+        const ch = clean[i];
+        if (inQuotes) {
+            if (ch === '"') {
+                if (clean[i + 1] === '"') { field += '"'; i++; }
+                else inQuotes = false;
+            } else {
+                field += ch;
+            }
+        } else if (ch === '"') {
+            inQuotes = true;
+        } else if (ch === delimiter) {
+            current.push(field);
+            field = '';
+        } else if (ch === '\n') {
+            current.push(field);
+            rows.push(current);
+            current = [];
+            field = '';
+        } else {
+            field += ch;
+        }
+    }
+    current.push(field);
+    rows.push(current);
+
+    return rows.filter(r => r.some(c => String(c).trim() !== ''));
+}
+
+function parseClipboardMatrix(text) {
+    const clean = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    if (clean.indexOf('\t') !== -1) {
+        return clean.split('\n').map(line => line.split('\t'));
+    }
+    return parseCsvText(clean);
+}
+
+function detectHeaderRow(cells) {
+    if (!cells || !cells.length) return null;
+    const map = [];
+    let hits = 0;
+    cells.forEach((raw, i) => {
+        const v = String(raw).toLowerCase().replace(/[^a-z ]/g, ' ').trim().replace(/\s+/g, ' ');
+        let field = null;
+        if (/^(product )?(id|code|sku|item code)$/.test(v)) field = 'id';
+        else if (/^(product )?(name|title|description|item name)$/.test(v)) field = 'name';
+        else if (/^(price|rm|retail price|selling price|unit price|harga)$/.test(v)) field = 'price';
+        else if (/^(category|cat|kategori|group)$/.test(v)) field = 'category';
+        if (field) hits++;
+        map[i] = field;
+    });
+    return hits >= 2 ? map : null;
+}
+
+function normalizeFieldValue(field, value) {
+    const v = String(value == null ? '' : value).trim();
+    if (field === 'price') {
+        const n = parsePrice(v);
+        return isNaN(n) ? '' : n.toFixed(2);
+    }
+    return v;
+}
+
+function applyMatrixRows(matrixRows, options) {
+    const opts = options || {};
+    let rowsIn = matrixRows.map(r => r.slice()).filter(r => r.some(c => String(c).trim() !== ''));
+    if (!rowsIn.length) return 0;
+
+    let headerMap = null;
+    const header = detectHeaderRow(rowsIn[0]);
+    if (header) {
+        headerMap = header;
+        rowsIn.shift();
+    }
+    if (!rowsIn.length) return 0;
+
+    const startCol = opts.startCol || 0;
+    let startRow;
+
+    if (opts.replace) {
+        batchRows = [];
+        startRow = 0;
+    } else {
+        trimTrailingBlankRows();
+        startRow = (typeof opts.startRow === 'number' && opts.startRow >= 0)
+            ? Math.min(opts.startRow, batchRows.length)
+            : batchRows.length;
+    }
+
+    while (batchRows.length < startRow + rowsIn.length) batchRows.push(emptyBatchRow());
+
+    rowsIn.forEach((cells, r) => {
+        const row = batchRows[startRow + r];
+        cells.forEach((value, c) => {
+            const field = headerMap ? headerMap[c] : BATCH_FIELDS[startCol + c];
+            if (!field) return;
+            row[field] = normalizeFieldValue(field, value);
+        });
+    });
+
+    ensureTrailingBlankRows();
+    renderBatchRows();
+    return rowsIn.length;
+}
+
+/* ---------- cell navigation ---------- */
+
+function batchColIndexOf(input) {
+    for (let i = 0; i < BATCH_CLASSES.length; i++) {
+        if (input.classList.contains(BATCH_CLASSES[i])) return i;
+    }
+    return 0;
+}
+
+function focusBatchCell(rowIndex, colIndex) {
+    const cls = BATCH_CLASSES[colIndex];
+    if (!cls) return;
+    const tr = document.querySelector(`#batchRowsBody tr[data-index="${rowIndex}"]`);
+    if (!tr) return;
+    const input = tr.querySelector('.' + cls);
+    if (input) {
+        input.focus();
+        if (input.select) input.select();
+    }
+}
+
+/* ---------- events ---------- */
+
+function initBatchEvents() {
+    const modal = batchEl('batchAddProductsModal');
+    if (!modal || modal.dataset.bound === '1') return;
+    modal.dataset.bound = '1';
+
+    const tbody = batchEl('batchRowsBody');
+
+    /* typing */
+    tbody.addEventListener('input', evt => {
+        const input = evt.target;
+        if (!input.matches('input')) return;
+        const tr = input.closest('tr');
+        if (!tr) return;
+        const idx = Number(tr.dataset.index);
+        const row = batchRows[idx];
+        if (!row) return;
+
+        const field = BATCH_FIELDS[batchColIndexOf(input)];
+        row[field] = input.value;
+
+        if (idx === batchRows.length - 1) appendBatchRows(1);
+
+        updateBatchStatus();
+    });
+
+    /* delete row */
+    tbody.addEventListener('click', evt => {
+        const btn = evt.target.closest('.batch-del-btn');
+        if (!btn) return;
+        const tr = btn.closest('tr');
+        const idx = Number(tr.dataset.index);
+        batchRows.splice(idx, 1);
+        ensureTrailingBlankRows(1);
+        renderBatchRows();
+    });
+
+    /* enter / shift+enter navigation */
+    tbody.addEventListener('keydown', evt => {
+        const input = evt.target;
+        if (!input.matches('input')) return;
+        if (evt.ctrlKey || evt.metaKey || evt.altKey) return;
+        if (evt.key === 'Enter') {
+            evt.preventDefault();
+            const tr = input.closest('tr');
+            const idx = Number(tr.dataset.index);
+            const col = batchColIndexOf(input);
+            if (evt.shiftKey) {
+                focusBatchCell(Math.max(0, idx - 1), col);
+            } else {
+                if (idx === batchRows.length - 1) appendBatchRows(1);
+                focusBatchCell(idx + 1, col);
+            }
+        }
+    });
+
+    /* block paste into a focused cell */
+    tbody.addEventListener('paste', evt => {
+        const input = evt.target;
+        if (!input.matches('input')) return;
+        const text = (evt.clipboardData || window.clipboardData).getData('text');
+        if (!text) return;
+
+        const isBlock = /\t/.test(text) || /\n/.test(text.trim());
+        if (!isBlock) return; // single value -> let the browser handle it
+
+        evt.preventDefault();
+        const matrix = parseClipboardMatrix(text);
+        if (!matrix.length) return;
+
+        const tr = input.closest('tr');
+        const startRow = Number(tr.dataset.index);
+        const startCol = batchColIndexOf(input);
+        const inserted = applyMatrixRows(matrix, { startRow, startCol, replace: false });
+
+        const firstInput = document.querySelector(`#batchRowsBody tr[data-index="${startRow}"] .${BATCH_CLASSES[startCol]}`);
+        if (firstInput) firstInput.focus();
+        if (!inserted) return;
+    });
+
+    /* toolbar */
+    const addRowBtn = batchEl('batchAddRowBtn');
+    if (addRowBtn) addRowBtn.addEventListener('click', () => {
+        const start = appendBatchRows(1);
+        updateBatchStatus();
+        focusBatchCell(start, 0);
+    });
+
+    const add5Btn = batchEl('batchAdd5RowsBtn');
+    if (add5Btn) add5Btn.addEventListener('click', () => {
+        appendBatchRows(5);
+        updateBatchStatus();
+    });
+
+    const pasteBtn = batchEl('batchPasteBtn');
+    if (pasteBtn) pasteBtn.addEventListener('click', () => {
+        const panel = batchEl('batchPastePanel');
+        if (!panel) return;
+        const visible = panel.style.display !== 'none';
+        panel.style.display = visible ? 'none' : 'block';
+        if (!visible) {
+            const area = batchEl('batchPasteArea');
+            if (area) { area.value = ''; area.focus(); }
+        }
+    });
+
+    const pasteCancel = batchEl('batchPasteCancelBtn');
+    if (pasteCancel) pasteCancel.addEventListener('click', () => {
+        const panel = batchEl('batchPastePanel');
+        if (panel) panel.style.display = 'none';
+    });
+
+    const pasteInsert = batchEl('batchPasteInsertBtn');
+    if (pasteInsert) pasteInsert.addEventListener('click', () => {
+        const area = batchEl('batchPasteArea');
+        const text = area ? area.value : '';
+        if (!text.trim()) {
+            alert('Paste some rows into the box first.');
+            return;
+        }
+        const replace = batchEl('batchPasteReplace') && batchEl('batchPasteReplace').checked;
+        const matrix = parseClipboardMatrix(text);
+        const count = applyMatrixRows(matrix, { replace });
+        const panel = batchEl('batchPastePanel');
+        if (panel) panel.style.display = 'none';
+        if (!count) alert('No usable rows were found in the pasted text.');
+    });
+
+    const csvBtn = batchEl('batchCsvBtn');
+    const csvInput = batchEl('batchCsvFileInput');
+    if (csvBtn && csvInput) {
+        csvBtn.addEventListener('click', () => csvInput.click());
+        csvInput.addEventListener('change', () => {
+            const file = csvInput.files && csvInput.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                const matrix = parseCsvText(String(reader.result || ''));
+                const count = applyMatrixRows(matrix, { replace: true });
+                if (!count) alert('No usable rows were found in "' + file.name + '".');
+            };
+            reader.onerror = () => alert('Failed to read the selected file.');
+            reader.readAsText(file);
+            csvInput.value = '';
+        });
+    }
+
+    const applyCatBtn = batchEl('batchApplyCategoryBtn');
+    if (applyCatBtn) applyCatBtn.addEventListener('click', () => {
+        const input = batchEl('batchBulkCategory');
+        const value = input ? input.value.trim() : '';
+        let touched = 0;
+        batchRows.forEach(row => {
+            if (rowIsBlank(row)) return;
+            row.category = value;
+            touched++;
+        });
+        if (!touched) {
+            alert('Add at least one product row first.');
+            return;
+        }
+        renderBatchRows();
+    });
+
+    const autoIdEl = batchEl('batchAutoId');
+    if (autoIdEl) autoIdEl.addEventListener('change', () => updateBatchStatus());
+    const prefixEl = batchEl('batchIdPrefix');
+    if (prefixEl) prefixEl.addEventListener('input', () => updateBatchStatus());
+
+    const clearBtn = batchEl('batchClearBtn');
+    if (clearBtn) clearBtn.addEventListener('click', () => {
+        const hasData = batchRows.some(r => !rowIsBlank(r));
+        if (hasData && !confirm('Clear all rows in this batch?')) return;
+        batchRows = [];
+        for (let i = 0; i < BATCH_INITIAL_ROWS; i++) batchRows.push(emptyBatchRow());
+        renderBatchRows();
+        const first = document.querySelector('#batchRowsBody tr[data-index="0"] .b-id');
+        if (first) first.focus();
+    });
+
+    const saveBtn = batchEl('batchSaveBtn');
+    if (saveBtn) saveBtn.addEventListener('click', saveBatchProducts);
+
+    const cancelBtn = batchEl('batchCancelBtn');
+    if (cancelBtn) cancelBtn.addEventListener('click', () => {
+        const hasData = batchRows.some(r => !rowIsBlank(r));
+        if (hasData && !confirm('Discard this batch? Nothing will be saved.')) return;
+        closeBatchAdd();
+    });
+
+    const closeBtn = batchEl('closeBatchAddBtn');
+    if (closeBtn) closeBtn.addEventListener('click', () => {
+        const hasData = batchRows.some(r => !rowIsBlank(r));
+        if (hasData && !confirm('Discard this batch? Nothing will be saved.')) return;
+        closeBatchAdd();
+    });
+
+    /* keyboard shortcuts inside the batch screen */
+    modal.addEventListener('keydown', evt => {
+        if (evt.key === 'Escape') {
+            evt.stopPropagation();
+            const panel = batchEl('batchPastePanel');
+            if (panel && panel.style.display !== 'none') {
+                panel.style.display = 'none';
+                return;
+            }
+            const hasData = batchRows.some(r => !rowIsBlank(r));
+            if (!hasData || confirm('Discard this batch? Nothing will be saved.')) closeBatchAdd();
+        }
+        if (evt.key === 'Enter' && (evt.ctrlKey || evt.metaKey)) {
+            evt.preventDefault();
+            saveBatchProducts();
+        }
+    });
+}
+
+/* ---------- save ---------- */
+
+function saveBatchProducts() {
+    const entries = analyzeBatch();
+    const filled = entries.filter(e => !e.empty);
+
+    paintBatchValidation(entries);
+    updateBatchStatus(entries);
+
+    if (!filled.length) {
+        alert('There is nothing to save yet. Add at least one product.');
+        return;
+    }
+
+    const invalid = filled.filter(e => e.invalid);
+    if (invalid.length) {
+        const lines = invalid.slice(0, 6).map(e => `Row ${e.index + 1}: ${Object.values(e.errs)[0]}`).join('\n');
+        alert(`Please fix ${invalid.length} row${invalid.length === 1 ? '' : 's'} before saving:/n/n${lines}${invalid.length > 6 ? '\n...' : ''}`);
+        focusBatchCell(invalid[0].index, 0);
+        return;
+    }
+
+    const updates = {};
+    const timestamp = firebase.database.ServerValue.TIMESTAMP;
+    filled.forEach(e => {
+        updates[`product_catalog/${e.id}`] = {
+            name: e.name,
+            price: e.price,
+            category: e.category || '',
+            created_at: timestamp
+        };
+    });
+
+    const saveBtn = batchEl('batchSaveBtn');
+    const originalHtml = saveBtn ? saveBtn.innerHTML : '';
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="material-icons">hourglass_top</i><span>Saving...</span>';
+    }
+
+    firebase.database().ref().update(updates)
+        .then(() => {
+            filled.forEach(e => {
+                catalogProducts[e.id] = {
+                    name: e.name,
+                    price: e.price,
+                    category: e.category || '',
+                    created_at: Date.now()
+                };
+            });
+
+            categories.clear();
+            Object.values(catalogProducts).forEach(p => {
+                if (p && p.category) categories.add(p.category);
+            });
+
+            try {
+                populateCategoryFilters();
+                refreshManualCatalogOptions();
+                renderCatalogProducts();
+            } catch (uiError) {
+                console.error('Catalog refresh after batch add failed:', uiError);
+            }
+
+            hideModal(batchEl('batchAddProductsModal'));
+            batchRows = [];
+
+            setTimeout(() => {
+                alert(`✅ ${filled.length} product${filled.length === 1 ? '' : 's'} added to the catalog.`);
+            }, 320);
+        })
+        .catch(error => {
+            console.error('Failed to save batch products:', error);
+            alert('Failed to save products: ' + (error && error.message ? error.message : 'unknown error') + '\nNothing was changed, please try again.');
+        })
+        .finally(() => {
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalHtml;
+            }
         });
 }
