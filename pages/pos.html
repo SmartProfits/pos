@@ -938,6 +938,348 @@
             color: #f87171;
         }
 
+        /* ===== 销售历史：编辑支付方式 ===== */
+        .edit-payment-btn {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            border-radius: 8px;
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(243, 156, 18, .3);
+            transition: all .2s;
+        }
+
+        .edit-payment-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 10px rgba(243, 156, 18, .4);
+        }
+
+        .edit-payment-btn .material-icons {
+            font-size: 17px;
+            color: #fff;
+        }
+
+        #editPaymentBtn {
+            background-color: #f39c12;
+        }
+
+        #epaySaveBtn {
+            background-color: #2ecc71;
+        }
+
+        #epayCancelBtn {
+            background-color: #95a5a6;
+        }
+
+        .epay-modal {
+            max-width: 440px;
+        }
+
+        /* 底部：左下角署名 + 右下角按钮 */
+        .epay-modal .epay-footer {
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .epay-credit {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            min-width: 0;
+            margin-right: auto;
+            font-size: 11.5px;
+            font-style: italic;
+            color: #94a3b8;
+            white-space: nowrap;
+            user-select: none;
+        }
+
+        .epay-credit .material-icons {
+            font-size: 15px;
+            color: #9b59b6;
+        }
+
+        .epay-credit strong {
+            font-weight: 800;
+            color: #64748b;
+        }
+
+        .epay-footer-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 0 0 auto;
+        }
+
+        .epay-footer-actions button {
+            width: auto;
+            margin-top: 0;
+        }
+
+        .epay-sale {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 14px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #eef2f7;
+            background: #f8fafc;
+        }
+
+        .epay-sale-bill {
+            min-width: 0;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #475569;
+            word-break: break-all;
+        }
+
+        .epay-sale-total {
+            flex: 0 0 auto;
+            font-size: 16px;
+            font-weight: 800;
+            color: #1e293b;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .epay-group {
+            margin-bottom: 14px;
+        }
+
+        .epay-label {
+            margin-bottom: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+
+        .epay-methods {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .epay-method {
+            flex: 0 0 calc(50% - 3px);
+            min-width: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 9px 8px;
+            border-radius: 9px;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+            color: #475569;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: border-color .15s ease, background .15s ease, color .15s ease;
+        }
+
+        .epay-method i {
+            font-size: 17px;
+            color: #64748b;
+        }
+
+        .epay-method:hover:not(:disabled) {
+            border-color: #93c5fd;
+        }
+
+        .epay-method.is-active {
+            border-color: #3498db;
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            color: #1d4ed8;
+            box-shadow: 0 3px 10px rgba(52, 152, 219, .16);
+        }
+
+        .epay-method.is-active i {
+            color: #2563eb;
+        }
+
+        .epay-method:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        .epay-methods-sm .epay-method {
+            min-width: 76px;
+            padding: 7px 6px;
+            font-size: 11.5px;
+        }
+
+        .epay-banks {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            max-height: 176px;
+            overflow-y: auto;
+            padding: 4px;
+            border: 1px solid #eef2f7;
+            border-radius: 10px;
+            background: #fff;
+            box-sizing: border-box;
+        }
+
+        .epay-bank {
+            width: 100%;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: transparent;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1e293b;
+            text-align: left;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+
+        .epay-bank > .bank-cell {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .epay-bank:hover {
+            background: #f1f5f9;
+        }
+
+        .epay-bank.is-active {
+            background: #e0efff;
+            border-color: #bfdbfe;
+        }
+
+        .epay-bank > .material-icons.check {
+            flex: 0 0 auto;
+            font-size: 17px;
+            color: #2563eb;
+            opacity: 0;
+        }
+
+        .epay-bank.is-active > .material-icons.check {
+            opacity: 1;
+        }
+
+        .epay-empty {
+            padding: 10px 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #94a3b8;
+            text-align: center;
+        }
+
+        body.dark-mode .epay-sale {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        body.dark-mode .epay-sale-bill {
+            color: #cbd5e1;
+        }
+
+        body.dark-mode .epay-sale-total {
+            color: #f8fafc;
+        }
+
+        body.dark-mode .epay-method {
+            background: #1e293b;
+            border-color: #334155;
+            color: #cbd5e1;
+        }
+
+        body.dark-mode .epay-method i {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .epay-method.is-active {
+            background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+            border-color: #3b82f6;
+            color: #eff6ff;
+        }
+
+        body.dark-mode .epay-method.is-active i {
+            color: #bfdbfe;
+        }
+
+        body.dark-mode .epay-banks {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        body.dark-mode .epay-bank {
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .epay-bank:hover {
+            background: #1e293b;
+        }
+
+        body.dark-mode .epay-bank.is-active {
+            background: #1e3a8a;
+            border-color: #3b82f6;
+        }
+
+        body.dark-mode .epay-bank > .material-icons.check {
+            color: #bfdbfe;
+        }
+
+        body.dark-mode .epay-credit {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .epay-credit strong {
+            color: #e2e8f0;
+        }
+
+        /* 轻提示（保存成功等） */
+        .pos-toast {
+            position: fixed;
+            left: 50%;
+            bottom: 28px;
+            z-index: 3000;
+            max-width: min(90vw, 420px);
+            padding: 11px 16px;
+            border-radius: 10px;
+            background: #0f172a;
+            color: #f8fafc;
+            font-size: 12.5px;
+            font-weight: 600;
+            line-height: 1.35;
+            text-align: center;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, .35);
+            opacity: 0;
+            pointer-events: none;
+            transform: translate(-50%, 16px);
+            transition: opacity .18s ease, transform .18s ease;
+        }
+
+        .pos-toast.is-visible {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        body.dark-mode .pos-toast {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
         /* Payment badge in sales history (single default colour, icon + method) */
         .payment-badge {
             display: inline-flex;
@@ -1592,6 +1934,10 @@
             <h2><i class="material-icons">receipt</i> Sale Details</h2>
             <div id="saleDetailContent"></div>
             <div class="modal-footer">
+                <button id="editPaymentBtn" aria-label="Edit payment method">
+                    <i class="material-icons" aria-hidden="true">swap_horiz</i>
+                    <span>Edit Payment</span>
+                </button>
                 <button id="deleteSaleBtn" aria-label="Delete sale record">
                     <i class="material-icons" aria-hidden="true">delete</i>
                     <span>Delete</span>
@@ -1620,6 +1966,72 @@
                     <i class="material-icons" aria-hidden="true">cancel</i>
                     <span>Cancel</span>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Payment Modal（修改某笔销售的支付方式 / 银行 / 分批金额） -->
+    <div id="editPaymentModal" class="modal">
+        <div class="modal-content epay-modal">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">swap_horiz</i> Edit Payment</h2>
+
+            <div class="epay-sale">
+                <span class="epay-sale-bill" id="epayBillNumber">-</span>
+                <span class="epay-sale-total" id="epaySaleTotal">RM0.00</span>
+            </div>
+
+            <div class="epay-group">
+                <div class="epay-label">Payment method</div>
+                <div class="epay-methods" id="epayMethods"></div>
+            </div>
+
+            <div class="epay-group" id="epayNonCashGroup" style="display:none;">
+                <div class="epay-label">Non-cash part</div>
+                <div class="epay-methods epay-methods-sm" id="epayNonCashMethods"></div>
+            </div>
+
+            <div class="epay-group" id="epayBankGroup" style="display:none;">
+                <div class="epay-label">Bank</div>
+                <div class="epay-banks" id="epayBankList"></div>
+            </div>
+
+            <div class="epay-group" id="epaySplitGroup" style="display:none;">
+                <div class="epay-label">Split amount</div>
+                <div class="split-amounts">
+                    <div class="split-row">
+                        <label for="epaySplitCash"><i class="material-icons">payments</i> Cash</label>
+                        <div class="split-input">
+                            <span>RM</span>
+                            <input type="text" id="epaySplitCash" inputmode="decimal" autocomplete="off" aria-label="Cash amount">
+                        </div>
+                    </div>
+                    <div class="split-row">
+                        <label for="epaySplitNonCash"><i class="material-icons" id="epaySplitNonCashIcon">qr_code_2</i> <span id="epaySplitNonCashLabel">QR</span></label>
+                        <div class="split-input">
+                            <span>RM</span>
+                            <input type="text" id="epaySplitNonCash" inputmode="decimal" autocomplete="off" aria-label="Non-cash amount">
+                        </div>
+                    </div>
+                </div>
+                <div class="split-status" id="epaySplitStatus"></div>
+            </div>
+
+            <div class="modal-footer epay-footer">
+                <div class="epay-credit" title="Idea By: Khalila">
+                    <i class="material-icons pulse-lightbulb" aria-hidden="true">tips_and_updates</i>
+                    <span>Idea By: <strong>Khalila</strong></span>
+                </div>
+                <div class="epay-footer-actions">
+                    <button id="epaySaveBtn" aria-label="Save payment method">
+                        <i class="material-icons" aria-hidden="true">save</i>
+                        <span>Save</span>
+                    </button>
+                    <button id="epayCancelBtn" aria-label="Cancel editing payment">
+                        <i class="material-icons" aria-hidden="true">cancel</i>
+                        <span>Cancel</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1878,7 +2290,7 @@
     <script src="../js/firebase-config.js"></script>
     <script src="../js/database.js"></script>
     <script src="../js/network-monitor.js"></script>
-    <script src="../js/pos.js?v=2.9"></script>
+    <script src="../js/pos.js?v=2.10"></script>
     <script>
         // 
         document.addEventListener('DOMContentLoaded', function () {

@@ -1,0 +1,2627 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS System - Sales</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        .pos-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            min-width: 250px;
+            width: 250px;
+            height: 100vh;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .sidebar.collapsed {
+            min-width: 0;
+            width: 0;
+            opacity: 0;
+            box-shadow: none;
+            pointer-events: none;
+        }
+
+        .content {
+            flex: 1;
+            height: 100vh;
+            overflow-y: auto;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 12px 20px !important;
+        }
+
+        .header {
+            margin-bottom: 12px !important;
+        }
+
+        /* 保持购物车宽度和内边距固定，不受侧边栏折叠影响 */
+        .sidebar.collapsed ~ .content .pos-grid {
+            grid-template-columns: 1fr 350px;
+        }
+
+        .sidebar.collapsed ~ .content .cart-container {
+            padding: 20px;
+        }
+
+        /* 页面标题及容器样式优化 */
+        .header-title-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #viewTitle {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            margin: 0;
+            color: #1e293b;
+        }
+
+        body.dark-mode #viewTitle {
+            color: #f8fafc;
+        }
+
+        .sidebar-toggle-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: #f8fafc;
+        }
+
+        .sidebar-toggle-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, #334155, #1e293b);
+        }
+
+        .sidebar-toggle-btn:active {
+            transform: translateY(0);
+        }
+
+        .sidebar-toggle-btn i {
+            font-size: 24px;
+            line-height: 1;
+            user-select: none;
+        }
+
+        /* 深色模式下的折叠按钮样式 */
+        body.dark-mode .sidebar-toggle-btn {
+            background: linear-gradient(135deg, #334155, #1e293b);
+            color: #f8fafc;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        body.dark-mode .sidebar-toggle-btn:hover {
+            background: linear-gradient(135deg, #475569, #334155);
+        }
+
+        .sidebar-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .store-info {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%);
+        }
+
+        .store-logo {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .store-logo:hover {
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.25);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .store-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+        }
+
+        .store-title {
+            text-align: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .store-title h2 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 700;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #ffffff, #cbd5e1);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: 0.5px;
+        }
+
+        .store-details {
+            width: 100%;
+            font-size: 13px;
+            color: #94a3b8;
+            background: rgba(0, 0, 0, 0.15);
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .store-details p {
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            color: #cbd5e1;
+        }
+
+        .store-details .material-icons {
+            font-size: 16px;
+            margin-right: 8px;
+            color: #6366f1;
+        }
+
+        .shift-history-container {
+            margin-top: 16px;
+            width: 100%;
+        }
+
+        .modern-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            gap: 8px;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .modern-btn:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .modern-btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        .modern-btn i {
+            font-size: 18px;
+        }
+
+        /* 1st Shift Cashier Name Style */
+        .first-shift-name {
+            background: linear-gradient(to right, #ffcc00, #ff9900);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 600;
+            animation: first-shift-blink 2s infinite;
+        }
+
+        @keyframes first-shift-blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        /* 2nd Shift Cashier Name Style */
+        .second-shift-name {
+            background: linear-gradient(to right, #9966cc, #888888);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 600;
+            animation: second-shift-wave 3s infinite;
+        }
+
+        @keyframes second-shift-wave {
+            0% {
+                transform: translateY(0);
+            }
+
+            25% {
+                transform: translateY(-3px);
+            }
+
+            50% {
+                transform: translateY(0);
+            }
+
+            75% {
+                transform: translateY(3px);
+            }
+
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        /* 3rd Shift Cashier Name Style */
+        .third-shift-name {
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 600;
+            animation: third-shift-pulse 2.5s infinite;
+            display: inline-block;
+        }
+
+        @keyframes third-shift-pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        /* Pending Transfers Styles */
+        .pending-transfers-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .pending-transfers-header h2 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #2c3e50;
+        }
+
+        .pending-transfers-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .pending-transfers-table-container {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .pending-transfers-table-container table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .pending-transfers-table-container th {
+            background: #34495e;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .pending-transfers-table-container td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .pending-transfers-table-container tr:hover {
+            background: #f5f5f5;
+        }
+
+        .btn-confirm-transfer,
+        .btn-reject-transfer {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            transition: all 0.2s;
+            margin-right: 5px;
+        }
+
+        .btn-confirm-transfer {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-confirm-transfer:hover {
+            background: #229954;
+            transform: translateY(-1px);
+        }
+
+        .btn-reject-transfer {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-reject-transfer:hover {
+            background: #c0392b;
+            transform: translateY(-1px);
+        }
+
+        .notification-badge {
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            display: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+
+        /* ===================== Payment Section (Cart) ===================== */
+        .cart-payment {
+            margin: 2px 0 10px;
+            padding: 12px;
+            border-radius: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .cart-payment-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .cart-payment-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .4px;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+
+        .cart-payment-title i {
+            font-size: 16px;
+            color: #3498db;
+        }
+
+        .payment-hint {
+            font-size: 11px;
+            font-weight: 600;
+            color: #94a3b8;
+            max-width: 55%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .payment-methods {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .payment-method-btn {
+            flex: 1 1 0;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 8px 4px;
+            min-height: 54px;
+            border-radius: 10px;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+            color: #475569;
+            font-family: inherit;
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .18s ease;
+            line-height: 1.15;
+        }
+
+        .payment-method-btn i {
+            font-size: 20px;
+            color: #64748b;
+        }
+
+        .payment-method-btn:hover {
+            border-color: #93c5fd;
+            transform: translateY(-1px);
+        }
+
+        .payment-method-btn.active {
+            border-color: #3498db;
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            color: #1d4ed8;
+            box-shadow: 0 3px 10px rgba(52, 152, 219, .18);
+        }
+
+        .payment-method-btn.active i {
+            color: #2563eb;
+        }
+
+        /* 未配置银行的 QR / Credit Card：半透明且不可点击 */
+        .payment-method-btn:disabled,
+        .payment-method-btn[disabled],
+        .payment-method-btn.is-unavailable {
+            opacity: .4;
+            cursor: not-allowed;
+            filter: grayscale(.15);
+        }
+
+        .payment-method-btn:disabled:hover,
+        .payment-method-btn[disabled]:hover,
+        .payment-method-btn.is-unavailable:hover {
+            border-color: #e2e8f0;
+            transform: none;
+            box-shadow: none;
+        }
+
+        body.dark-mode .payment-method-btn:disabled:hover,
+        body.dark-mode .payment-method-btn[disabled]:hover,
+        body.dark-mode .payment-method-btn.is-unavailable:hover {
+            border-color: #334155;
+        }
+
+        .payment-empty {
+            flex: 1 1 100%;
+            text-align: center;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #94a3b8;
+            padding: 8px 4px;
+            line-height: 1.35;
+        }
+
+        .payment-detail-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .payment-detail-row > label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #64748b;
+            white-space: nowrap;
+            margin: 0;
+        }
+
+        .payment-detail-row > label i {
+            font-size: 15px;
+            color: #94a3b8;
+        }
+
+        .payment-detail-row select {
+            flex: 1;
+            min-width: 0;
+            height: 34px;
+            border-radius: 8px;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+            font-family: inherit;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #1e293b;
+            padding: 0 8px;
+            box-sizing: border-box;
+        }
+
+        .payment-detail-row select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, .12);
+        }
+
+        /* ===== 银行下拉（自定义，可显示 logo） ===== */
+        .bank-select {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bank-select-btn {
+            width: 100%;
+            height: 34px;
+            margin: 0;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 8px;
+            border-radius: 8px;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+            font-family: inherit;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #1e293b;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .bank-select-btn:hover {
+            border-color: #cbd5e1;
+        }
+
+        .bank-select-btn:focus-visible,
+        .bank-select.is-open .bank-select-btn {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, .12);
+        }
+
+        .bank-select-btn:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+        }
+
+        .bank-select-value {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .bank-select-placeholder {
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .bank-select-caret {
+            flex: 0 0 auto;
+            font-size: 18px;
+            color: #94a3b8;
+            transition: transform .15s ease;
+        }
+
+        .bank-select.is-open .bank-select-caret {
+            transform: rotate(180deg);
+        }
+
+        .bank-select-menu {
+            display: none;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 6px);
+            z-index: 1300;
+            padding: 4px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, .18);
+            max-height: 260px;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .bank-select.is-open .bank-select-menu {
+            display: block;
+        }
+
+        .bank-select-menu.open-up {
+            top: auto;
+            bottom: calc(100% + 6px);
+        }
+
+        .bank-option {
+            width: 100%;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 8px;
+            border: 0;
+            border-radius: 7px;
+            background: transparent;
+            font-family: inherit;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #1e293b;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .bank-option:hover {
+            background: #eff6ff;
+        }
+
+        .bank-option.is-active {
+            background: #e0efff;
+        }
+
+        .bank-option > .bank-cell {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bank-option > .material-icons {
+            flex: 0 0 auto;
+            font-size: 16px;
+            color: #3498db;
+            opacity: 0;
+        }
+
+        .bank-option.is-active > .material-icons {
+            opacity: 1;
+        }
+
+        /* ===== 银行单元格：logo 在前、名字在后（与 Admin 一致） ===== */
+        .bank-cell {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+            max-width: 100%;
+            vertical-align: middle;
+        }
+
+        .bank-cell-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .bank-cell-logo {
+            flex: 0 0 auto;
+            width: 20px;
+            height: 20px;
+            padding: 1px;
+            box-sizing: border-box;
+            object-fit: contain;
+            border-radius: 4px;
+            background: #fff;
+            border: 1px solid #eef2f7;
+            display: block;
+        }
+
+        .bank-cell-none {
+            color: #cbd5e1;
+        }
+
+        /* ===== 分批付款（Cash + QR / Credit Card） ===== */
+        .payment-split {
+            margin-top: 8px;
+        }
+
+        .split-toggle {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin: 0;
+            padding: 7px 9px;
+            border-radius: 9px;
+            border: 1px dashed #cbd5e1;
+            background: #fff;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            line-height: 1.2;
+            transition: border-color .15s ease, color .15s ease;
+        }
+
+        .split-toggle:hover {
+            border-color: #93c5fd;
+        }
+
+        .split-toggle input {
+            flex: 0 0 auto;
+            width: 15px;
+            height: 15px;
+            margin: 0;
+            padding: 0;
+            accent-color: #3498db;
+            cursor: pointer;
+        }
+
+        .split-toggle > .material-icons {
+            font-size: 16px;
+            color: #3498db;
+        }
+
+        .split-toggle input:checked ~ .split-toggle-text {
+            color: #1d4ed8;
+        }
+
+        .split-amounts {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .split-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .split-row > label {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            min-width: 74px;
+            margin: 0;
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #64748b;
+            white-space: nowrap;
+        }
+
+        .split-row > label .material-icons {
+            font-size: 15px;
+            color: #94a3b8;
+        }
+
+        .split-input {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            height: 34px;
+            padding: 0 8px;
+            box-sizing: border-box;
+            border-radius: 8px;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+        }
+
+        .split-input:focus-within {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, .12);
+        }
+
+        .split-input > span {
+            flex: 0 0 auto;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #94a3b8;
+        }
+
+        .split-input > input {
+            flex: 1;
+            min-width: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            outline: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1e293b;
+            text-align: right;
+        }
+
+        .split-status {
+            padding: 0 2px;
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 1.35;
+            color: #64748b;
+        }
+
+        .split-status.is-ok {
+            color: #16a34a;
+        }
+
+        .split-status.is-error {
+            color: #dc2626;
+        }
+
+        body.dark-mode .split-toggle {
+            background: #1e293b;
+            border-color: #334155;
+            color: #cbd5e1;
+        }
+
+        body.dark-mode .split-toggle:hover {
+            border-color: #475569;
+        }
+
+        body.dark-mode .split-toggle input:checked ~ .split-toggle-text {
+            color: #93c5fd;
+        }
+
+        body.dark-mode .split-row > label {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .split-input {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        body.dark-mode .split-input > input {
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .split-status {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .split-status.is-ok {
+            color: #4ade80;
+        }
+
+        body.dark-mode .split-status.is-error {
+            color: #f87171;
+        }
+
+        /* ===== 销售历史：编辑支付方式 ===== */
+        .edit-payment-btn {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            border-radius: 8px;
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(243, 156, 18, .3);
+            transition: all .2s;
+        }
+
+        .edit-payment-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 10px rgba(243, 156, 18, .4);
+        }
+
+        .edit-payment-btn .material-icons {
+            font-size: 17px;
+            color: #fff;
+        }
+
+        #editPaymentBtn {
+            background-color: #f39c12;
+        }
+
+        #epaySaveBtn {
+            background-color: #2ecc71;
+        }
+
+        #epayCancelBtn {
+            background-color: #95a5a6;
+        }
+
+        .epay-modal {
+            max-width: 440px;
+        }
+
+        /* 底部：左下角署名 + 右下角按钮 */
+        .epay-modal .epay-footer {
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .epay-credit {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            min-width: 0;
+            margin-right: auto;
+            font-size: 11.5px;
+            font-style: italic;
+            color: #94a3b8;
+            white-space: nowrap;
+            user-select: none;
+        }
+
+        .epay-credit .material-icons {
+            font-size: 15px;
+            color: #9b59b6;
+        }
+
+        .epay-credit strong {
+            font-weight: 800;
+            color: #64748b;
+        }
+
+        .epay-footer-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 0 0 auto;
+        }
+
+        .epay-footer-actions button {
+            width: auto;
+            margin-top: 0;
+        }
+
+        .epay-sale {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 14px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #eef2f7;
+            background: #f8fafc;
+        }
+
+        .epay-sale-bill {
+            min-width: 0;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #475569;
+            word-break: break-all;
+        }
+
+        .epay-sale-total {
+            flex: 0 0 auto;
+            font-size: 16px;
+            font-weight: 800;
+            color: #1e293b;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .epay-group {
+            margin-bottom: 14px;
+        }
+
+        .epay-label {
+            margin-bottom: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+
+        .epay-methods {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .epay-method {
+            flex: 0 0 calc(50% - 3px);
+            min-width: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 9px 8px;
+            border-radius: 9px;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+            color: #475569;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: border-color .15s ease, background .15s ease, color .15s ease;
+        }
+
+        .epay-method i {
+            font-size: 17px;
+            color: #64748b;
+        }
+
+        .epay-method:hover:not(:disabled) {
+            border-color: #93c5fd;
+        }
+
+        .epay-method.is-active {
+            border-color: #3498db;
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            color: #1d4ed8;
+            box-shadow: 0 3px 10px rgba(52, 152, 219, .16);
+        }
+
+        .epay-method.is-active i {
+            color: #2563eb;
+        }
+
+        .epay-method:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        .epay-methods-sm .epay-method {
+            min-width: 76px;
+            padding: 7px 6px;
+            font-size: 11.5px;
+        }
+
+        .epay-banks {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            max-height: 176px;
+            overflow-y: auto;
+            padding: 4px;
+            border: 1px solid #eef2f7;
+            border-radius: 10px;
+            background: #fff;
+            box-sizing: border-box;
+        }
+
+        .epay-bank {
+            width: 100%;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: transparent;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1e293b;
+            text-align: left;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+
+        .epay-bank > .bank-cell {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .epay-bank:hover {
+            background: #f1f5f9;
+        }
+
+        .epay-bank.is-active {
+            background: #e0efff;
+            border-color: #bfdbfe;
+        }
+
+        .epay-bank > .material-icons.check {
+            flex: 0 0 auto;
+            font-size: 17px;
+            color: #2563eb;
+            opacity: 0;
+        }
+
+        .epay-bank.is-active > .material-icons.check {
+            opacity: 1;
+        }
+
+        .epay-empty {
+            padding: 10px 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #94a3b8;
+            text-align: center;
+        }
+
+        body.dark-mode .epay-sale {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        body.dark-mode .epay-sale-bill {
+            color: #cbd5e1;
+        }
+
+        body.dark-mode .epay-sale-total {
+            color: #f8fafc;
+        }
+
+        body.dark-mode .epay-method {
+            background: #1e293b;
+            border-color: #334155;
+            color: #cbd5e1;
+        }
+
+        body.dark-mode .epay-method i {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .epay-method.is-active {
+            background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+            border-color: #3b82f6;
+            color: #eff6ff;
+        }
+
+        body.dark-mode .epay-method.is-active i {
+            color: #bfdbfe;
+        }
+
+        body.dark-mode .epay-banks {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        body.dark-mode .epay-bank {
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .epay-bank:hover {
+            background: #1e293b;
+        }
+
+        body.dark-mode .epay-bank.is-active {
+            background: #1e3a8a;
+            border-color: #3b82f6;
+        }
+
+        body.dark-mode .epay-bank > .material-icons.check {
+            color: #bfdbfe;
+        }
+
+        body.dark-mode .epay-credit {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .epay-credit strong {
+            color: #e2e8f0;
+        }
+
+        /* 轻提示（保存成功等） */
+        .pos-toast {
+            position: fixed;
+            left: 50%;
+            bottom: 28px;
+            z-index: 3000;
+            max-width: min(90vw, 420px);
+            padding: 11px 16px;
+            border-radius: 10px;
+            background: #0f172a;
+            color: #f8fafc;
+            font-size: 12.5px;
+            font-weight: 600;
+            line-height: 1.35;
+            text-align: center;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, .35);
+            opacity: 0;
+            pointer-events: none;
+            transform: translate(-50%, 16px);
+            transition: opacity .18s ease, transform .18s ease;
+        }
+
+        .pos-toast.is-visible {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        body.dark-mode .pos-toast {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+
+        /* Payment badge in sales history (single default colour, icon + method) */
+        .payment-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .payment-badge .material-icons {
+            font-size: 15px;
+            color: #64748b;
+        }
+
+        /* Dark mode */
+        body.dark-mode .cart-payment {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        body.dark-mode .cart-payment-title {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .payment-method-btn {
+            background: #1e293b;
+            border-color: #334155;
+            color: #cbd5e1;
+        }
+
+        body.dark-mode .payment-method-btn i {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .payment-method-btn.active {
+            background: linear-gradient(135deg, #1e3a8a, #1e293b);
+            border-color: #60a5fa;
+            color: #dbeafe;
+        }
+
+        body.dark-mode .payment-detail-row > label {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .payment-detail-row select {
+            background: #1e293b;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .bank-select-btn {
+            background: #1e293b;
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode .bank-select-btn:hover {
+            border-color: #475569;
+        }
+
+        body.dark-mode .bank-select-menu {
+            background: #0f172a;
+            border-color: #334155;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, .55);
+        }
+
+        body.dark-mode .bank-option {
+            color: #cbd5e1;
+        }
+
+        body.dark-mode .bank-option:hover {
+            background: #1e293b;
+        }
+
+        body.dark-mode .bank-option.is-active {
+            background: #1e3a8a;
+            color: #dbeafe;
+        }
+
+        body.dark-mode .bank-cell-logo {
+            background: #f8fafc;
+            border-color: #1e293b;
+        }
+
+        body.dark-mode .payment-badge {
+            background: #1e293b;
+            color: #cbd5e1;
+        }
+
+        body.dark-mode .payment-badge .material-icons {
+            color: #94a3b8;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Cashier name input modal -->
+    <div id="cashierNameModal" class="modal">
+        <div class="modal-content cashier-modal">
+            <div class="cashier-modal-header">
+                <div class="cashier-icon-wrapper">
+                    <i class="material-icons">person_outline</i>
+                </div>
+                <h2>Cashier Information</h2>
+                <p>Welcome! Please set your identity for this session</p>
+            </div>
+            <form id="cashierNameForm" class="cashier-form">
+                <div class="cashier-form-group">
+                    <label for="cashierName"><i class="material-icons">badge</i> Full Name</label>
+                    <input type="text" id="cashierName" required placeholder="E.g. John Doe" autocomplete="off">
+                </div>
+                <div class="cashier-form-group">
+                    <label for="cashierShift"><i class="material-icons">schedule</i> Active Shift</label>
+                    <div class="cashier-select-wrapper">
+                        <select id="cashierShift" required>
+                            <option value="" disabled selected>Select your shift</option>
+                            <option value="1st Shift">1st Shift </option>
+                            <option value="2nd Shift">2nd Shift </option>
+                        </select>
+                        <i class="material-icons select-arrow">expand_more</i>
+                    </div>
+                </div>
+                <button type="submit" class="cashier-submit-btn">
+                    <span>Confirm Identity</span>
+                    <i class="material-icons">check_circle_outline</i>
+                </button>
+            </form>
+            <div class="cashier-tip-container">
+                <div class="tip-header">
+                    <i class="material-icons">lightbulb_outline</i>
+                    <span>Tips</span>
+                </div>
+                <ul>
+                    <li>Need to change shifts? Click the <i class="material-icons inline-icon">edit</i> button next to your name in the sidebar later.</li>
+                    <li>Cashier names are actively recorded on all digital receipts and sales history.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Announcement Banner -->
+    <div id="announcementBanner" class="announcement-banner hidden">
+        <div id="announcementScrollingText" class="announcement-scrolling-text">
+            <!-- Announcement text will be loaded here -->
+        </div>
+    </div>
+
+    <div class="pos-container">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-content">
+                <div class="store-info">
+                    <div class="store-logo">
+                        <img src="../icons/pos.png" alt="SmartProfits Logo">
+                    </div>
+                    <div class="store-title">
+                        <h2>SmartProfits</h2>
+                    </div>
+                    <div class="store-details">
+                        <p><i class="material-icons">store</i><span id="userName">User</span></p>
+                        <p id="currentCashier"><i class="material-icons">person</i> Cashier: <span
+                                id="cashierNameDisplay" style="margin-left: 4px;">Not set</span> <button
+                                id="changeCashierBtn" class="small-btn"><i class="material-icons">edit</i></button></p>
+                        <p id="currentShift"><i class="material-icons">schedule</i> On Duty: <span
+                                id="cashierShiftDisplay" style="margin-left: 4px;">Not set</span></p>
+                        <div class="shift-history-container">
+                            <button id="viewCashierHistoryBtn" class="modern-btn">
+                                <i class="material-icons">history</i>
+                                <span>Shift History</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="nav-menu">
+                    <div class="nav-item active" data-view="sales"><i class="material-icons">point_of_sale</i> <span
+                            class="nav-text">Sales</span></div>
+                    <div class="nav-item" data-view="salesHistory"><i class="material-icons">history</i> <span
+                            class="nav-text">Sales History</span></div>
+                    <div class="nav-item" data-view="inventory"><i class="material-icons">inventory_2</i> <span
+                            class="nav-text">Inventory</span></div>
+                    <div class="nav-item" data-view="stockHistory"><i class="material-icons">local_shipping</i> <span
+                            class="nav-text">Stock History</span></div>
+                    <div class="nav-item" data-view="pendingTransfers" style="position: relative;">
+                        <i class="material-icons">swap_horiz</i>
+                        <span class="nav-text">Pending Transfers</span>
+                        <span id="pendingTransferBadge" class="notification-badge">0</span>
+                    </div>
+                    <div class="nav-item" onclick="location.href='./product_catalog.html'"><i
+                            class="material-icons">menu_book</i> <span class="nav-text">Product Catalog</span></div>
+                    <div class="nav-item" onclick="logout()"><i class="material-icons">logout</i> <span
+                            class="nav-text">Logout</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content" id="mainContent">
+            <div class="header">
+                <div class="header-title-container">
+                    <button id="sidebarToggle" class="sidebar-toggle-btn" title="Toggle Sidebar">
+                        <i class="material-icons" id="toggleIcon">chevron_left</i>
+                    </button>
+                    <h1 id="viewTitle">Sales System</h1>
+                </div>
+                <div class="header-actions">
+                    <button id="darkModeBtn" class="theme-toggle-btn" title="Toggle Dark Mode">
+                        <i class="material-icons" id="darkModeIcon">dark_mode</i>
+                    </button>
+                    <button id="simpleModeBtn" class="simple-mode-btn" title="Enter Simple Mode">
+                        <i class="material-icons">fullscreen</i>
+                    </button>
+                </div>
+                <div id="currentDateTime"></div>
+            </div>
+
+            <!-- Sales View -->
+            <div id="salesView" class="view active">
+                <div class="pos-grid">
+                    <div class="product-container">
+                        <!-- Hot items section -->
+                        <div class="hot-items-section" id="hotItemsSection">
+                            <div class="hot-items-header">
+                                <h3><i class="material-icons">whatshot</i> Hot Items</h3>
+                                <div style="display: flex; gap: 5px; align-items: center;">
+                                    <button id="manageHotItemsBtn" class="hot-items-manage-btn"
+                                        title="Manage Hot Items">
+                                        <i class="material-icons">settings</i>
+                                    </button>
+                                    <button class="hot-items-toggle" id="hotItemsToggle">
+                                        <i class="material-icons">expand_less</i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="hot-items-container" id="hotItemsContainer">
+                                <!-- Hot items will be loaded here dynamically -->
+                            </div>
+                        </div>
+
+                        <div class="filter-container">
+                            <div class="search-box">
+                                <i class="material-icons">search</i>
+                                <input type="text" id="productSearch" placeholder="Search products..." readonly>
+                            </div>
+                            <div class="category-filter">
+                                <label for="categoryFilter"><i class="material-icons">category</i> Category:</label>
+                                <div class="category-selector">
+                                    <select id="categoryFilter">
+                                        <option value="all">All Categories</option>
+                                        <!-- Categories will be loaded dynamically -->
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="categoryGrid" class="category-grid-container" style="display: none;"></div>
+                        <div id="categoryGridDivider" class="pos-category-layout-divider" style="display: none;">Order</div>
+                        <div class="product-grid" id="productGrid">
+                            <!-- Product list will be loaded dynamically by JavaScript -->
+                        </div>
+                    </div>
+
+                    <div class="cart-container">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; padding-bottom:12px; border-bottom:2px solid rgba(52,152,219,0.12); width:100%; justify-content:space-between;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <div style="background:linear-gradient(135deg,#3498db,#6c5ce7); border-radius:10px; padding:7px; display:flex; align-items:center;">
+                                    <i class="material-icons" style="color:white; font-size:20px;">shopping_cart</i>
+                                </div>
+                                <h2 style="margin:0; font-size:17px; font-weight:700; color:#1e293b;">Cart</h2>
+                            </div>
+                            <div id="cartStaffPriceToggleContainer" style="display:flex; align-items:center;">
+                                <!-- Staff price toggle switch will be rendered here dynamically -->
+                            </div>
+                        </div>
+                        <div class="cart-header">
+                            <div class="cart-header-item">Product</div>
+                            <div class="cart-header-item">Price</div>
+                            <div class="cart-header-item">Qty</div>
+                            <div class="cart-header-item">Total</div>
+                            <div class="cart-header-item">Action</div>
+                        </div>
+                        <div class="cart-items" id="cartItems">
+                            <!-- Cart items will be loaded dynamically by JavaScript -->
+                        </div>
+
+                        <!-- Payment Method -->
+                        <div class="cart-payment" id="cartPaymentSection">
+                            <div class="cart-payment-header">
+                                <span class="cart-payment-title">
+                                    <i class="material-icons">account_balance_wallet</i>
+                                    <span>Payment</span>
+                                </span>
+                                <span class="payment-hint" id="paymentHint">Cash</span>
+                            </div>
+                            <div class="payment-methods" id="paymentMethodOptions">
+                                <button type="button" class="payment-method-btn active" data-method="cash">
+                                    <i class="material-icons">payments</i>
+                                    <span>Cash</span>
+                                </button>
+                                <button type="button" class="payment-method-btn" data-method="qr">
+                                    <i class="material-icons">qr_code_2</i>
+                                    <span>QR</span>
+                                </button>
+                                <button type="button" class="payment-method-btn" data-method="card">
+                                    <i class="material-icons">credit_card</i>
+                                    <span>Credit Card</span>
+                                </button>
+                            </div>
+                            <div class="payment-detail-row" id="paymentBankRow" style="display:none;">
+                                <label for="paymentBankBtn"><i class="material-icons">account_balance</i> Bank</label>
+                                <div class="bank-select" id="paymentBankSelect">
+                                    <button type="button" class="bank-select-btn" id="paymentBankBtn" aria-haspopup="listbox" aria-expanded="false">
+                                        <span class="bank-select-value" id="paymentBankValue"><span class="bank-select-placeholder">Select bank...</span></span>
+                                        <i class="material-icons bank-select-caret">expand_more</i>
+                                    </button>
+                                    <div class="bank-select-menu" id="paymentBankMenu" role="listbox" aria-label="Bank"></div>
+                                </div>
+                            </div>
+
+                            <!-- 分批付款：一部分付现金，剩下的用 QR / Credit Card -->
+                            <div class="payment-split" id="paymentSplitSection" style="display:none;">
+                                <label class="split-toggle" for="splitPaymentToggle">
+                                    <input type="checkbox" id="splitPaymentToggle">
+                                    <i class="material-icons">call_split</i>
+                                    <span class="split-toggle-text">Split payment (part cash)</span>
+                                </label>
+                                <div class="split-amounts" id="splitAmounts" style="display:none;">
+                                    <div class="split-row">
+                                        <label for="splitCashInput"><i class="material-icons">payments</i> Cash</label>
+                                        <div class="split-input">
+                                            <span>RM</span>
+                                            <input type="text" id="splitCashInput" inputmode="decimal" autocomplete="off" aria-label="Cash amount">
+                                        </div>
+                                    </div>
+                                    <div class="split-row">
+                                        <label for="splitNonCashInput"><i class="material-icons" id="splitNonCashIcon">qr_code_2</i> <span id="splitNonCashLabel">QR</span></label>
+                                        <div class="split-input">
+                                            <span>RM</span>
+                                            <input type="text" id="splitNonCashInput" inputmode="decimal" autocomplete="off" aria-label="Non-cash amount">
+                                        </div>
+                                    </div>
+                                    <div class="split-status" id="splitStatus"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="cart-total">Total: <span id="cartTotal">RM0.00</span></div>
+                        <div class="cart-actions">
+                            <button id="checkoutBtn" class="checkout-btn" aria-label="Checkout cart">
+                                <i class="material-icons" aria-hidden="true">payment</i>
+                                <span>Checkout</span>
+                            </button>
+                            <button id="clearCartBtn" aria-label="Clear cart">
+                                <i class="material-icons" aria-hidden="true">remove_shopping_cart</i>
+                                <span>Clear Cart</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales History View -->
+            <div id="salesHistoryView" class="view">
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+                    <div style="background:linear-gradient(135deg,#3498db,#6c5ce7); border-radius:12px; padding:10px 14px; display:flex; align-items:center; justify-content:center;">
+                        <i class="material-icons" style="color:white; font-size:22px;">history</i>
+                    </div>
+                    <div>
+                        <h2 style="margin:0; font-size:20px; font-weight:700; color:#1e293b; letter-spacing:-0.3px;">Sales History</h2>
+                        <p style="margin:0; font-size:12px; color:#94a3b8; font-weight:500;">Today's transactions overview</p>
+                    </div>
+                </div>
+
+                <!-- Total Sales Summary Section -->
+                <div class="sales-summary">
+                    <div class="summary-card">
+                        <div class="summary-icon"><i class="material-icons">payments</i></div>
+                        <div class="summary-content">
+                            <h3>Total Sales</h3>
+                            <div class="summary-value" id="totalSalesAmount">RM0.00</div>
+                            <div class="summary-subtitle">Total transactions: <span id="totalTransactions">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="summary-card">
+                        <div class="summary-icon"><i class="material-icons">local_offer</i></div>
+                        <div class="summary-content">
+                            <h3>Discounted Sales</h3>
+                            <div class="summary-value" id="discountedSalesCount">0</div>
+                            <div class="summary-subtitle">Total discount amount: <span
+                                    id="totalDiscountAmount">RM0.00</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shift Sales Summary Section -->
+                <div class="shifts-summary-container" id="shiftsSummaryContainer">
+                    <!-- Dynamic shift cards go here -->
+                </div>
+
+                <div class="sale-details-container">
+                    <table id="salesTable">
+                        <thead>
+                            <tr>
+                                <th>Bill Number</th>
+                                <th>Time</th>
+                                <th>Cashier</th>
+                                <th>Shift</th>
+                                <th>Items</th>
+                                <th>Payment</th>
+                                <th>Bank</th>
+                                <th>Discount</th>
+                                <th>Total</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesTableBody">
+                            <!-- Sales records will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Inventory Management View -->
+            <div id="inventoryView" class="view">
+                <div class="view-page-header">
+                    <div class="view-page-header-left">
+                        <div class="view-header-icon" style="background:linear-gradient(135deg,#00b894,#00cec9);">
+                            <i class="material-icons">inventory_2</i>
+                        </div>
+                        <div>
+                            <h2 class="view-header-title">Inventory</h2>
+                            <p class="view-header-subtitle">Manage products &amp; stock levels</p>
+                        </div>
+                    </div>
+                    <div class="view-header-actions">
+                        <div class="inventory-filters">
+                            <div class="filter-item">
+                                <label for="inventoryCategoryFilter"><i class="material-icons">category</i> Category:</label>
+                                <select id="inventoryCategoryFilter">
+                                    <option value="all">All Categories</option>
+                                    <!-- Category options will be loaded dynamically -->
+                                </select>
+                            </div>
+
+                            <div class="filter-item">
+                                <label for="inventorySearchInput"><i class="material-icons">search</i> Search:</label>
+                                <input type="text" id="inventorySearchInput" placeholder="Search products..."
+                                    class="inventory-search">
+                            </div>
+
+                            <div class="filter-item">
+                                <label for="inventoryStockFilter"><i class="material-icons">warning</i> Stock Status:</label>
+                                <select id="inventoryStockFilter">
+                                    <option value="all">All</option>
+                                    <option value="low">Low Stock</option>
+                                    <option value="out">Out of Stock</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="inventory-actions">
+                            <button id="refreshInventoryBtn" class="icon-button" aria-label="Refresh inventory">
+                                <i class="material-icons" aria-hidden="true">refresh</i>
+                            </button>
+                            <button id="addProductBtn" class="action-button" aria-label="Add new product">
+                                <i class="material-icons" aria-hidden="true">add</i>
+                                <span>Add Product</span>
+                            </button>
+                            <button id="stockTransferBtn" class="action-button" aria-label="Batch stock transfer" style="background: linear-gradient(135deg, #9b59b6, #8e44ad); margin-left: 8px;">
+                                <i class="material-icons" aria-hidden="true">swap_horiz</i>
+                                <span>Stock Transfer</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="premium-table-container">
+                    <table id="inventoryTable" class="premium-table">
+                        <thead>
+                            <tr>
+                                <th>Product ID</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Current Stock</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody">
+                            <!-- Inventory list will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Stock History View -->
+            <div id="stockHistoryView" class="view">
+                <div class="view-page-header">
+                    <div class="view-page-header-left">
+                        <div class="view-header-icon" style="background:linear-gradient(135deg,#f39c12,#e67e22);">
+                            <i class="material-icons">local_shipping</i>
+                        </div>
+                        <div>
+                            <h2 class="view-header-title"><span id="stockHistoryTitle">Today's Stock Receipts</span></h2>
+                            <p class="view-header-subtitle">Track incoming inventory</p>
+                        </div>
+                    </div>
+                    <div class="view-header-actions">
+                        <div class="date-filter-group">
+                            <label for="stockHistoryDatePicker">
+                                <i class="material-icons">event</i>
+                                <span>Date:</span>
+                            </label>
+                            <input type="date" id="stockHistoryDatePicker" value="">
+                        </div>
+                        <button id="refreshStockHistoryBtn" class="icon-button" aria-label="Refresh stock history">
+                            <i class="material-icons" aria-hidden="true">refresh</i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stock-history-summary">
+                    <div class="summary-card stk-card-1">
+                        <div class="summary-icon"><i class="material-icons">inventory</i></div>
+                        <div class="summary-content">
+                            <h3>Total Items Received</h3>
+                            <div class="summary-value" id="totalItemsReceived">0</div>
+                            <div class="summary-subtitle">Different products</div>
+                        </div>
+                    </div>
+
+                    <div class="summary-card stk-card-2">
+                        <div class="summary-icon"><i class="material-icons">add_shopping_cart</i></div>
+                        <div class="summary-content">
+                            <h3>Total Quantity</h3>
+                            <div class="summary-value" id="totalQuantityReceived">0</div>
+                            <div class="summary-subtitle" id="totalQuantitySubtitle">Units received</div>
+                        </div>
+                    </div>
+
+                    <div class="summary-card stk-card-3">
+                        <div class="summary-icon"><i class="material-icons">schedule</i></div>
+                        <div class="summary-content">
+                            <h3>Last Receipt</h3>
+                            <div class="summary-value" id="lastReceiptTime">-</div>
+                            <div class="summary-subtitle">Most recent entry</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="premium-table-container">
+                    <table id="stockHistoryTable" class="premium-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Product ID</th>
+                                <th>Product Name</th>
+                                <th>Category</th>
+                                <th>Quantity</th>
+                                <th>Previous Stock</th>
+                                <th>New Stock</th>
+                                <th>Reason</th>
+                                <th>Cashier</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockHistoryTableBody">
+                            <tr>
+                                <td colspan="10" style="text-align: center; padding: 20px;">
+                                    <div class="loading"><i class="material-icons">hourglass_empty</i> Loading today's
+                                        stock receipts...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pending Transfers View -->
+            <div id="pendingTransfersView" class="view">
+                <div class="view-page-header">
+                    <div class="view-page-header-left">
+                        <div class="view-header-icon" style="background:linear-gradient(135deg,#9b59b6,#6c5ce7);">
+                            <i class="material-icons">swap_horiz</i>
+                        </div>
+                        <div>
+                            <h2 class="view-header-title">Pending Transfers</h2>
+                            <p class="view-header-subtitle">Review &amp; approve incoming stock requests</p>
+                        </div>
+                    </div>
+                    <div class="view-header-actions">
+                        <button id="refreshPendingTransfersBtn" class="icon-button" aria-label="Refresh pending transfers">
+                            <i class="material-icons" aria-hidden="true">refresh</i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="premium-table-container">
+                    <table id="pendingTransfersTable" class="premium-table premium-table--purple">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>From Store</th>
+                                <th>Product ID</th>
+                                <th>Product Name</th>
+                                <th>Category</th>
+                                <th>Quantity</th>
+                                <th>Reason</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingTransfersTableBody">
+                            <tr>
+                                <td colspan="9" style="text-align: center; padding: 20px;">
+                                    <div class="loading"><i class="material-icons">hourglass_empty</i> Loading pending
+                                        transfers...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Success Modal -->
+    <div id="checkoutSuccessModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">check_circle</i> Checkout Successful</h2>
+            <p>Order has been submitted successfully!</p>
+            <div id="receiptDetails"></div>
+            <button id="printReceiptBtn" aria-label="Print receipt">
+                <i class="material-icons" aria-hidden="true">print</i>
+                <span>Print Receipt</span>
+            </button>
+            <button id="newSaleBtn" aria-label="Start new transaction">
+                <i class="material-icons" aria-hidden="true">add_shopping_cart</i>
+                <span>New Transaction</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Sale Details Modal -->
+    <div id="saleDetailModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">receipt</i> Sale Details</h2>
+            <div id="saleDetailContent"></div>
+            <div class="modal-footer">
+                <button id="editPaymentBtn" aria-label="Edit payment method">
+                    <i class="material-icons" aria-hidden="true">swap_horiz</i>
+                    <span>Edit Payment</span>
+                </button>
+                <button id="deleteSaleBtn" aria-label="Delete sale record">
+                    <i class="material-icons" aria-hidden="true">delete</i>
+                    <span>Delete</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Sale Modal -->
+    <div id="editSaleModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">edit</i> Edit Sale</h2>
+            <div id="editSaleContent">
+                <div id="editCartItems">
+                    <!-- Edit cart items will be loaded dynamically -->
+                </div>
+                <div class="cart-total">Total: <span id="editCartTotal">RM0.00</span></div>
+            </div>
+            <div class="modal-footer">
+                <button id="updateSaleBtn" aria-label="Update sale record">
+                    <i class="material-icons" aria-hidden="true">save</i>
+                    <span>Update Sale</span>
+                </button>
+                <button id="cancelEditBtn" aria-label="Cancel editing">
+                    <i class="material-icons" aria-hidden="true">cancel</i>
+                    <span>Cancel</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Payment Modal（修改某笔销售的支付方式 / 银行 / 分批金额） -->
+    <div id="editPaymentModal" class="modal">
+        <div class="modal-content epay-modal">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">swap_horiz</i> Edit Payment</h2>
+
+            <div class="epay-sale">
+                <span class="epay-sale-bill" id="epayBillNumber">-</span>
+                <span class="epay-sale-total" id="epaySaleTotal">RM0.00</span>
+            </div>
+
+            <div class="epay-group">
+                <div class="epay-label">Payment method</div>
+                <div class="epay-methods" id="epayMethods"></div>
+            </div>
+
+            <div class="epay-group" id="epayNonCashGroup" style="display:none;">
+                <div class="epay-label">Non-cash part</div>
+                <div class="epay-methods epay-methods-sm" id="epayNonCashMethods"></div>
+            </div>
+
+            <div class="epay-group" id="epayBankGroup" style="display:none;">
+                <div class="epay-label">Bank</div>
+                <div class="epay-banks" id="epayBankList"></div>
+            </div>
+
+            <div class="epay-group" id="epaySplitGroup" style="display:none;">
+                <div class="epay-label">Split amount</div>
+                <div class="split-amounts">
+                    <div class="split-row">
+                        <label for="epaySplitCash"><i class="material-icons">payments</i> Cash</label>
+                        <div class="split-input">
+                            <span>RM</span>
+                            <input type="text" id="epaySplitCash" inputmode="decimal" autocomplete="off" aria-label="Cash amount">
+                        </div>
+                    </div>
+                    <div class="split-row">
+                        <label for="epaySplitNonCash"><i class="material-icons" id="epaySplitNonCashIcon">qr_code_2</i> <span id="epaySplitNonCashLabel">QR</span></label>
+                        <div class="split-input">
+                            <span>RM</span>
+                            <input type="text" id="epaySplitNonCash" inputmode="decimal" autocomplete="off" aria-label="Non-cash amount">
+                        </div>
+                    </div>
+                </div>
+                <div class="split-status" id="epaySplitStatus"></div>
+            </div>
+
+            <div class="modal-footer epay-footer">
+                <div class="epay-credit" title="Idea By: Khalila">
+                    <i class="material-icons pulse-lightbulb" aria-hidden="true">tips_and_updates</i>
+                    <span>Idea By: <strong>Khalila</strong></span>
+                </div>
+                <div class="epay-footer-actions">
+                    <button id="epaySaveBtn" aria-label="Save payment method">
+                        <i class="material-icons" aria-hidden="true">save</i>
+                        <span>Save</span>
+                    </button>
+                    <button id="epayCancelBtn" aria-label="Cancel editing payment">
+                        <i class="material-icons" aria-hidden="true">cancel</i>
+                        <span>Cancel</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Stock Modal -->
+    <div id="updateStockModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">edit</i> Update Stock</h2>
+            <form id="updateStockForm">
+                <input type="hidden" id="updateProductId">
+
+                <div class="form-group">
+                    <label for="wupdateProductName">Product Name:</label>
+                    <input type="text" id="updateProductName" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="updateCurrentStock">Current Stock:</label>
+                    <input type="number" id="updateCurrentStock" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="updateQuantity">Quantity:</label>
+                    <input type="number" id="updateQuantity" min="1" value="1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="updateReason">Reason:</label>
+                    <select id="updateReason" onchange="toggleOtherReason()">
+                        <option value="new_stock">New Stock</option>
+                        <option value="returned">Returned Items</option>
+                        <option value="damaged">Damaged/Lost</option>
+                        <option value="expired">Expired</option>
+                        <option value="stock_transfer">Stock Transfer</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="storeTransferContainer" style="display: none;">
+                    <label for="transferStoreSelect">Transfer To Store:</label>
+                    <select id="transferStoreSelect">
+                        <option value="">Select a store...</option>
+                        <!-- Store options will be loaded dynamically -->
+                    </select>
+                </div>
+
+                <div class="form-group" id="otherReasonContainer" style="display: none;">
+                    <label for="otherReason">Specify Reason:</label>
+                    <input type="text" id="otherReason">
+                </div>
+
+                <div class="form-group">
+                    <label for="updateNotes">Notes:</label>
+                    <textarea id="updateNotes" rows="3"></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary"><i class="material-icons">save</i> Update Stock</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stock History Modal -->
+    <div id="stockHistoryModal" class="modal">
+        <div class="modal-content stock-history-modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">history</i> Stock History</h2>
+            <div id="stockHistoryContent">
+                <div class="loading"><i class="material-icons">hourglass_empty</i> Loading history...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div id="addProductModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">add_shopping_cart</i> Add Product</h2>
+            <form id="addProductForm">
+                <div class="form-group">
+                    <label for="productId"><i class="material-icons">tag</i> Product ID:</label>
+                    <input type="text" id="productId" required>
+                </div>
+                <div class="form-group">
+                    <label for="productName"><i class="material-icons">inventory</i> Product Name:</label>
+                    <input type="text" id="productName" required>
+                </div>
+                <div class="form-group">
+                    <label for="productPrice"><i class="material-icons">attach_money</i> Price:</label>
+                    <input type="number" id="productPrice" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="productQuantity"><i class="material-icons">inventory_2</i> Stock:</label>
+                    <input type="number" id="productQuantity" min="0" value="0" step="1">
+                </div>
+                <div class="form-group">
+                    <label for="productCategory"><i class="material-icons">category</i> Category:</label>
+                    <input type="text" id="productCategory">
+                </div>
+                <div class="form-group">
+                    <label for="saleUnit"><i class="material-icons">straighten</i> Sale Unit:</label>
+                    <select id="saleUnit" required onchange="updateStockInputStep()">
+                        <option value="piece">By Piece/Quantity</option>
+                        <option value="weight">By Weight (kg)</option>
+                    </select>
+                </div>
+                <button type="submit"><i class="material-icons">save</i> Save</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hot Items Management Modal -->
+    <div id="hotItemsManageModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close">&times;</span>
+            <h2><i class="material-icons">whatshot</i> Manage Hot Items</h2>
+
+            <div class="hot-items-management">
+                <div class="current-hot-items">
+                    <h3>Current Hot Items</h3>
+                    <div id="currentHotItemsList" class="hot-items-list">
+                        <!-- Current hot items list -->
+                    </div>
+                </div>
+
+                <div class="available-products">
+                    <h3>Available Products</h3>
+                    <div class="search-box" style="margin-bottom: 15px;">
+                        <i class="material-icons">search</i>
+                        <input type="text" id="hotItemsSearch" placeholder="Search products...">
+                    </div>
+                    <div id="availableProductsList" class="available-products-list">
+                        <!-- Available products list -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="saveHotItemsBtn" aria-label="Save hot items settings">
+                    <i class="material-icons" aria-hidden="true">save</i>
+                    <span>Save Settings</span>
+                </button>
+                <button id="closeHotItemsManageBtn" aria-label="Close">
+                    <i class="material-icons" aria-hidden="true">close</i>
+                    <span>Close</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Transfer Full-screen Modal -->
+    <div id="stockTransferModal" class="modal-full">
+        <div class="modal-full-content">
+            <div class="modal-full-header">
+                <div class="modal-full-header-left">
+                    <h2><i class="material-icons" style="font-size: 28px; color: #9b59b6; vertical-align: middle;">swap_horiz</i> Bulk Stock Transfer</h2>
+                    <div style="font-size: 14px; color: #7f8c8d; margin-top: 4px;">
+                        <span id="transferOwnStoreDisplay"><i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">store</i>Own Store: Loading...</span>
+                    </div>
+                </div>
+                <div class="modal-full-header-right">
+                    <div class="filter-group" style="display: flex; gap: 12px; align-items: center; background: transparent; padding: 0; box-shadow: none; border: none; margin: 0;">
+                        <div class="filter-item" style="margin: 0; display: flex; align-items: center; gap: 6px;">
+                            <i class="material-icons" style="color: #9b59b6; font-size: 22px; vertical-align: middle;">storefront</i>
+                            <select id="bulkTransferStoreSelect" style="margin: 0; min-width: 180px; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); height: 38px; font-size: 14px; font-family: inherit; box-sizing: border-box;" required>
+                                <option value="">Transfer to store...</option>
+                            </select>
+                        </div>
+                        <div class="filter-item" style="margin: 0; display: flex; align-items: center; gap: 6px;">
+                            <i class="material-icons" style="color: #9b59b6; font-size: 22px; vertical-align: middle;">search</i>
+                            <input type="text" id="bulkTransferSearch" placeholder="Search product name or ID..." class="inventory-search" style="width: 220px; margin: 0; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); height: 38px; font-size: 14px; font-family: inherit; box-sizing: border-box;">
+                        </div>
+                        <div class="filter-item" style="margin: 0; display: flex; align-items: center; gap: 6px;">
+                            <i class="material-icons" style="color: #9b59b6; font-size: 22px; vertical-align: middle;">category</i>
+                            <select id="bulkTransferCategory" style="margin: 0; min-width: 150px; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); height: 38px; font-size: 14px; font-family: inherit; box-sizing: border-box;">
+                                <option value="all">All Categories</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="icon-button close-full-modal" id="closeStockTransferModalBtn" aria-label="Close" style="background: rgba(0,0,0,0.05); border-radius: 50%; padding: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;">
+                        <i class="material-icons">close</i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-full-body">
+                <div class="premium-table-container" style="flex: 1; overflow-y: auto; margin: 0; width: 100%;">
+                    <table class="premium-table premium-table--purple" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th>Product ID</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Current Stock</th>
+                                <th style="width: 150px; text-align: center;">Transfer Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bulkTransferTableBody">
+                            <!-- Products will be loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-full-footer">
+                <div class="modal-full-credit" style="font-size: 13px; color: #7f8c8d; font-style: italic; display: flex; align-items: center; gap: 6px; user-select: none;">
+                    <i class="material-icons pulse-lightbulb" style="font-size: 16px; color: #9b59b6; vertical-align: middle;">tips_and_updates</i>
+                    <span>Idea By: <strong>Marshita</strong></span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button id="cancelBulkTransferBtn" class="btn-secondary" style="padding: 6px 14px; font-size: 13px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border-radius: 4px;"><i class="material-icons" style="font-size: 16px; vertical-align: middle;">close</i>Cancel</button>
+                    <button id="submitBulkTransferBtn" class="btn-primary" style="padding: 6px 16px; font-size: 13px; background: linear-gradient(135deg, #9b59b6, #8e44ad); border: none; color: white; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; border-radius: 4px; font-weight: 500;"><i class="material-icons" style="font-size: 16px; vertical-align: middle;">send</i>Submit Transfer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Transfer Confirmation Modal -->
+    <div id="bulkTransferConfirmModal" class="modal" style="z-index: 3000;">
+        <div class="modal-content" style="max-width: 600px; width: 90%;">
+            <span class="close" id="closeBulkTransferConfirmModalBtn">&times;</span>
+            <h2><i class="material-icons" style="color: #9b59b6; vertical-align: middle;">fact_check</i> Confirm Stock Transfer</h2>
+            <p style="margin-bottom: 15px; font-size: 14px; color: #7f8c8d;">Please review the items to be transferred below before confirming.</p>
+            
+            <div style="background: rgba(155, 89, 182, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; border: 1px solid rgba(155, 89, 182, 0.1);">
+                <p style="margin: 4px 0;"><strong>From Store:</strong> <span id="confirmTransferFromStore">Loading...</span></p>
+                <p style="margin: 4px 0;"><strong>To Store:</strong> <span id="confirmTransferToStore">Loading...</span></p>
+            </div>
+
+            <div style="max-height: 300px; overflow-y: auto; margin-bottom: 20px; border: 1px solid rgba(0,0,0,0.08); border-radius: 8px;">
+                <table class="premium-table" style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead>
+                        <tr style="background: #f8fafc;">
+                            <th style="padding: 10px; text-align: left;">Product ID</th>
+                            <th style="padding: 10px; text-align: left;">Product Name</th>
+                            <th style="padding: 10px; text-align: center;">Transfer Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bulkTransferConfirmTableBody">
+                        <!-- Summary list of transfer items -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 15px;">
+                <button type="button" id="cancelBulkTransferConfirmBtn" class="btn-secondary" style="padding: 8px 16px;">Go Back</button>
+                <button type="button" id="confirmBulkTransferFinalBtn" class="btn-primary" style="padding: 8px 20px; background: linear-gradient(135deg, #9b59b6, #8e44ad); border: none; color: white;">Confirm & Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+(function () {
+  var DATA = {"users":{"u1":{"name":"Ali","role":"staff","store_id":"st1"}},"stores":{"st1":{"name":"Test Store","shiftCount":2,"taxRate":0,"paymentSettings":{"cash":{"enabled":true},"qr":{"enabled":true,"banks":["Maybank","CIMB Bank Berhad"]},"card":{"enabled":true,"banks":["Public Bank"]}},"paymentLogos":{"maybank":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==","cimb-bank-berhad":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg=="}}},"bankLogos":{"maybank":{"name":"Maybank","dataUrl":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==","ts":1},"cimb-bank-berhad":{"name":"CIMB Bank Berhad","dataUrl":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==","ts":2}}};
+  window.__writes = [];
+  window.__alerts = [];
+  window.alert = function (m) { window.__alerts.push(String(m)); };
+  window.confirm = function () { return true; };
+
+  function nodeAt(p) {
+    var cur = DATA;
+    if (!p) return DATA;
+    var parts = p.split('/');
+    for (var i = 0; i < parts.length; i++) {
+      if (cur == null) return null;
+      cur = cur[parts[i]];
+    }
+    return cur;
+  }
+  function snap(p) {
+    var v = nodeAt(p);
+    return {
+      val: function () { return v === undefined ? null : v; },
+      exists: function () { return v !== undefined && v !== null; },
+      forEach: function () { return false; },
+      child: function (c) { return snap(p ? p + '/' + c : c); },
+      numChildren: function () { return v && typeof v === 'object' ? Object.keys(v).length : 0; }
+    };
+  }
+  function ref(p) {
+    var api = {
+      once: function () { return Promise.resolve(snap(p)); },
+      on: function () {}, off: function () {},
+      child: function (c) { return ref(p ? p + '/' + c : c); },
+      orderByChild: function () { return api; },
+      orderByKey: function () { return api; },
+      startAt: function () { return api; },
+      limitToFirst: function () { return api; },
+      limitToLast: function () { return api; },
+      equalTo: function () { return api; },
+      push: function () { return { key: 'k' + Math.random().toString(36).slice(2, 8) }; },
+      set: function (v) { window.__writes.push({ path: p, value: v, op: 'set' }); return Promise.resolve(); },
+      update: function (v) { window.__writes.push({ path: p, value: v, op: 'update' }); return Promise.resolve(); },
+      remove: function () { window.__writes.push({ path: p, value: null, op: 'remove' }); return Promise.resolve(); },
+      transaction: function (fn) { return Promise.resolve({ committed: true, snapshot: snap(p) }); },
+      onDisconnect: function () { return { update: function () { return Promise.resolve(); }, remove: function () { return Promise.resolve(); } }; }
+    };
+    return api;
+  }
+  var dbFn = function () { return window.database; };
+  dbFn.ServerValue = { increment: function (n) { return n; }, TIMESTAMP: 0 };
+  window.database = { ref: ref };
+  window.auth = { currentUser: { uid: 'u1', email: 'ali@test.com' }, onAuthStateChanged: function () {} };
+  window.firebase = { apps: [1], initializeApp: function () {}, auth: function () { return window.auth; }, database: dbFn };
+  window.firebaseConfig = {};
+
+  try {
+    localStorage.setItem('user', JSON.stringify({ uid: 'u1', email: 'ali@test.com' }));
+    localStorage.setItem('role', 'staff');
+    localStorage.setItem('store_id', 'st1');
+    localStorage.setItem('cashierName', 'Ali');
+    localStorage.setItem('cashierShift', '1st Shift');
+    localStorage.removeItem('posBankLogos');
+    localStorage.removeItem('posStoreBankLogos');
+  } catch (e) {}
+})();
+</script>
+    <script src="../js/database.js"></script>
+    <script src="../js/network-monitor.js"></script>
+    <script src="../js/pos.js?v=2.10"></script>
+    <script>
+        // 
+        document.addEventListener('DOMContentLoaded', function () {
+            const cashierNameForm = document.getElementById('cashierNameForm');
+            const cashierNameDisplay = document.getElementById('cashierNameDisplay');
+            const cashierShiftDisplay = document.getElementById('cashierShiftDisplay');
+
+            // 从本地存储中获取当前班次信息
+            function updateCashierNameStyle() {
+                const currentShift = localStorage.getItem('cashierShift');
+
+                // 移除所有样式类
+                cashierNameDisplay.classList.remove('first-shift-name', 'second-shift-name');
+
+                // 根据班次添加相应的样式类
+                if (currentShift === '1st Shift') {
+                    cashierNameDisplay.classList.add('first-shift-name');
+                } else if (currentShift === '2nd Shift') {
+                    cashierNameDisplay.classList.add('second-shift-name');
+                }
+            }
+
+            // 初始化时应用样式
+            updateCashierNameStyle();
+
+            // 当提交收银员信息表单时
+            if (cashierNameForm) {
+                cashierNameForm.addEventListener('submit', function (e) {
+                    // 原有的表单处理逻辑会在pos.js中执行
+
+                    // 在表单提交后延迟一点应用样式，确保localStorage已更新
+                    setTimeout(updateCashierNameStyle, 100);
+                });
+            }
+
+            // 监听本地存储变化
+            window.addEventListener('storage', function (e) {
+                if (e.key === 'cashierShift' || e.key === 'cashierName') {
+                    updateCashierNameStyle();
+                }
+            });
+
+            // 添加一个变更收银员按钮的事件监听器
+            const changeCashierBtn = document.getElementById('changeCashierBtn');
+            if (changeCashierBtn) {
+                changeCashierBtn.addEventListener('click', function () {
+                    // 按钮点击后延迟应用样式，确保modal处理完成
+                    setTimeout(updateCashierNameStyle, 500);
+                });
+            }
+        });
+    </script>
+
+    <!-- On-screen mini keyboard -->
+    <div id="virtualKeyboard" class="virtual-keyboard-overlay hidden">
+        <div class="virtual-keyboard-header" id="virtualKeyboardHeader">
+            <div class="kb-drag-handle" title="Drag to move"><i class="material-icons">drag_indicator</i></div>
+            <span class="kb-title">Product Search</span>
+            <div class="kb-controls">
+                <button id="kbShrinkBtn" class="kb-size-btn" title="Shrink"><i class="material-icons">remove</i></button>
+                <button id="kbEnlargeBtn" class="kb-size-btn" title="Enlarge"><i class="material-icons">add</i></button>
+                <button id="closeKeyboardBtn" class="close-kb-btn"><i class="material-icons">keyboard_hide</i></button>
+            </div>
+        </div>
+        <div class="keyboard-row">
+            <button class="kb-key" data-key="Q">Q</button>
+            <button class="kb-key" data-key="W">W</button>
+            <button class="kb-key" data-key="E">E</button>
+            <button class="kb-key" data-key="R">R</button>
+            <button class="kb-key" data-key="T">T</button>
+            <button class="kb-key" data-key="Y">Y</button>
+            <button class="kb-key" data-key="U">U</button>
+            <button class="kb-key" data-key="I">I</button>
+            <button class="kb-key" data-key="O">O</button>
+            <button class="kb-key" data-key="P">P</button>
+        </div>
+        <div class="keyboard-row">
+            <button class="kb-key" data-key="A">A</button>
+            <button class="kb-key" data-key="S">S</button>
+            <button class="kb-key" data-key="D">D</button>
+            <button class="kb-key" data-key="F">F</button>
+            <button class="kb-key" data-key="G">G</button>
+            <button class="kb-key" data-key="H">H</button>
+            <button class="kb-key" data-key="J">J</button>
+            <button class="kb-key" data-key="K">K</button>
+            <button class="kb-key" data-key="L">L</button>
+        </div>
+        <div class="keyboard-row">
+            <button class="kb-key" data-key="Z">Z</button>
+            <button class="kb-key" data-key="X">X</button>
+            <button class="kb-key" data-key="C">C</button>
+            <button class="kb-key" data-key="V">V</button>
+            <button class="kb-key" data-key="B">B</button>
+            <button class="kb-key" data-key="N">N</button>
+            <button class="kb-key" data-key="M">M</button>
+            <button class="kb-key special-key bksp" id="kbBackspace"><i class="material-icons">backspace</i></button>
+        </div>
+        <div class="keyboard-row">
+            <button class="kb-key special-key space-bar" data-key=" ">SPACE</button>
+            <button class="kb-key special-key clear-key" id="kbClear">CLEAR</button>
+        </div>
+    </div>
+
+<script>
+window.addEventListener('load', function () {
+  setTimeout(function () { run(); }, 900);
+
+  async function run() {
+    var out = [];
+    function ok(name, cond, extra) { out.push((cond ? 'PASS' : 'FAIL') + ' ' + name + (extra !== undefined ? ' [' + extra + ']' : '')); }
+    function $(id) { return document.getElementById(id); }
+    function tick(ms) { return new Promise(function (r) { setTimeout(r, ms || 40); }); }
+    function salesWrites() { return (window.__writes || []).filter(function (w) { return w.path.indexOf('sales/') === 0; }); }
+    function editBtnFor(bill) {
+      var rows = document.querySelectorAll('#salesTableBody tr');
+      for (var i = 0; i < rows.length; i++) {
+        if ((rows[i].children[0].textContent || '').trim() === bill) return rows[i].querySelector('.edit-payment-btn');
+      }
+      return null;
+    }
+    function rowFor(bill) {
+      var rows = document.querySelectorAll('#salesTableBody tr');
+      for (var i = 0; i < rows.length; i++) {
+        if ((rows[i].children[0].textContent || '').trim() === bill) return rows[i];
+      }
+      return null;
+    }
+
+    try {
+      // ---- 准备数据 ----
+      salesData = {
+        s1: { date: '2026-11-05', timestamp: '2026-11-05 10:00:00', billNumber: 'B-1', store_id: 'st1', cashierName: 'Ali', cashierShift: '1st Shift', paymentMethod: 'qr', paymentMethodLabel: 'QR', paymentBank: 'Maybank', total_amount: 12.5, discountAmount: 0, items: [] },
+        s2: { date: '2026-11-05', timestamp: '2026-11-05 11:00:00', billNumber: 'B-2', store_id: 'st1', cashierName: 'Ali', cashierShift: '1st Shift', paymentMethod: 'cash', paymentMethodLabel: 'Cash', paymentBank: '', total_amount: 7, discountAmount: 0, items: [] },
+        s3: { date: '2026-11-05', timestamp: '2026-11-05 12:00:00', billNumber: 'B-3', store_id: 'st1', cashierName: 'Ali', cashierShift: '1st Shift', paymentMethod: 'split', paymentMethodLabel: 'Cash + QR', paymentBank: 'Maybank', paymentSplits: [{ method: 'cash', label: 'Cash', amount: 5, bank: '' }, { method: 'qr', label: 'QR', amount: 7.5, bank: 'Maybank' }], total_amount: 12.5, discountAmount: 0, items: [] },
+        s4: { date: '2026-11-05', timestamp: '2026-11-05 13:00:00', billNumber: 'B-4', store_id: 'st1', cashierName: 'Ali', cashierShift: '1st Shift', paymentMethod: 'card', paymentMethodLabel: 'Credit Card', paymentBank: 'Public Bank', total_amount: 9, discountAmount: 0, items: [] }
+      };
+      renderSalesTable(salesData);
+
+      // 1) 操作列出现编辑按钮
+      var editBtns = document.querySelectorAll('#salesTableBody .edit-payment-btn');
+      ok('edit payment button in every row', editBtns.length === 4, editBtns.length);
+
+      // 2) 点按钮打开弹窗
+      editBtnFor('B-1').click();
+      await tick(60);
+      ok('modal opens', getComputedStyle($('editPaymentModal')).display === 'block');
+      ok('bill number shown', $('epayBillNumber').textContent.trim() === 'B-1', $('epayBillNumber').textContent);
+      ok('total shown', $('epaySaleTotal').textContent.trim() === 'RM12.50', $('epaySaleTotal').textContent);
+
+      var methods = $('epayMethods').querySelectorAll('.epay-method');
+      ok('4 method buttons (cash/qr/card/split)', methods.length === 4, methods.length);
+      var active = $('epayMethods').querySelector('.epay-method.is-active');
+      ok('saved method QR is active', !!active && active.dataset.method === 'qr', active && active.dataset.method);
+      ok('bank group visible for QR', getComputedStyle($('epayBankGroup')).display !== 'none');
+      var bankBtns = $('epayBankList').querySelectorAll('.epay-bank');
+      ok('2 banks listed', bankBtns.length === 2, bankBtns.length);
+      ok('bank buttons carry logos', $('epayBankList').querySelectorAll('img.bank-cell-logo').length === 2);
+      var activeBank = $('epayBankList').querySelector('.epay-bank.is-active');
+      ok('Maybank preselected', !!activeBank && /Maybank/.test(activeBank.textContent), activeBank && activeBank.textContent.trim());
+
+      // 3) 改银行 -> CIMB
+      bankBtns[1].click();
+      await tick(40);
+      ok('bank switch kept modal', getComputedStyle($('editPaymentModal')).display === 'block');
+      ok('CIMB now selected', /CIMB Bank Berhad/.test($('epayBankList').querySelector('.epay-bank.is-active').textContent));
+
+      // 4) 改成 Cash 并保存
+      $('epayMethods').querySelector('[data-method="cash"]').click();
+      await tick(40);
+      ok('bank group hidden for cash', getComputedStyle($('epayBankGroup')).display === 'none');
+      $('epaySaveBtn').click();
+      await tick(120);
+      var w1 = salesWrites().slice(-1)[0];
+      ok('update written to sales path', !!w1 && /^sales\/st1\/2026\/11\/05\/s1$/.test(w1.path), w1 && w1.path);
+      ok('saved method cash', w1 && w1.value.paymentMethod === 'cash', w1 && w1.value.paymentMethod);
+      ok('saved label Cash', w1 && w1.value.paymentMethodLabel === 'Cash', w1 && w1.value.paymentMethodLabel);
+      ok('bank cleared', w1 && w1.value.paymentBank === '', w1 && JSON.stringify(w1.value.paymentBank));
+      ok('paymentSplits cleared', w1 && w1.value.paymentSplits === null);
+      ok('modal closed after save', getComputedStyle($('editPaymentModal')).display === 'none');
+      ok('toast shown', /Payment updated: Cash/.test($('posToast').textContent), $('posToast').textContent);
+      var rowPay = rowFor('B-1').querySelector('.payment-badge');
+      ok('table row refreshed to Cash', /Cash/.test(rowPay.textContent), rowPay.textContent.trim());
+
+      // 5) 现金单改成 Credit Card
+      editBtnFor('B-2').click();
+      await tick(60);
+      $('epayMethods').querySelector('[data-method="card"]').click();
+      await tick(40);
+      var cardBanks = $('epayBankList').querySelectorAll('.epay-bank');
+      ok('card shows Public Bank', cardBanks.length === 1 && /Public Bank/.test(cardBanks[0].textContent), cardBanks.length && cardBanks[0].textContent.trim());
+      ok('card bank preselected', $('epayBankList').querySelectorAll('.epay-bank.is-active').length === 1);
+      $('epaySaveBtn').click();
+      await tick(120);
+      var w2 = salesWrites().slice(-1)[0];
+      ok('card saved with bank', w2 && w2.value.paymentMethod === 'card' && w2.value.paymentBank === 'Public Bank', w2 && (w2.value.paymentMethod + '/' + w2.value.paymentBank));
+
+      // 6) 分批单：打开时应带出原金额
+      editBtnFor('B-3').click();
+      await tick(60);
+      ok('split group visible', getComputedStyle($('epaySplitGroup')).display !== 'none');
+      ok('split cash prefilled 5.00', $('epaySplitCash').value === '5.00', $('epaySplitCash').value);
+      ok('split noncash prefilled 7.50', $('epaySplitNonCash').value === '7.50', $('epaySplitNonCash').value);
+      ok('split status ok', $('epaySplitStatus').className.indexOf('is-ok') !== -1, $('epaySplitStatus').textContent);
+      ok('noncash method QR active', $('epayNonCashMethods').querySelector('.epay-method.is-active').dataset.noncash === 'qr');
+
+      // 7) 改现金金额 -> 非现金自动补差
+      var cashInput = $('epaySplitCash');
+      cashInput.value = '10';
+      cashInput.dispatchEvent(new Event('input'));
+      await tick(30);
+      ok('noncash auto filled', $('epaySplitNonCash').value === '2.50', $('epaySplitNonCash').value);
+      ok('status still ok', $('epaySplitStatus').className.indexOf('is-ok') !== -1, $('epaySplitStatus').textContent);
+
+      // 8) 非现金部分改成 Credit Card
+      $('epayNonCashMethods').querySelector('[data-noncash="card"]').click();
+      await tick(40);
+      ok('split noncash switched to card', $('epayNonCashMethods').querySelector('.epay-method.is-active').dataset.noncash === 'card');
+      ok('card bank list shown in split', /Public Bank/.test($('epayBankList').textContent));
+      ok('split status label uses Card', /Card RM2.50/.test($('epaySplitStatus').textContent), $('epaySplitStatus').textContent);
+
+      $('epaySaveBtn').click();
+      await tick(120);
+      var w3 = salesWrites().slice(-1)[0];
+      ok('split saved', w3 && w3.value.paymentMethod === 'split', w3 && w3.value.paymentMethod);
+      ok('split label Cash + Card', w3 && w3.value.paymentMethodLabel === 'Cash + Card', w3 && w3.value.paymentMethodLabel);
+      ok('split amounts 10 / 2.5', w3 && w3.value.paymentSplits[0].amount === 10 && w3.value.paymentSplits[1].amount === 2.5, w3 && JSON.stringify(w3.value.paymentSplits));
+      ok('split noncash bank saved', w3 && w3.value.paymentSplits[1].bank === 'Public Bank', w3 && w3.value.paymentSplits[1].bank);
+      ok('split sums to total', w3 && Math.abs(w3.value.paymentSplits[0].amount + w3.value.paymentSplits[1].amount - 12.5) < 0.001);
+      ok('history badge shows Cash + Card', /Cash \+ Card/.test(rowFor('B-3').querySelector('.payment-badge').textContent), rowFor('B-3').querySelector('.payment-badge').textContent.trim());
+
+      // 9) 校验：现金填成全额 -> 拦截
+      editBtnFor('B-3').click();
+      await tick(60);
+      $('epaySplitCash').value = '12.50';
+      $('epaySplitCash').dispatchEvent(new Event('input'));
+      await tick(30);
+      ok('zero noncash shows error', $('epaySplitStatus').className.indexOf('is-error') !== -1, $('epaySplitStatus').textContent);
+      var before = salesWrites().length;
+      window.__alerts.length = 0;
+      $('epaySaveBtn').click();
+      await tick(80);
+      ok('blocked invalid split', salesWrites().length === before, salesWrites().length - before);
+      ok('alert shown for invalid split', window.__alerts.length === 1 && /more than RM0.00/.test(window.__alerts[0]), window.__alerts[0]);
+      ok('modal stays open on error', getComputedStyle($('editPaymentModal')).display === 'block');
+
+      // 取消关闭
+      $('epayCancelBtn').click();
+      await tick(40);
+      ok('cancel closes modal', getComputedStyle($('editPaymentModal')).display === 'none');
+
+      // 10) 销售详情里的 Edit Payment 按钮
+      currentSaleId = 's4';
+      viewSaleDetails(salesData.s4);
+      await tick(40);
+      ok('details modal open', getComputedStyle($('saleDetailModal')).display === 'block');
+      $('editPaymentBtn').click();
+      await tick(60);
+      ok('details edit payment opens modal', getComputedStyle($('editPaymentModal')).display === 'block');
+      ok('details modal closed behind', getComputedStyle($('saleDetailModal')).display === 'none');
+      $('epayCancelBtn').click();
+      await tick(30);
+    } catch (e) {
+      out.push('ERROR ' + (e && e.message ? e.message : e));
+    }
+
+    document.body.setAttribute('data-test-result', out.join(' || '));
+    document.title = 'DONE';
+  }
+});
+</script>
+</body>
+</html>

@@ -822,6 +822,17 @@ function initEventListeners() {
     // 销售详情模态框按钮
     deleteSaleBtn.addEventListener('click', deleteSale);
 
+    // 销售详情里的「Edit Payment」
+    const editPaymentFromDetailsBtn = document.getElementById('editPaymentBtn');
+    if (editPaymentFromDetailsBtn) {
+        editPaymentFromDetailsBtn.addEventListener('click', () => {
+            if (currentSaleId) openEditPaymentModal(currentSaleId);
+        });
+    }
+
+    // 编辑支付方式弹窗（销售历史操作列）
+    initEditPaymentModal();
+
     // 编辑销售模态框按钮
     updateSaleBtn.addEventListener('click', updateSale);
     cancelEditBtn.addEventListener('click', () => hideModal(editSaleModal));
@@ -1391,8 +1402,9 @@ function renderSalesTable(sales) {
             <td>RM${sale.total_amount.toFixed(2)}</td>
             <td>
                 <div class="action-buttons">
-                <button class="view-sale-btn" data-id="${saleId}"><i class="material-icons">visibility</i></button>
-                <button class="delete-sale-btn" data-id="${saleId}"><i class="material-icons">delete</i></button>
+                <button class="view-sale-btn" data-id="${saleId}" title="View details"><i class="material-icons">visibility</i></button>
+                <button class="edit-payment-btn" data-id="${saleId}" title="Edit payment"><i class="material-icons">swap_horiz</i></button>
+                <button class="delete-sale-btn" data-id="${saleId}" title="Delete sale"><i class="material-icons">delete</i></button>
                 </div>
             </td>
         `;
@@ -1411,6 +1423,12 @@ function renderSalesTable(sales) {
         btn.addEventListener('click', () => {
             currentSaleId = btn.dataset.id;
             viewSaleDetails(sales[currentSaleId]);
+        });
+    });
+
+    document.querySelectorAll('.edit-payment-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            openEditPaymentModal(btn.dataset.id);
         });
     });
 
@@ -1798,6 +1816,481 @@ function updateSale() {
                 checkoutBtn.innerHTML = '<i class="material-icons">payment</i> Checkout';
             }
         });
+}
+
+/* ===================== 编辑销售记录的支付方式 =====================
+ * 收银时偶尔会点错支付方式（客人说付现金、实际扫了 QR 等）。
+ * 销售历史每行操作列提供「Edit Payment」，可改支付方式 / 银行 /
+ * 分批付款两边的金额。只更新支付相关字段，商品、金额与统计都不动。
+ */
+let editPayState = null;    // { method, nonCashMethod, bank, cash, nonCash, total }
+let editPaySaleId = null;
+let editPaySaving = false;
+
+// 分批付款是否可用：现金开着 + 至少一种非现金方式配了银行
+function isSplitPaymentAvailable(settings) {
+    const s = settings || getStorePaymentSettings();
+    return isPaymentMethodAvailable('cash', s) &&
+        (isPaymentMethodAvailable('qr', s) || isPaymentMethodAvailable('card', s));
+}
+
+// 打开「编辑支付方式」弹窗
+function openEditPaymentModal(saleId) {
+    const sale = salesData[saleId] || (cachedSalesData && cachedSalesData[saleId]);
+    if (!sale) {
+        alert('Sale not found. Please refresh the sales history and try again.');
+        return;
+    }
+
+    const settings = getStorePaymentSettings();
+    const savedMethod = sale.paymentMethod === 'split'
+        ? 'split'
+        : (PAYMENT_METHODS[sale.paymentMethod] ? sale.paymentMethod : 'cash');
+    const splits = normalizePaymentSplits(sale.paymentSplits);
+    const cashSplit = splits.filter(s => s.method === 'cash')[0];
+    const nonCashSplit = splits.filter(s => s.method && s.method !== 'cash')[0];
+
+    // 分批时「非现金那半」用哪种方式
+    let nonCashMethod = 'qr';
+    if (savedMethod === 'split') {
+        if (nonCashSplit && (nonCashSplit.method === 'qr' || nonCashSplit.method === 'card')) {
+            nonCashMethod = nonCashSplit.method;
+        } else if (!isPaymentMethodAvailable('qr', settings) && isPaymentMethodAvailable('card', settings)) {
+            nonCashMethod = 'card';
+        }
+    } else if (savedMethod === 'card') {
+        nonCashMethod = 'card';
+    } else if (savedMethod === 'cash' && !isPaymentMethodAvailable('qr', settings) && isPaymentMethodAvailable('card', settings)) {
+        nonCashMethod = 'card';
+    }
+
+    editPaySaleId = saleId;
+    editPaySaving = false;
+    currentSaleId = saleId;
+    editPayState = {
+        method: savedMethod,
+        nonCashMethod: nonCashMethod,
+        bank: sale.paymentBank || '',
+        cash: cashSplit ? roundMoney2(cashSplit.amount) : 0,
+        nonCash: nonCashSplit ? roundMoney2(nonCashSplit.amount) : 0,
+        total: roundMoney2(sale.total_amount || 0)
+    };
+
+    const billEl = document.getElementById('epayBillNumber');
+    if (billEl) billEl.textContent = sale.billNumber || '-';
+    const totalEl = document.getElementById('epaySaleTotal');
+    if (totalEl) totalEl.textContent = `RM${editPayState.total.toFixed(2)}`;
+
+    const saveBtn = document.getElementById('epaySaveBtn');
+    if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="material-icons" aria-hidden="true">save</i><span>Save</span>';
+    }
+
+    // 从销售详情进来时先关掉详情，避免两层弹窗叠在一起
+    if (saleDetailModal && saleDetailModal.style.display === 'block') {
+        hideModal(saleDetailModal);
+    }
+
+    renderEditPaymentModal();
+    showModal(document.getElementById('editPaymentModal'));
+}
+
+// 关闭「编辑支付方式」弹窗
+function closeEditPaymentModal() {
+    const modal = document.getElementById('editPaymentModal');
+    if (modal) hideModal(modal);
+    editPayState = null;
+    editPaySaleId = null;
+    editPaySaving = false;
+    const saveBtn = document.getElementById('epaySaveBtn');
+    if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="material-icons" aria-hidden="true">save</i><span>Save</span>';
+    }
+}
+
+// 渲染弹窗（支付方式按钮 / 非现金方式 / 银行列表 / 分批金额）
+function renderEditPaymentModal() {
+    const state = editPayState;
+    if (!state) return;
+    const settings = getStorePaymentSettings();
+    const methodsEl = document.getElementById('epayMethods');
+    if (!methodsEl) return;
+
+    const methodDefs = PAYMENT_METHOD_ORDER.map(m => ({
+        key: m,
+        label: PAYMENT_METHODS[m].label,
+        icon: PAYMENT_METHODS[m].icon,
+        available: isPaymentMethodAvailable(m, settings)
+    }));
+    methodDefs.push({
+        key: 'split',
+        label: 'Cash + QR/Card',
+        icon: 'call_split',
+        available: isSplitPaymentAvailable(settings)
+    });
+
+    methodsEl.innerHTML = methodDefs.map(def => {
+        // 已保存的方式即使后台后来关掉了也允许保留，其它不可用的置灰
+        const usable = def.available || state.method === def.key;
+        const classes = ['epay-method'];
+        if (state.method === def.key) classes.push('is-active');
+        return `<button type="button" class="${classes.join(' ')}" data-method="${def.key}"${usable ? '' : ' disabled'}>
+                    <i class="material-icons">${def.icon}</i><span>${def.label}</span>
+                </button>`;
+    }).join('');
+
+    // 分批时：非现金那半用 QR 还是 Credit Card
+    const isSplit = state.method === 'split';
+    const nonCashGroup = document.getElementById('epayNonCashGroup');
+    if (nonCashGroup) nonCashGroup.style.display = isSplit ? '' : 'none';
+    if (isSplit) {
+        const nonCashEl = document.getElementById('epayNonCashMethods');
+        if (nonCashEl) {
+            nonCashEl.innerHTML = ['qr', 'card'].map(m => {
+                const usable = isPaymentMethodAvailable(m, settings);
+                const classes = ['epay-method'];
+                if (state.nonCashMethod === m) classes.push('is-active');
+                return `<button type="button" class="${classes.join(' ')}" data-noncash="${m}"${usable ? '' : ' disabled'}>
+                            <i class="material-icons">${PAYMENT_METHODS[m].icon}</i><span>${m === 'card' ? 'Credit Card' : 'QR'}</span>
+                        </button>`;
+            }).join('');
+        }
+    }
+
+    renderEditPaymentBanks();
+    renderEditPaymentSplit();
+}
+
+// 渲染银行列表（logo + 名字）
+function renderEditPaymentBanks() {
+    const state = editPayState;
+    const group = document.getElementById('epayBankGroup');
+    const list = document.getElementById('epayBankList');
+    if (!state || !group || !list) return;
+
+    const method = state.method === 'split' ? state.nonCashMethod : state.method;
+    if (method !== 'qr' && method !== 'card') {
+        group.style.display = 'none';
+        return;
+    }
+
+    group.style.display = '';
+    const banks = getStorePaymentSettings().banks[method] || [];
+
+    if (!banks.length) {
+        state.bank = '';
+        list.innerHTML = '<div class="epay-empty">No bank configured for this method</div>';
+        return;
+    }
+
+    if (banks.indexOf(state.bank) === -1) state.bank = banks[0];
+
+    list.innerHTML = banks.map((bank, index) => {
+        const active = bank === state.bank;
+        return `<button type="button" class="epay-bank${active ? ' is-active' : ''}" data-bank-index="${index}">
+                    ${bankCellHTML(bank)}
+                    <i class="material-icons check">check_circle</i>
+                </button>`;
+    }).join('');
+}
+
+// 分批金额给一个「对半」的默认值
+function resetEditSplitAmounts() {
+    const state = editPayState;
+    if (!state) return;
+    let cash = roundToNearest005(state.total / 2);
+    if (cash >= state.total) cash = roundToNearest005(state.total - 0.05);
+    if (cash < 0) cash = 0;
+    state.cash = roundMoney2(cash);
+    state.nonCash = roundMoney2(state.total - state.cash);
+}
+
+// 渲染分批金额区
+function renderEditPaymentSplit() {
+    const state = editPayState;
+    const group = document.getElementById('epaySplitGroup');
+    if (!state || !group) return;
+
+    if (state.method !== 'split') {
+        group.style.display = 'none';
+        return;
+    }
+    group.style.display = '';
+
+    // 从其它方式切过来、或历史数据两边加起来不等于总额时，重置为对半
+    if (!(state.cash > 0) || !(state.nonCash > 0) ||
+        Math.abs((state.cash + state.nonCash) - state.total) > 0.009) {
+        resetEditSplitAmounts();
+    }
+
+    const cashInput = document.getElementById('epaySplitCash');
+    const nonCashInput = document.getElementById('epaySplitNonCash');
+    if (cashInput && document.activeElement !== cashInput) cashInput.value = state.cash.toFixed(2);
+    if (nonCashInput && document.activeElement !== nonCashInput) nonCashInput.value = state.nonCash.toFixed(2);
+
+    const labelEl = document.getElementById('epaySplitNonCashLabel');
+    if (labelEl) labelEl.textContent = state.nonCashMethod === 'card' ? 'Credit Card' : 'QR';
+    const iconEl = document.getElementById('epaySplitNonCashIcon');
+    if (iconEl) iconEl.textContent = PAYMENT_METHODS[state.nonCashMethod].icon;
+
+    updateEditSplitStatus();
+}
+
+// 分批金额校验提示
+function updateEditSplitStatus() {
+    const state = editPayState;
+    const el = document.getElementById('epaySplitStatus');
+    if (!state || !el) return;
+
+    const nonCashLabel = state.nonCashMethod === 'card' ? 'Card' : 'QR';
+    const sum = roundMoney2(state.cash + state.nonCash);
+
+    if (!(state.cash > 0) || !(state.nonCash > 0)) {
+        el.className = 'split-status is-error';
+        el.textContent = 'Both parts must be more than RM0.00';
+        return;
+    }
+    if (Math.abs(sum - state.total) > 0.009) {
+        el.className = 'split-status is-error';
+        el.textContent = `Total must be RM${state.total.toFixed(2)} (currently RM${sum.toFixed(2)})`;
+        return;
+    }
+    el.className = 'split-status is-ok';
+    el.textContent = `Cash RM${state.cash.toFixed(2)} + ${nonCashLabel} RM${state.nonCash.toFixed(2)} = RM${sum.toFixed(2)}`;
+}
+
+// 选择支付方式
+function selectEditPaymentMethod(method) {
+    const state = editPayState;
+    if (!state || !method) return;
+    const settings = getStorePaymentSettings();
+
+    state.method = method;
+
+    if (method === 'cash') {
+        state.bank = '';
+    } else if (method === 'qr' || method === 'card') {
+        const banks = settings.banks[method] || [];
+        if (banks.indexOf(state.bank) === -1) state.bank = banks[0] || '';
+    } else if (method === 'split') {
+        if (!isPaymentMethodAvailable(state.nonCashMethod, settings)) {
+            state.nonCashMethod = isPaymentMethodAvailable('card', settings) ? 'card' : 'qr';
+        }
+        const banks = settings.banks[state.nonCashMethod] || [];
+        if (banks.indexOf(state.bank) === -1) state.bank = banks[0] || '';
+    }
+
+    renderEditPaymentModal();
+}
+
+// 分批时切换非现金方式（QR / Credit Card）
+function selectEditNonCashMethod(method) {
+    const state = editPayState;
+    if (!state || (method !== 'qr' && method !== 'card')) return;
+    const settings = getStorePaymentSettings();
+    if (!isPaymentMethodAvailable(method, settings)) return;
+
+    state.nonCashMethod = method;
+    const banks = settings.banks[method] || [];
+    if (banks.indexOf(state.bank) === -1) state.bank = banks[0] || '';
+    renderEditPaymentModal();
+}
+
+// 保存支付方式到 RTDB
+function saveEditPayment() {
+    if (editPaySaving || !editPayState || !editPaySaleId) return;
+    const state = editPayState;
+    const sale = salesData[editPaySaleId] || (cachedSalesData && cachedSalesData[editPaySaleId]);
+    if (!sale) {
+        alert('Sale not found. Please refresh the sales history and try again.');
+        return;
+    }
+
+    const settings = getStorePaymentSettings();
+    const method = state.method;
+    let bank = '';
+    let splits = null;
+
+    if (method === 'split') {
+        if (!isPaymentMethodAvailable('cash', settings)) {
+            alert('Cash is disabled for this store, so split payment is not available.');
+            return;
+        }
+        if (!isPaymentMethodAvailable(state.nonCashMethod, settings)) {
+            alert(`No bank configured for ${PAYMENT_METHODS[state.nonCashMethod].label}. Please set it up in Admin first.`);
+            return;
+        }
+        if (!(state.cash > 0) || !(state.nonCash > 0)) {
+            alert('Both parts must be more than RM0.00.');
+            return;
+        }
+        const sum = roundMoney2(state.cash + state.nonCash);
+        if (Math.abs(sum - state.total) > 0.009) {
+            alert(`Split amounts must add up to RM${state.total.toFixed(2)}.`);
+            return;
+        }
+        bank = state.bank || '';
+        splits = [
+            { method: 'cash', label: 'Cash', amount: roundMoney2(state.cash), bank: '' },
+            {
+                method: state.nonCashMethod,
+                label: PAYMENT_METHODS[state.nonCashMethod].label,
+                amount: roundMoney2(state.nonCash),
+                bank: bank
+            }
+        ];
+    } else if (method === 'qr' || method === 'card') {
+        const banks = settings.banks[method] || [];
+        if (!banks.length) {
+            alert(`No bank configured for ${PAYMENT_METHODS[method].label}. Please set it up in Admin first.`);
+            return;
+        }
+        bank = banks.indexOf(state.bank) !== -1 ? state.bank : banks[0];
+    }
+
+    const label = method === 'split'
+        ? `Cash + ${PAYMENT_METHODS[state.nonCashMethod].short}`
+        : formatPaymentLabel(method);
+
+    const updates = {
+        paymentMethod: method,
+        paymentMethodLabel: label,
+        paymentBank: bank,
+        paymentSplits: splits,
+        cashReceived: null,
+        changeAmount: null
+    };
+
+    const storeId = sale.store_id || localStorage.getItem('store_id');
+    const datePath = getDatePathFromString(sale.date || getCurrentDate());
+    if (!storeId || !datePath || !datePath.path) {
+        alert('Cannot locate this sale record. Please refresh and try again.');
+        return;
+    }
+
+    const saveBtn = document.getElementById('epaySaveBtn');
+    const saleId = editPaySaleId;
+    editPaySaving = true;
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="material-icons">hourglass_empty</i><span>Saving...</span>';
+    }
+
+    database.ref(`sales/${storeId}/${datePath.path}/${saleId}`).update(updates)
+        .then(() => {
+            // 本地同步，表格立即更新（不必等重新拉取）
+            const merged = Object.assign({}, sale, updates);
+            merged.paymentSplits = splits || null;
+            salesData[saleId] = merged;
+            if (cachedSalesData && cachedSalesData[saleId]) {
+                cachedSalesData[saleId] = merged;
+            }
+            renderSalesTable(salesData);
+            closeEditPaymentModal();
+            showPosToast(`Payment updated: ${label}${bank ? ' · ' + bank : ''}`);
+        })
+        .catch(error => {
+            console.error('Failed to update payment method:', error);
+            editPaySaving = false;
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="material-icons" aria-hidden="true">save</i><span>Save</span>';
+            }
+            alert('Failed to update payment. Please try again.');
+        });
+}
+
+// 轻提示
+function showPosToast(message) {
+    let el = document.getElementById('posToast');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'posToast';
+        el.className = 'pos-toast';
+        document.body.appendChild(el);
+    }
+    el.textContent = message;
+    el.classList.add('is-visible');
+    clearTimeout(showPosToast._timer);
+    showPosToast._timer = setTimeout(() => el.classList.remove('is-visible'), 2600);
+}
+
+// 绑定编辑支付方式弹窗的交互
+function initEditPaymentModal() {
+    const modal = document.getElementById('editPaymentModal');
+    if (!modal) return;
+
+    const methodsEl = document.getElementById('epayMethods');
+    if (methodsEl) {
+        methodsEl.addEventListener('click', e => {
+            const btn = e.target.closest ? e.target.closest('.epay-method') : null;
+            if (!btn || btn.disabled || !editPayState) return;
+            selectEditPaymentMethod(btn.dataset.method);
+        });
+    }
+
+    const nonCashEl = document.getElementById('epayNonCashMethods');
+    if (nonCashEl) {
+        nonCashEl.addEventListener('click', e => {
+            const btn = e.target.closest ? e.target.closest('.epay-method') : null;
+            if (!btn || btn.disabled || !editPayState) return;
+            selectEditNonCashMethod(btn.dataset.noncash);
+        });
+    }
+
+    const bankList = document.getElementById('epayBankList');
+    if (bankList) {
+        bankList.addEventListener('click', e => {
+            const btn = e.target.closest ? e.target.closest('.epay-bank') : null;
+            if (!btn || !editPayState) return;
+            const method = editPayState.method === 'split' ? editPayState.nonCashMethod : editPayState.method;
+            const banks = getStorePaymentSettings().banks[method] || [];
+            const bank = banks[Number(btn.dataset.bankIndex)];
+            if (bank === undefined) return;
+            editPayState.bank = bank;
+            renderEditPaymentModal();
+        });
+    }
+
+    const cashInput = document.getElementById('epaySplitCash');
+    if (cashInput) {
+        cashInput.addEventListener('input', () => {
+            if (!editPayState || editPayState.method !== 'split') return;
+            editPayState.cash = parseMoneyInput(cashInput.value);
+            editPayState.nonCash = roundMoney2(Math.max(0, editPayState.total - editPayState.cash));
+            const other = document.getElementById('epaySplitNonCash');
+            if (other) other.value = editPayState.nonCash.toFixed(2);
+            updateEditSplitStatus();
+        });
+        cashInput.addEventListener('blur', () => {
+            if (!editPayState) return;
+            cashInput.value = roundMoney2(editPayState.cash).toFixed(2);
+        });
+    }
+
+    const nonCashInput = document.getElementById('epaySplitNonCash');
+    if (nonCashInput) {
+        nonCashInput.addEventListener('input', () => {
+            if (!editPayState || editPayState.method !== 'split') return;
+            editPayState.nonCash = parseMoneyInput(nonCashInput.value);
+            editPayState.cash = roundMoney2(Math.max(0, editPayState.total - editPayState.nonCash));
+            const other = document.getElementById('epaySplitCash');
+            if (other) other.value = editPayState.cash.toFixed(2);
+            updateEditSplitStatus();
+        });
+        nonCashInput.addEventListener('blur', () => {
+            if (!editPayState) return;
+            nonCashInput.value = roundMoney2(editPayState.nonCash).toFixed(2);
+        });
+    }
+
+    const saveBtn = document.getElementById('epaySaveBtn');
+    if (saveBtn) saveBtn.addEventListener('click', saveEditPayment);
+
+    const cancelBtn = document.getElementById('epayCancelBtn');
+    if (cancelBtn) cancelBtn.addEventListener('click', closeEditPaymentModal);
 }
 
 // 删除销售记录

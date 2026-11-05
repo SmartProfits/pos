@@ -1,7 +1,7 @@
-const CACHE_NAME = 'pos-system-v42';
-const STATIC_CACHE = 'pos-static-v42';
-const IMAGES_CACHE = 'pos-images-v42';
-const DATA_CACHE = 'pos-data-v42';
+const CACHE_NAME = 'pos-system-v44';
+const STATIC_CACHE = 'pos-static-v44';
+const IMAGES_CACHE = 'pos-images-v44';
+const DATA_CACHE = 'pos-data-v44';
 
 // 静态资源缓存列表
 const staticUrlsToCache = [
