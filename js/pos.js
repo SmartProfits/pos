@@ -1286,7 +1286,7 @@ function renderSalesTable(sales) {
     salesTableBody.innerHTML = '';
 
     if (Object.keys(sales).length === 0) {
-        salesTableBody.innerHTML = '<tr><td colspan="10" class="no-data"><i class="material-icons">info</i> No sales data available for this date</td></tr>';
+        salesTableBody.innerHTML = '<tr><td colspan="9" class="no-data"><i class="material-icons">info</i> No sales data available for this date</td></tr>';
         // 清空总销售额显示
         document.getElementById('totalSalesAmount').textContent = 'RM0.00';
         document.getElementById('totalTransactions').textContent = '0';
@@ -1354,7 +1354,6 @@ function renderSalesTable(sales) {
     filteredSales.forEach(saleId => {
         const sale = sales[saleId];
         totalAmount += sale.total_amount;
-        const itemCount = sale.items ? sale.items.reduce((sum, item) => sum + item.quantity, 0) : 0;
         const cashierName = sale.cashierName || 'N/A';
         const cashierShift = sale.cashierShift || 'N/A';
 
@@ -1395,7 +1394,6 @@ function renderSalesTable(sales) {
             <td>${sale.timestamp}</td>
             <td>${cashierName}</td>
             <td>${cashierShift}</td>
-            <td>${itemCount}</td>
             <td><span class="payment-badge"><i class="material-icons">${payDisplay.icon}</i>${escapePosText(payDisplay.label)}</span></td>
             <td>${bankCellHTML(sale.paymentBank) || '-'}</td>
             <td><span class="discount-badge ${discountBadgeClass}">${discountDisplay}</span></td>
