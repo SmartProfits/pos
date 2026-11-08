@@ -1967,6 +1967,118 @@
             margin-top: 4px;
         }
 
+        .summary-chevron {
+            margin-left: auto;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, 0.08);
+            color: var(--ios-blue);
+            transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .summary-chevron .material-icons {
+            font-size: 20px;
+        }
+
+        .summary-chevron.open {
+            transform: rotate(180deg);
+        }
+
+        /* Payment Breakdown (Cash / QR / Card) */
+        .payment-breakdown {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 14px 16px;
+            box-shadow: 0 6px 24px rgba(37, 99, 235, 0.10), 0 2px 6px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            animation: breakFadeIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        @keyframes breakFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .paybreak-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .paybreak-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .paybreak-icon .material-icons {
+            font-size: 22px;
+        }
+
+        .paybreak-cash {
+            background: rgba(16, 185, 129, 0.14);
+            color: #059669;
+        }
+
+        .paybreak-qr {
+            background: rgba(37, 99, 235, 0.14);
+            color: #2563eb;
+        }
+
+        .paybreak-card {
+            background: rgba(139, 92, 246, 0.14);
+            color: #7c3aed;
+        }
+
+        .paybreak-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .paybreak-label {
+            font-size: var(--ios-subhead);
+            font-weight: 700;
+            color: var(--ios-label);
+        }
+
+        .paybreak-value {
+            font-size: var(--ios-title-3);
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            color: var(--ios-label);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* Night mode tweaks for breakdown */
+        body.night-mode .payment-breakdown {
+            background: rgba(31, 41, 55, 0.75) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+        }
+
         /* Shift Sales Cards */
         .shirt-sales-section {
             display: grid;
@@ -2213,8 +2325,28 @@
         .record-time {
             font-size: var(--ios-caption-1);
             color: var(--ios-gray-1);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+        }
+
+        .record-time img.paybreak-bank-logo {
+            width: 15px;
+            height: 15px;
+            object-fit: contain;
+            border-radius: 3px;
+            background: #fff;
+            flex-shrink: 0;
+        }
+
+        .record-time .paybreak-plus {
+            color: var(--ios-gray-2);
+            font-weight: 600;
         }
 
         .detail-icon {
@@ -2230,145 +2362,317 @@
             background: var(--ios-gray-6);
         }
 
-        /* Sales Record Detail Modal Styles */
-        .sale-basic-info {
-            background: rgba(240, 244, 255, 0.8);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(37, 99, 235, 0.08);
-        }
-
-        .sale-info-row {
-            display: flex;
-            justify-content: space-between;
+        /* Sales Record Detail Modal — 收据样式 */
+        .receipt-modal {
             align-items: center;
-            padding: 8px 0;
-            border-bottom: 0.5px solid var(--ios-gray-5);
+            justify-content: center;
         }
 
-        .sale-info-row:last-child {
-            border-bottom: none;
+        .receipt-modal .modal-content {
+            max-width: 360px;
+            max-height: 88vh;
+            width: 100%;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
         }
 
-        .sale-label {
-            font-size: var(--ios-subhead);
+        .receipt-modal .close-btn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 10;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            width: 34px;
+            height: 34px;
+            border-radius: 17px;
             color: var(--ios-gray-1);
-            font-weight: 500;
         }
 
-        .sale-value {
-            font-size: var(--ios-subhead);
-            color: var(--ios-label);
-            font-weight: 600;
+        .receipt-content {
+            position: relative;
+            padding: 24px 12px 20px;
         }
 
-        .sale-value.sale-total {
-            color: var(--ios-green);
+        .receipt {
+            background: #fff;
+            color: #1f2937;
+            border-radius: 6px;
+            padding: 22px 18px 18px;
+            font-family: 'Courier New', 'SF Mono', 'Menlo', monospace;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+            position: relative;
+        }
+
+        /* 收据锯齿边（上下） */
+        .receipt::before,
+        .receipt::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: radial-gradient(circle at 10px -5px, transparent 10px, #fff 10.5px);
+            background-size: 20px 10px;
+            background-repeat: repeat-x;
+        }
+
+        .receipt::before {
+            top: -9px;
+        }
+
+        .receipt::after {
+            bottom: -9px;
+            transform: rotate(180deg);
+        }
+
+        /* 收据头部 */
+        .receipt-header {
+            text-align: center;
+            padding-bottom: 14px;
+            border-bottom: 1px dashed #cbd5e1;
+        }
+
+        .receipt-logo {
+            width: 46px;
+            height: 46px;
+            margin: 0 auto 8px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+
+        .receipt-logo .material-icons {
+            font-size: 26px;
+        }
+
+        .receipt-store {
+            font-size: 15px;
             font-weight: 700;
-            font-size: var(--ios-headline);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #111827;
         }
 
-        .sale-items-section {
-            margin-bottom: 20px;
+        .receipt-title {
+            font-size: 11px;
+            letter-spacing: 3px;
+            color: #6b7280;
+            margin-top: 4px;
+            text-transform: uppercase;
         }
 
-        .sale-items-section h4 {
-            font-size: var(--ios-headline);
-            font-weight: 600;
-            color: var(--ios-label);
-            margin: 0 0 12px 0;
+        /* 收据信息 */
+        .receipt-meta {
+            padding: 14px 0;
+            border-bottom: 1px dashed #cbd5e1;
         }
 
-        .sale-item {
+        .receipt-meta-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px;
-            background: var(--ios-tertiary-background);
-            border-radius: var(--ios-corner-radius-small);
-            margin-bottom: 8px;
-            border: 0.5px solid var(--ios-gray-5);
+            padding: 3px 0;
+            font-size: 12px;
         }
 
-        .sale-item-info {
-            flex: 1;
+        .receipt-meta-label {
+            color: #6b7280;
         }
 
-        .sale-item-name {
-            font-size: var(--ios-subhead);
+        .receipt-meta-value {
+            color: #111827;
             font-weight: 600;
-            color: var(--ios-label);
-            margin-bottom: 2px;
-        }
-
-        .sale-item-details {
-            font-size: var(--ios-caption-1);
-            color: var(--ios-gray-1);
-        }
-
-        .sale-item-amount {
             text-align: right;
         }
 
-        .sale-item-price {
-            font-size: var(--ios-subhead);
+        /* 虚线分隔 */
+        .receipt-divider {
+            height: 1px;
+            margin: 10px 0;
+            border-top: 1px dashed #cbd5e1;
+        }
+
+        /* 商品列表 */
+        .receipt-item {
+            padding: 6px 0;
+            font-size: 12.5px;
+        }
+
+        .receipt-item-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 10px;
+        }
+
+        .receipt-item-name {
+            color: #111827;
             font-weight: 600;
-            color: var(--ios-blue);
-            margin-bottom: 2px;
+            word-break: break-word;
         }
 
-        .sale-item-subtotal {
-            font-size: var(--ios-caption-1);
-            color: var(--ios-gray-1);
+        .receipt-item-total {
+            color: #111827;
+            font-weight: 700;
+            white-space: nowrap;
         }
 
-        .sale-summary-section {
-            background: rgba(240, 244, 255, 0.8);
-            border-radius: 16px;
-            padding: 16px;
-            margin-top: 20px;
-            border: 1px solid rgba(37, 99, 235, 0.08);
-        }
-
-        .summary-row {
+        .receipt-item-bottom {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 0;
-            border-bottom: 0.5px solid var(--ios-gray-5);
+            margin-top: 2px;
         }
 
-        .summary-row:last-child {
-            border-bottom: none;
+        .receipt-item-qty {
+            color: #6b7280;
+            font-size: 11.5px;
         }
 
-        .summary-row.total-row {
-            border-top: 2px solid var(--ios-gray-4);
-            padding-top: 12px;
-            margin-top: 8px;
+        .receipt-item-free {
+            color: #16a34a;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            border: 1px solid #16a34a;
+            border-radius: 4px;
+            padding: 0 4px;
         }
 
-        .summary-label {
-            font-size: var(--ios-subhead);
-            color: var(--ios-gray-1);
-            font-weight: 500;
+        .receipt-empty {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 12px;
+            padding: 12px 0;
         }
 
-        .summary-value {
-            font-size: var(--ios-subhead);
-            color: var(--ios-label);
+        /* 汇总 */
+        .receipt-summary {
+            padding: 4px 0;
+            font-size: 13px;
+        }
+
+        .receipt-sum-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            color: #374151;
+        }
+
+        .receipt-sum-row .discount-value {
+            color: #dc2626;
+        }
+
+        .receipt-sum-row.receipt-total {
+            margin-top: 6px;
+            padding-top: 8px;
+            border-top: 2px solid #1f2937;
+            font-size: 15px;
+            font-weight: 800;
+            color: #111827;
+        }
+
+        /* 支付方式 */
+        .receipt-payment {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+
+        .receipt-payment-title {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .receipt-pay-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 13px;
+        }
+
+        .receipt-pay-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #111827;
             font-weight: 600;
         }
 
-        .summary-value.discount-value {
-            color: var(--ios-red);
+        .receipt-pay-amount {
+            color: #111827;
+            font-weight: 700;
+            white-space: nowrap;
         }
 
-        .summary-value.total-value {
-            color: var(--ios-green);
-            font-weight: 700;
-            font-size: var(--ios-headline);
+        .receipt-bank-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .receipt-bank-chip img.paybreak-bank-logo {
+            width: 16px;
+            height: 16px;
+            object-fit: contain;
+            border-radius: 3px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+        }
+
+        .receipt-bank-text {
+            font-size: 12px;
+            color: #374151;
+            font-weight: 600;
+        }
+
+        /* 找零 */
+        .receipt-change {
+            margin-top: 12px;
+            padding-top: 6px;
+        }
+
+        /* 收据底部 */
+        .receipt-footer {
+            text-align: center;
+            padding-top: 14px;
+        }
+
+        .receipt-barcode {
+            height: 34px;
+            margin: 0 auto 10px;
+            max-width: 240px;
+            background-image: repeating-linear-gradient(90deg, #111827 0 2px, transparent 2px 5px, #111827 5px 6px, transparent 6px 9px, #111827 9px 12px, transparent 12px 14px);
+            opacity: 0.85;
+        }
+
+        .receipt-thanks {
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #111827;
+        }
+
+        .receipt-note {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 4px;
         }
 
         /* Responsive Design */
@@ -3200,7 +3504,7 @@
 
                     <!-- Sales Summary -->
                     <div class="sales-summary-section">
-                        <div class="summary-card">
+                        <div class="summary-card" id="totalSalesSummaryCard" style="cursor: pointer;">
                             <div class="summary-icon">💰</div>
                             <div class="summary-info">
                                 <div class="summary-value" id="storeDetailTotalSales"
@@ -3210,6 +3514,34 @@
                                 <div class="summary-label">Total Sales</div>
                                 <div class="summary-transactions" id="storeDetailTransactionText">0 sales transaction
                                 </div>
+                            </div>
+                            <div class="summary-chevron" id="totalSalesChevron">
+                                <i class="material-icons">expand_more</i>
+                            </div>
+                        </div>
+
+                        <!-- Payment Breakdown (Cash / QR / Card) -->
+                        <div class="payment-breakdown" id="paymentBreakdown" style="display: none;">
+                            <div class="paybreak-item" id="payBreakCash">
+                                <div class="paybreak-icon paybreak-cash"><i class="material-icons">payments</i></div>
+                                <div class="paybreak-info">
+                                    <div class="paybreak-label">Cash</div>
+                                </div>
+                                <div class="paybreak-value" id="payBreakCashValue">RM 0.00</div>
+                            </div>
+                            <div class="paybreak-item" id="payBreakQR">
+                                <div class="paybreak-icon paybreak-qr"><i class="material-icons">qr_code_2</i></div>
+                                <div class="paybreak-info">
+                                    <div class="paybreak-label">QR</div>
+                                </div>
+                                <div class="paybreak-value" id="payBreakQRValue">RM 0.00</div>
+                            </div>
+                            <div class="paybreak-item" id="payBreakCard">
+                                <div class="paybreak-icon paybreak-card"><i class="material-icons">credit_card</i></div>
+                                <div class="paybreak-info">
+                                    <div class="paybreak-label">Credit Card</div>
+                                </div>
+                                <div class="paybreak-value" id="payBreakCardValue">RM 0.00</div>
                             </div>
                         </div>
                     </div>
@@ -3385,61 +3717,96 @@
     </div>
 
     <!-- Sales Record Detail Modal -->
-    <div id="salesRecordDetailModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">Sales Record Details</div>
-                <button class="close-btn" onclick="closeSalesRecordDetail()">
-                    <i class="material-icons" style="font-size: 18px;">close</i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <!-- Sale Basic Info -->
-                <div class="sale-basic-info">
-                    <div class="sale-info-row">
-                        <span class="sale-label">Bill Number:</span>
-                        <span class="sale-value" id="saleDetailBillNumber">-</span>
+    <div id="salesRecordDetailModal" class="modal receipt-modal">
+        <div class="modal-content receipt-content">
+            <button class="close-btn" onclick="closeSalesRecordDetail()">
+                <i class="material-icons" style="font-size: 18px;">close</i>
+            </button>
+
+            <div class="receipt">
+                <!-- 收据头部 -->
+                <div class="receipt-header">
+                    <div class="receipt-logo">
+                        <i class="material-icons">storefront</i>
                     </div>
-                    <div class="sale-info-row">
-                        <span class="sale-label">Time:</span>
-                        <span class="sale-value" id="saleDetailDateTime">-</span>
+                    <div class="receipt-store" id="saleDetailStoreName">Store</div>
+                    <div class="receipt-title">SALES RECEIPT</div>
+                </div>
+
+                <!-- 收据信息 -->
+                <div class="receipt-meta">
+                    <div class="receipt-meta-row">
+                        <span class="receipt-meta-label">Bill No.</span>
+                        <span class="receipt-meta-value" id="saleDetailBillNumber">-</span>
                     </div>
-                    <div class="sale-info-row">
-                        <span class="sale-label">Shift:</span>
-                        <span class="sale-value" id="saleDetailShift">-</span>
+                    <div class="receipt-meta-row">
+                        <span class="receipt-meta-label">Date &amp; Time</span>
+                        <span class="receipt-meta-value" id="saleDetailDateTime">-</span>
                     </div>
-                    <div class="sale-info-row">
-                        <span class="sale-label">Cashier:</span>
-                        <span class="sale-value" id="saleDetailCashier">-</span>
+                    <div class="receipt-meta-row">
+                        <span class="receipt-meta-label">Cashier</span>
+                        <span class="receipt-meta-value" id="saleDetailCashier">-</span>
                     </div>
-                    <div class="sale-info-row">
-                        <span class="sale-label">Total Amount:</span>
-                        <span class="sale-value sale-total" id="saleDetailTotal">RM 0</span>
+                    <div class="receipt-meta-row">
+                        <span class="receipt-meta-label">Shift</span>
+                        <span class="receipt-meta-value" id="saleDetailShift">-</span>
                     </div>
                 </div>
 
-                <!-- Items List -->
-                <div class="sale-items-section">
-                    <h4>Items Purchased</h4>
-                    <div id="saleDetailItemsList">
-                        <!-- Items will be loaded here -->
+                <!-- 锯齿分隔 -->
+                <div class="receipt-divider"></div>
+
+                <!-- 商品列表 -->
+                <div class="receipt-items" id="saleDetailItemsList">
+                    <!-- Items will be loaded here -->
+                </div>
+
+                <div class="receipt-divider"></div>
+
+                <!-- 汇总 -->
+                <div class="receipt-summary">
+                    <div class="receipt-sum-row">
+                        <span>Subtotal</span>
+                        <span id="saleDetailSubtotal">RM 0</span>
+                    </div>
+                    <div class="receipt-sum-row" id="discountRow" style="display: none;">
+                        <span>Discount</span>
+                        <span class="discount-value" id="saleDetailDiscount">-RM 0</span>
+                    </div>
+                    <div class="receipt-sum-row" id="taxRow" style="display: none;">
+                        <span id="saleDetailTaxLabel">Tax</span>
+                        <span id="saleDetailTax">RM 0</span>
+                    </div>
+                    <div class="receipt-sum-row receipt-total">
+                        <span>TOTAL</span>
+                        <span id="saleDetailFinalTotal">RM 0</span>
                     </div>
                 </div>
 
-                <!-- Summary -->
-                <div class="sale-summary-section">
-                    <div class="summary-row">
-                        <span class="summary-label">Subtotal:</span>
-                        <span class="summary-value" id="saleDetailSubtotal">RM 0</span>
+                <!-- 支付方式 -->
+                <div class="receipt-payment" id="saleDetailPaymentSection">
+                    <!-- Payment method will be loaded here -->
+                </div>
+
+                <!-- 找零 -->
+                <div class="receipt-change" id="saleDetailChangeSection" style="display: none;">
+                    <div class="receipt-sum-row">
+                        <span id="saleDetailCashReceivedLabel">Cash Received</span>
+                        <span id="saleDetailCashReceived">RM 0</span>
                     </div>
-                    <div class="summary-row" id="discountRow" style="display: none;">
-                        <span class="summary-label">Discount:</span>
-                        <span class="summary-value discount-value" id="saleDetailDiscount">-RM 0</span>
+                    <div class="receipt-sum-row">
+                        <span>Change</span>
+                        <span id="saleDetailChange">RM 0</span>
                     </div>
-                    <div class="summary-row total-row">
-                        <span class="summary-label">Total:</span>
-                        <span class="summary-value total-value" id="saleDetailFinalTotal">RM 0</span>
-                    </div>
+                </div>
+
+                <div class="receipt-divider"></div>
+
+                <!-- 收据底部 -->
+                <div class="receipt-footer">
+                    <div class="receipt-barcode"></div>
+                    <div class="receipt-thanks">Thank You!</div>
+                    <div class="receipt-note">Please keep this receipt</div>
                 </div>
             </div>
         </div>

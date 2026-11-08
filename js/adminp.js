@@ -7,6 +7,7 @@ let productsData = {};
 let salesData = {};
 let dailySalesData = {};
 let selectedDate = null;
+let adminpCurrentStore = null; // 当前查看的店铺对象（用于收据显示店铺名/logo）
 
 // Timer system variables
 let activeTimers = {}; // Stores timestamps: { storeId: timestamp }
@@ -46,6 +47,55 @@ const storeImageMap = {
     'store7': '../shop/Aa.png',
     'store8': '../shop/jkl.png'
 };
+
+// 分批付款归一化（与 admin.js normalizeAdminPaymentSplits 一致）
+function adminpNormalizePaymentSplits(raw) {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.filter(Boolean);
+    if (typeof raw === 'object') {
+        return Object.keys(raw)
+            .sort((a, b) => (Number(a) || 0) - (Number(b) || 0))
+            .map(k => raw[k])
+            .filter(Boolean);
+    }
+    return [];
+}
+
+// ===== 银行 logo（读取店铺节点 stores/<id>/paymentLogos/<key> = dataUrl，与 pos/admin 端同一数据源）=====
+const adminpBankLogoCache = {}; // key -> dataUrl
+
+function adminpBankLogoKey(name) {
+    return String(name || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+function adminpGetBankLogo(name) {
+    const key = adminpBankLogoKey(name);
+    return key && adminpBankLogoCache[key] ? adminpBankLogoCache[key] : '';
+}
+
+function adminpApplyStoreBankLogos(store) {
+    if (!store || typeof store !== 'object') return;
+    const map = (store.paymentLogos && typeof store.paymentLogos === 'object') ? store.paymentLogos : null;
+    if (!map) return;
+    Object.keys(map).forEach(key => {
+        const entry = map[key];
+        const dataUrl = typeof entry === 'string' ? entry : (entry && entry.dataUrl);
+        if (dataUrl) adminpBankLogoCache[key] = dataUrl;
+    });
+}
+
+// 银行 logo 图片 HTML（有 logo 显示图片，否则回退显示银行名，与 admin.html 一致）
+function adminpBankLogoHTML(name) {
+    const label = String(name == null ? '' : name).trim();
+    if (!label) return '';
+    const logo = adminpGetBankLogo(label);
+    if (logo) return `<img class="paybreak-bank-logo" src="${logo}" alt="${label.replace(/"/g, '&quot;')}">`;
+    const safe = label.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return safe;
+}
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', function () {
@@ -170,6 +220,19 @@ function setupEventListeners() {
             if (e.target === salesRecordModal) {
                 closeSalesRecordDetail();
             }
+        });
+    }
+
+    // Total Sales summary card: toggle Cash / QR / Card breakdown
+    const totalSalesCard = document.getElementById('totalSalesSummaryCard');
+    if (totalSalesCard) {
+        totalSalesCard.addEventListener('click', function () {
+            const breakdown = document.getElementById('paymentBreakdown');
+            const chevron = document.getElementById('totalSalesChevron');
+            if (!breakdown) return;
+            const isHidden = breakdown.style.display === 'none';
+            breakdown.style.display = isHidden ? 'flex' : 'none';
+            if (chevron) chevron.classList.toggle('open', isHidden);
         });
     }
 }
@@ -916,6 +979,7 @@ async function loadStoreDetailData(storeId, date) {
     try {
         const store = storesData[storeId];
         if (!store) return;
+        adminpCurrentStore = store;
 
         showLoading('Loading store details...');
 
@@ -941,16 +1005,52 @@ async function loadStoreDetailData(storeId, date) {
         let totalSales = 0;
         let transactionCount = 0;
 
+        // Cash / QR / Card breakdown
+        const payTotals = { cash: 0, qr: 0, card: 0 };
+
         Object.values(salesData).forEach(sale => {
             if (sale && sale.total_amount) {
                 totalSales += parseFloat(sale.total_amount || 0);
                 transactionCount++;
+            }
+            if (!sale) return;
+
+            const method = sale.paymentMethod || 'cash';
+            const addToMethod = (m, amount) => {
+                const amt = parseFloat(amount) || 0;
+                if (amt <= 0) return;
+                if (m === 'qr') {
+                    payTotals.qr += amt;
+                } else if (m === 'card') {
+                    payTotals.card += amt;
+                } else {
+                    payTotals.cash += amt;
+                }
+            };
+
+            if (method === 'split') {
+                const splits = adminpNormalizePaymentSplits(sale.paymentSplits);
+                splits.forEach(s => {
+                    addToMethod(s.method || 'cash', s.amount);
+                });
+                // 兜底：split 但没有 splits 时按 total 计入
+                if (!splits.length) {
+                    addToMethod('cash', sale.total_amount);
+                }
+            } else if (method === 'qr' || method === 'card') {
+                addToMethod(method, sale.total_amount);
+            } else {
+                // cash（默认）
+                addToMethod('cash', sale.total_amount);
             }
         });
 
         // Update sales summary
         document.getElementById('storeDetailTotalSales').textContent = `RM ${totalSales.toFixed(2)}`;
         document.getElementById('storeDetailTransactionText').textContent = `${transactionCount} sales transaction`;
+
+        // Render payment breakdown (Cash / QR / Card)
+        renderPaymentBreakdown(payTotals);
 
         // Calculate shift sales
         const shiftSales = calculateShiftSales(salesData);
@@ -988,6 +1088,7 @@ async function loadStoreDetailData(storeId, date) {
         }
 
         // Render sales records
+        adminpApplyStoreBankLogos(store);
         renderSalesRecords(salesData);
 
         hideLoading();
@@ -997,6 +1098,54 @@ async function loadStoreDetailData(storeId, date) {
         hideLoading();
         showError('Failed to load store details. Please try again.');
     }
+}
+
+// Render Cash / QR / Card payment breakdown
+function renderPaymentBreakdown(payTotals) {
+    const setRow = (valueId, total) => {
+        const valueEl = document.getElementById(valueId);
+        if (valueEl) valueEl.textContent = `RM ${total.toFixed(2)}`;
+    };
+
+    setRow('payBreakCashValue', payTotals.cash);
+    setRow('payBreakQRValue', payTotals.qr);
+    setRow('payBreakCardValue', payTotals.card);
+}
+
+// 生成销售记录里的「支付方式 + 银行 logo」HTML（与 pos/admin 端显示一致）
+function adminpPaymentDisplayLabel(sale) {
+    if (!sale) return 'Cash';
+    const method = sale.paymentMethod || 'cash';
+
+    const methodName = (m) => {
+        if (m === 'qr') return 'QR';
+        if (m === 'card') return 'Credit Card';
+        if (m === 'cash') return 'Cash';
+        return '';
+    };
+
+    // 银行：有 logo 显示图片，否则显示银行名（无银行则空）
+    const bankHTML = (bank) => {
+        const b = String(bank == null ? '' : bank).trim();
+        if (!b) return '';
+        const logoHTML = adminpBankLogoHTML(b);
+        return logoHTML.startsWith('<img') ? ` ${logoHTML}` : ` (${logoHTML})`;
+    };
+
+    // 分批付款：Cash + QR / Cash + Credit Card（带各自银行）
+    if (method === 'split') {
+        const splits = adminpNormalizePaymentSplits(sale.paymentSplits);
+        const parts = splits.map(s => {
+            const name = methodName(s.method);
+            if (!name) return '';
+            return name + bankHTML(s.bank);
+        }).filter(p => p);
+        if (parts.length) return parts.join(' <span class="paybreak-plus">+</span> ');
+        return sale.paymentMethodLabel || 'Split';
+    }
+
+    const name = methodName(method) || 'Cash';
+    return name + bankHTML(sale.paymentBank);
 }
 
 // Render sales records (new function)
@@ -1045,7 +1194,7 @@ function renderSalesRecords(salesData) {
             <div class="record-amount-section">
                 <div class="record-amount">
                     <div class="record-total">RM ${parseFloat(sale.total_amount || 0).toFixed(2)}</div>
-                    <div class="record-time">${sale.items?.length || 0} items</div>
+                    <div class="record-time">${adminpPaymentDisplayLabel(sale)}</div>
                 </div>
                 <i class="material-icons detail-icon">arrow_forward_ios</i>
             </div>
@@ -1062,73 +1211,80 @@ function showSalesRecordDetail(sale) {
     const modal = document.getElementById('salesRecordDetailModal');
     if (!modal) return;
 
+    // 店铺名（收据头部）
+    const storeName = (adminpCurrentStore && adminpCurrentStore.name) || 'Store';
+    const storeNameEl = document.getElementById('saleDetailStoreName');
+    if (storeNameEl) storeNameEl.textContent = storeName;
+
     // Format date and time
     const saleDate = new Date(sale.timestamp);
 
-    // 获取日期部分：日/月/年（用马来西亚常用格式）
+    // 日期：日/月/年
     const datePart = saleDate.toLocaleDateString('en-GB', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric'
     });
 
-    // 获取时间部分：时:分 AM/PM（使用 12 小时制）
+    // 时间：时:分 AM/PM（12 小时制）
     const timePart = saleDate.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true
     });
 
-    // 组合日期时间字符串
     const formattedDateTime = `${datePart} ${timePart}`;
 
-
-    // Update basic info
+    // 基础信息
     document.getElementById('saleDetailBillNumber').textContent = sale.billNumber || 'N/A';
     document.getElementById('saleDetailDateTime').textContent = formattedDateTime;
     document.getElementById('saleDetailCashier').textContent = sale.cashierName || 'Unknown';
-    document.getElementById('saleDetailTotal').textContent = `RM ${parseFloat(sale.total_amount || 0).toFixed(2)}`;
     document.getElementById('saleDetailShift').textContent = sale.cashierShift || 'Unknown';
 
-    // Render items list
+    // 商品列表（收据样式）
     const itemsList = document.getElementById('saleDetailItemsList');
     itemsList.innerHTML = '';
 
     if (sale.items && Array.isArray(sale.items) && sale.items.length > 0) {
         sale.items.forEach(item => {
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'sale-item';
+            const qty = Number(item.quantity) || 0;
+            const price = Number(item.price) || 0;
+            const lineTotal = Number(item.subtotal) || (qty * price);
 
-            itemDiv.innerHTML = `
-                <div class="sale-item-info">
-                    <div class="sale-item-name">${item.name || 'Unknown Item'}</div>
-                    <div class="sale-item-details">Qty: ${item.quantity || 0} × RM ${parseFloat(item.price || 0).toFixed(2)}</div>
+            const itemRow = document.createElement('div');
+            itemRow.className = 'receipt-item';
+
+            const name = String(item.name || 'Item').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+            itemRow.innerHTML = `
+                <div class="receipt-item-top">
+                    <span class="receipt-item-name">${name}</span>
+                    <span class="receipt-item-total">RM ${lineTotal.toFixed(2)}</span>
                 </div>
-                <div class="sale-item-amount">
-                    <div class="sale-item-price">RM ${parseFloat(item.price || 0).toFixed(2)}</div>
-                    <div class="sale-item-subtotal">Total: RM ${parseFloat(item.subtotal || 0).toFixed(2)}</div>
-        </div>
-    `;
+                <div class="receipt-item-bottom">
+                    <span class="receipt-item-qty">${qty} × RM ${price.toFixed(2)}</span>
+                    ${item.isFree ? '<span class="receipt-item-free">FREE</span>' : ''}
+                </div>
+            `;
 
-            itemsList.appendChild(itemDiv);
+            itemsList.appendChild(itemRow);
         });
     } else {
         itemsList.innerHTML = `
-            <div style="text-align: center; padding: 20px; color: var(--ios-gray-1);">
-                No items information available
-            </div>
+            <div class="receipt-empty">No items information available</div>
         `;
     }
 
-    // Update summary
+    // 汇总
     const subtotal = parseFloat(sale.subtotal || sale.total_amount || 0);
     const discountAmount = parseFloat(sale.discountAmount || 0);
+    const taxAmount = parseFloat(sale.taxAmount || 0);
     const finalTotal = parseFloat(sale.total_amount || 0);
 
     document.getElementById('saleDetailSubtotal').textContent = `RM ${subtotal.toFixed(2)}`;
     document.getElementById('saleDetailFinalTotal').textContent = `RM ${finalTotal.toFixed(2)}`;
 
-    // Show/hide discount row
+    // Discount 行
     const discountRow = document.getElementById('discountRow');
     if (discountAmount > 0) {
         discountRow.style.display = 'flex';
@@ -1137,9 +1293,98 @@ function showSalesRecordDetail(sale) {
         discountRow.style.display = 'none';
     }
 
+    // Tax 行（如果有税）
+    const taxRow = document.getElementById('taxRow');
+    if (taxAmount > 0) {
+        taxRow.style.display = 'flex';
+        document.getElementById('saleDetailTax').textContent = `RM ${taxAmount.toFixed(2)}`;
+        const taxRate = sale.taxRate;
+        document.getElementById('saleDetailTaxLabel').textContent =
+            (taxRate !== undefined && taxRate !== null) ? `Tax (${taxRate}%)` : 'Tax';
+    } else {
+        taxRow.style.display = 'none';
+    }
+
+    // 支付方式（含银行 logo）
+    renderReceiptPayment(sale);
+
+    // 现金找零（仅现金支付时显示）
+    const changeSection = document.getElementById('saleDetailChangeSection');
+    const cashReceived = parseFloat(sale.cashReceived || 0);
+    const changeAmount = parseFloat(sale.changeAmount || 0);
+    if (cashReceived > 0) {
+        changeSection.style.display = 'block';
+        document.getElementById('saleDetailCashReceived').textContent = `RM ${cashReceived.toFixed(2)}`;
+        document.getElementById('saleDetailChange').textContent = `RM ${changeAmount.toFixed(2)}`;
+    } else {
+        changeSection.style.display = 'none';
+    }
+
     // Show modal
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+}
+
+// 渲染收据里的支付方式（含银行 logo）
+function renderReceiptPayment(sale) {
+    const section = document.getElementById('saleDetailPaymentSection');
+    if (!section) return;
+
+    const method = sale.paymentMethod || 'cash';
+    const methodLabel = (m) => {
+        if (m === 'qr') return 'QR Pay';
+        if (m === 'card') return 'Credit Card';
+        if (m === 'cash') return 'Cash';
+        return '';
+    };
+
+    const bankChip = (bank) => {
+        const b = String(bank == null ? '' : bank).trim();
+        if (!b) return '';
+        const logoHTML = adminpBankLogoHTML(b);
+        return logoHTML.startsWith('<img')
+            ? `<span class="receipt-bank-chip">${logoHTML}</span>`
+            : `<span class="receipt-bank-chip receipt-bank-text">${logoHTML}</span>`;
+    };
+
+    let rows = '';
+
+    if (method === 'split') {
+        const splits = adminpNormalizePaymentSplits(sale.paymentSplits);
+        splits.forEach(s => {
+            const label = methodLabel(s.method) || (s.label || s.method || '');
+            const amt = Number(s.amount) || 0;
+            const chip = bankChip(s.bank);
+            rows += `
+                <div class="receipt-pay-row">
+                    <span class="receipt-pay-label">${label}${chip}</span>
+                    <span class="receipt-pay-amount">RM ${amt.toFixed(2)}</span>
+                </div>
+            `;
+        });
+        if (!splits.length) {
+            rows = `
+                <div class="receipt-pay-row">
+                    <span class="receipt-pay-label">${sale.paymentMethodLabel || 'Split'}</span>
+                    <span class="receipt-pay-amount">RM ${(parseFloat(sale.total_amount) || 0).toFixed(2)}</span>
+                </div>
+            `;
+        }
+    } else {
+        const label = methodLabel(method) || 'Cash';
+        const chip = bankChip(sale.paymentBank);
+        rows = `
+            <div class="receipt-pay-row">
+                <span class="receipt-pay-label">${label}${chip}</span>
+                <span class="receipt-pay-amount">RM ${(parseFloat(sale.total_amount) || 0).toFixed(2)}</span>
+            </div>
+        `;
+    }
+
+    section.innerHTML = `
+        <div class="receipt-payment-title">Payment Method</div>
+        ${rows}
+    `;
 }
 
 // Close sales record detail modal
