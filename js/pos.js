@@ -1438,108 +1438,208 @@ function renderSalesTable(sales) {
     });
 }
 
-// 查看销售详情
+// 查看销售详情（收据样式，与 adminp 一致）
 function viewSaleDetails(sale) {
-    let detailsHTML = `
-        <div class="receipt">
-            <div class="receipt-header">
-                <h3>${storeData.name}</h3>
-                <p>Bill Number: ${sale.billNumber || 'N/A'}</p>
-                <p>Time: ${sale.timestamp}</p>
-                <p>Cashier: ${sale.cashierName || 'N/A'}</p>
-                <p>Shift: ${sale.cashierShift || 'N/A'}</p>
-                ${sale.shiftInfo ? `<p>Shift started at: ${sale.shiftInfo.shiftTime || 'N/A'}</p>` : ''}
-            </div>
-            <div class="receipt-items">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Product</th>
-                            <th>Unit Price</th>
-                            <th>Quantity</th>
-                            <th>Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-    `;
+    const storeName = (storeData && storeData.name) || 'Store';
 
-    sale.items.forEach(item => {
-        detailsHTML += `
-            <tr>
-                <td>${item.name}</td>
-                <td>RM${item.price.toFixed(2)}</td>
-                <td>${item.quantity}</td>
-                <td>RM${item.subtotal.toFixed(2)}</td>
-            </tr>
-        `;
-    });
-
-    detailsHTML += `
-                    </tbody>
-                </table>
-            </div>
-            <div class="receipt-summary">
-    `;
-
-    // 检查是否有小计和折扣字段（兼容旧数据）
-    if (sale.subtotal !== undefined) {
-        detailsHTML += `
-            <div class="summary-row">
-                <p>Subtotal:</p>
-                <p>RM${sale.subtotal.toFixed(2)}</p>
-            </div>
-        `;
-
-        // 如果应用了折扣，显示折扣信息
-        if (sale.discountAmount > 0) {
-            const discountType = sale.discountType || 'percent';
-            const discountLabel = discountType === 'percent' ? `Discount (${sale.discountPercent}%):` : 'Discount (Fixed):';
-
-            detailsHTML += `
-                <div class="summary-row discount">
-                    <p>${discountLabel}</p>
-                    <p>-RM${sale.discountAmount.toFixed(2)}</p>
-                </div>
-            `;
-        }
+    // 日期时间格式化（日/月/年 时:分 AM/PM）
+    let formattedDateTime = sale.timestamp || '';
+    const ts = sale.timestamp ? new Date(sale.timestamp) : null;
+    if (ts && !isNaN(ts)) {
+        const datePart = ts.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const timePart = ts.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        formattedDateTime = `${datePart} ${timePart}`;
     }
 
-    const salePayment = getSalePaymentDisplay(sale);
-    const salePaymentBank = sale.paymentBank || '';
-    const saleSplitRows = paymentSplitsRowsHTML(sale);
+    // 商品列表
+    let itemsHTML = '';
+    if (sale.items && Array.isArray(sale.items) && sale.items.length > 0) {
+        sale.items.forEach(item => {
+            const qty = Number(item.quantity) || 0;
+            const price = Number(item.price) || 0;
+            const lineTotal = Number(item.subtotal) || (qty * price);
+            const name = escapePosText(item.name || 'Item');
+            itemsHTML += `
+                <div class="receipt-item">
+                    <div class="receipt-item-top">
+                        <span class="receipt-item-name">${name}</span>
+                        <span class="receipt-item-total">RM ${lineTotal.toFixed(2)}</span>
+                    </div>
+                    <div class="receipt-item-bottom">
+                        <span class="receipt-item-qty">${qty} × RM ${price.toFixed(2)}</span>
+                        ${item.isFree ? '<span class="receipt-item-free">FREE</span>' : ''}
+                    </div>
+                </div>
+            `;
+        });
+    } else {
+        itemsHTML = '<div class="receipt-empty">No items information available</div>';
+    }
 
-    detailsHTML += `
-                <div class="summary-row total">
-                    <p>Total:</p>
-                    <p><strong>RM${sale.total_amount.toFixed(2)}</strong></p>
+    // 汇总
+    const subtotal = parseFloat(sale.subtotal ?? sale.total_amount ?? 0);
+    const discountAmount = parseFloat(sale.discountAmount || 0);
+    const taxAmount = parseFloat(sale.taxAmount || 0);
+    const finalTotal = parseFloat(sale.total_amount || 0);
+
+    let summaryHTML = `
+        <div class="receipt-sum-row">
+            <span>Subtotal</span>
+            <span>RM ${subtotal.toFixed(2)}</span>
+        </div>
+    `;
+    if (discountAmount > 0) {
+        summaryHTML += `
+            <div class="receipt-sum-row">
+                <span>Discount</span>
+                <span class="discount-value">-RM ${discountAmount.toFixed(2)}</span>
+            </div>
+        `;
+    }
+    if (taxAmount > 0) {
+        const taxLabel = (sale.taxRate !== undefined && sale.taxRate !== null) ? `Tax (${sale.taxRate}%)` : 'Tax';
+        summaryHTML += `
+            <div class="receipt-sum-row">
+                <span>${taxLabel}</span>
+                <span>RM ${taxAmount.toFixed(2)}</span>
+            </div>
+        `;
+    }
+    summaryHTML += `
+        <div class="receipt-sum-row receipt-total">
+            <span>TOTAL</span>
+            <span>RM ${finalTotal.toFixed(2)}</span>
+        </div>
+    `;
+
+    // 支付方式（含银行 logo）
+    let paymentHTML = renderReceiptPaymentHTML(sale);
+
+    // 找零（现金支付时显示）
+    let changeHTML = '';
+    const cashReceived = parseFloat(sale.cashReceived || 0);
+    const changeAmount = parseFloat(sale.changeAmount || 0);
+    if (sale.cashReceived !== null && sale.cashReceived !== undefined && cashReceived > 0) {
+        changeHTML = `
+            <div class="receipt-change">
+                <div class="receipt-sum-row">
+                    <span>Cash Received</span>
+                    <span>RM ${cashReceived.toFixed(2)}</span>
                 </div>
-                <div class="summary-row">
-                    <p>Payment:</p>
-                    <p>${escapePosText(salePayment.label)}</p>
+                <div class="receipt-sum-row">
+                    <span>Change</span>
+                    <span>RM ${changeAmount.toFixed(2)}</span>
                 </div>
-                ${saleSplitRows}
-                ${(!saleSplitRows && salePaymentBank) ? `
-                <div class="summary-row">
-                    <p>Bank:</p>
-                    <p>${bankCellHTML(salePaymentBank) || escapePosText(salePaymentBank)}</p>
+            </div>
+        `;
+    }
+
+    const detailsHTML = `
+        <div class="receipt">
+            <div class="receipt-header">
+                <div class="receipt-logo"><i class="material-icons">storefront</i></div>
+                <div class="receipt-store">${escapePosText(storeName)}</div>
+                <div class="receipt-title">SALES RECEIPT</div>
+            </div>
+
+            <div class="receipt-meta">
+                <div class="receipt-meta-row">
+                    <span class="receipt-meta-label">Bill No.</span>
+                    <span class="receipt-meta-value">${escapePosText(sale.billNumber || 'N/A')}</span>
                 </div>
-                ` : ''}
-                ${(sale.cashReceived !== null && sale.cashReceived !== undefined) ? `
-                <div class="summary-row">
-                    <p>Cash Received:</p>
-                    <p>RM${Number(sale.cashReceived).toFixed(2)}</p>
+                <div class="receipt-meta-row">
+                    <span class="receipt-meta-label">Date &amp; Time</span>
+                    <span class="receipt-meta-value">${escapePosText(formattedDateTime)}</span>
                 </div>
-                <div class="summary-row">
-                    <p>Change:</p>
-                    <p>RM${Number(sale.changeAmount || 0).toFixed(2)}</p>
+                <div class="receipt-meta-row">
+                    <span class="receipt-meta-label">Cashier</span>
+                    <span class="receipt-meta-value">${escapePosText(sale.cashierName || 'N/A')}</span>
                 </div>
-                ` : ''}
+                <div class="receipt-meta-row">
+                    <span class="receipt-meta-label">Shift</span>
+                    <span class="receipt-meta-value">${escapePosText(sale.cashierShift || 'N/A')}</span>
+                </div>
+            </div>
+
+            <div class="receipt-divider"></div>
+
+            <div class="receipt-items">${itemsHTML}</div>
+
+            <div class="receipt-divider"></div>
+
+            <div class="receipt-summary">${summaryHTML}</div>
+
+            <div class="receipt-payment">
+                <div class="receipt-payment-title">Payment Method</div>
+                ${paymentHTML}
+            </div>
+
+            ${changeHTML}
+
+            <div class="receipt-divider"></div>
+
+            <div class="receipt-footer">
+                <div class="receipt-barcode"></div>
+                <div class="receipt-thanks">Thank You!</div>
+                <div class="receipt-note">Please keep this receipt</div>
             </div>
         </div>
     `;
 
     saleDetailContent.innerHTML = detailsHTML;
     showModal(saleDetailModal);
+}
+
+// 生成收据里的支付方式行（含银行 logo）
+function renderReceiptPaymentHTML(sale) {
+    const method = (sale && sale.paymentMethod) || 'cash';
+    const methodLabel = (m) => {
+        if (m === 'qr') return 'QR Pay';
+        if (m === 'card') return 'Credit Card';
+        if (m === 'cash') return 'Cash';
+        return '';
+    };
+    const bankChip = (bank) => {
+        const b = String(bank == null ? '' : bank).trim();
+        if (!b) return '';
+        const logo = getBankLogo(b);
+        if (logo) return `<span class="receipt-bank-chip"><img class="paybreak-bank-logo" src="${logo}" alt="${escapePosText(b)}"></span>`;
+        return `<span class="receipt-bank-chip receipt-bank-text">${escapePosText(b)}</span>`;
+    };
+
+    let rows = '';
+
+    if (method === 'split') {
+        const splits = normalizePaymentSplits(sale.paymentSplits);
+        splits.forEach(s => {
+            const label = methodLabel(s.method) || (s.label || s.method || '');
+            const amt = Number(s.amount) || 0;
+            rows += `
+                <div class="receipt-pay-row">
+                    <span class="receipt-pay-label">${escapePosText(label)}${bankChip(s.bank)}</span>
+                    <span class="receipt-pay-amount">RM ${amt.toFixed(2)}</span>
+                </div>
+            `;
+        });
+        if (!splits.length) {
+            rows = `
+                <div class="receipt-pay-row">
+                    <span class="receipt-pay-label">${escapePosText(sale.paymentMethodLabel || 'Split')}</span>
+                    <span class="receipt-pay-amount">RM ${(parseFloat(sale.total_amount) || 0).toFixed(2)}</span>
+                </div>
+            `;
+        }
+    } else {
+        const label = methodLabel(method) || 'Cash';
+        rows = `
+            <div class="receipt-pay-row">
+                <span class="receipt-pay-label">${label}${bankChip(sale.paymentBank)}</span>
+                <span class="receipt-pay-amount">RM ${(parseFloat(sale.total_amount) || 0).toFixed(2)}</span>
+            </div>
+        `;
+    }
+
+    return rows;
 }
 
 // 编辑销售记录
