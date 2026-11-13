@@ -10109,3 +10109,353 @@ body.dark-mode .migration-pair-warn.is-id-diff {
         max-height: 260px;
     }
 }
+
+/* ===================== 销售详情收据样式（与 adminp 一致） ===================== */
+.receipt-modal {
+    display: none;
+}
+
+.receipt-modal .modal-content.receipt-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    width: 100%;
+    max-width: 360px;
+    max-height: 88vh;
+    margin: 0;
+    padding: 24px 12px 20px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 0;
+    animation: none;
+}
+
+.receipt-modal .receipt-close {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
+    width: 34px;
+    height: 34px;
+    line-height: 30px;
+    text-align: center;
+    font-size: 22px;
+    background: #fff;
+    color: #374151;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+}
+
+.receipt-modal .receipt-close:hover {
+    color: #e74c3c;
+}
+
+/* 收据白纸 */
+.receipt-modal .receipt {
+    background: #fff;
+    color: #1f2937;
+    border-radius: 6px;
+    padding: 22px 18px 18px;
+    font-family: 'Courier New', 'SF Mono', 'Menlo', monospace;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+    position: relative;
+}
+
+/* 锯齿边 */
+.receipt-modal .receipt::before,
+.receipt-modal .receipt::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background: radial-gradient(circle at 10px -5px, transparent 10px, #fff 10.5px);
+    background-size: 20px 10px;
+    background-repeat: repeat-x;
+}
+
+.receipt-modal .receipt::before {
+    top: -9px;
+}
+
+.receipt-modal .receipt::after {
+    bottom: -9px;
+    transform: rotate(180deg);
+}
+
+/* 收据头部 */
+.receipt-modal .receipt-header {
+    text-align: center;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed #cbd5e1;
+}
+
+.receipt-modal .receipt-logo {
+    width: 46px;
+    height: 46px;
+    margin: 0 auto 8px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+}
+
+.receipt-modal .receipt-logo .material-icons {
+    font-size: 26px;
+}
+
+.receipt-modal .receipt-store {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #111827;
+}
+
+.receipt-modal .receipt-title {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: #6b7280;
+    margin-top: 4px;
+    text-transform: uppercase;
+}
+
+/* 收据信息 */
+.receipt-modal .receipt-meta {
+    padding: 14px 0;
+    border-bottom: 1px dashed #cbd5e1;
+}
+
+.receipt-modal .receipt-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    font-size: 12px;
+}
+
+.receipt-modal .receipt-meta-label {
+    color: #6b7280;
+}
+
+.receipt-modal .receipt-meta-value {
+    color: #111827;
+    font-weight: 600;
+    text-align: right;
+}
+
+/* 虚线分隔 */
+.receipt-modal .receipt-divider {
+    height: 1px;
+    margin: 10px 0;
+    border-top: 1px dashed #cbd5e1;
+}
+
+/* 商品列表 */
+.receipt-modal .receipt-item {
+    padding: 6px 0;
+    font-size: 12.5px;
+}
+
+.receipt-modal .receipt-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.receipt-modal .receipt-item-name {
+    color: #111827;
+    font-weight: 600;
+    word-break: break-word;
+}
+
+.receipt-modal .receipt-item-total {
+    color: #111827;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.receipt-modal .receipt-item-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2px;
+}
+
+.receipt-modal .receipt-item-qty {
+    color: #6b7280;
+    font-size: 11.5px;
+}
+
+.receipt-modal .receipt-item-free {
+    color: #16a34a;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border: 1px solid #16a34a;
+    border-radius: 4px;
+    padding: 0 4px;
+}
+
+.receipt-modal .receipt-empty {
+    text-align: center;
+    color: #9ca3af;
+    font-size: 12px;
+    padding: 12px 0;
+}
+
+/* 汇总 */
+.receipt-modal .receipt-summary {
+    padding: 4px 0;
+    font-size: 13px;
+}
+
+.receipt-modal .receipt-sum-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    color: #374151;
+}
+
+.receipt-modal .receipt-sum-row .discount-value {
+    color: #dc2626;
+}
+
+.receipt-modal .receipt-sum-row.receipt-total {
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 2px solid #1f2937;
+    font-size: 15px;
+    font-weight: 800;
+    color: #111827;
+}
+
+/* 支付方式 */
+.receipt-modal .receipt-payment {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.receipt-modal .receipt-payment-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.receipt-modal .receipt-pay-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 13px;
+}
+
+.receipt-modal .receipt-pay-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #111827;
+    font-weight: 600;
+}
+
+.receipt-modal .receipt-pay-amount {
+    color: #111827;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.receipt-modal .receipt-bank-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.receipt-modal .receipt-bank-chip img.paybreak-bank-logo {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    border-radius: 3px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+}
+
+.receipt-modal .receipt-bank-text {
+    font-size: 12px;
+    color: #374151;
+    font-weight: 600;
+}
+
+/* 找零 */
+.receipt-modal .receipt-change {
+    margin-top: 12px;
+    padding-top: 6px;
+}
+
+/* 收据底部 */
+.receipt-modal .receipt-footer {
+    text-align: center;
+    padding-top: 14px;
+}
+
+.receipt-modal .receipt-barcode {
+    height: 34px;
+    margin: 0 auto 10px;
+    max-width: 240px;
+    background-image: repeating-linear-gradient(90deg, #111827 0 2px, transparent 2px 5px, #111827 5px 6px, transparent 6px 9px, #111827 9px 12px, transparent 12px 14px);
+    opacity: 0.85;
+}
+
+.receipt-modal .receipt-thanks {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #111827;
+}
+
+.receipt-modal .receipt-note {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+
+/* 收据底部操作按钮 */
+.receipt-modal .receipt-actions {
+    margin-top: 16px;
+    justify-content: center;
+    gap: 12px;
+}
+
+.receipt-modal .receipt-actions button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.receipt-modal .receipt-actions #editPaymentBtn {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: #fff;
+    border: none;
+}
+
+.receipt-modal .receipt-actions #deleteSaleBtn {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: #fff;
+    border: none;
+}
