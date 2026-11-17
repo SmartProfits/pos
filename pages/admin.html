@@ -24,6 +24,30 @@
         .sidebar {
             min-width: 250px;
             height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .admin-profile {
+            flex-shrink: 0;
+        }
+        .nav-menu {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+        }
+        .nav-menu::-webkit-scrollbar {
+            width: 6px;
+        }
+        .nav-menu::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 999px;
+        }
+        .nav-menu::-webkit-scrollbar-track {
+            background: transparent;
         }
         .content {
             flex: 1;
@@ -542,6 +566,128 @@
         .cn-audit-title .material-icons { font-size: 15px; color: #94a3b8; }
         .cn-audit-title .cn-old { color: #64748b; }
         .cn-audit-meta { font-size: 11.5px; color: #94a3b8; margin-top: 3px; }
+
+        /* ===== Cashier Avatar management ===== */
+        #cashier-avatarsView { padding-bottom: 40px; }
+        #cashier-avatarsView .cn-sub { color: #7b8a9c; font-size: 13px; margin: 0 0 14px; }
+        .ca-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        .ca-card {
+            position: relative;
+            background: #ffffff;
+            border: 1px solid #e6eef7;
+            border-radius: 14px;
+            padding: 18px 14px 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 10px rgba(15, 60, 110, 0.05);
+            transition: all 0.2s ease;
+        }
+        .ca-card:hover {
+            transform: translateY(-2px);
+            border-color: #bfdbfe;
+            box-shadow: 0 10px 24px -12px rgba(37, 99, 235, 0.35);
+        }
+        .ca-avatar {
+            width: 84px;
+            height: 84px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #fff;
+            font-size: 30px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+        .ca-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .ca-avatar-fallback {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .ca-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
+            text-align: center;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+        .ca-pin {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            padding: 3px 10px;
+            letter-spacing: 1px;
+            font-variant-numeric: tabular-nums;
+        }
+        .ca-pin .material-icons { font-size: 14px; color: #64748b; }
+        .ca-del {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 26px;
+            height: 26px;
+            border: none;
+            border-radius: 50%;
+            background: #fff;
+            color: #b91c1c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+            transition: all 0.15s ease;
+            opacity: 0;
+        }
+        .ca-card:hover .ca-del { opacity: 1; }
+        .ca-del:hover { background: #fee2e2; color: #b91c1c; }
+        .ca-del .material-icons { font-size: 16px; }
+        .ca-empty-state { grid-column: 1 / -1; }
+
+        .ca-del-target {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 6px;
+            color: #b91c1c;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        .ca-del-target .ca-avatar { width: 40px; height: 40px; font-size: 16px; }
+        #caDeleteConfirm { background: #ef4444 !important; }
+        #caDeleteConfirm:hover { background: #dc2626 !important; }
+
+        .cn-modal-head .material-icons { color: #f59e0b; font-size: 20px; }
 
         .cn-modal {
             display: none;
@@ -1580,6 +1726,7 @@
                     </div>
                     <div class="nav-submenu" id="settingsNavSubmenu">
                         <div class="nav-item sub" data-view="cashier-names"><i class="material-icons">manage_accounts</i> Cashier Names</div>
+                        <div class="nav-item sub" data-view="cashier-avatars"><i class="material-icons">face_retouching_natural</i> Cashier Avatar</div>
                         <div class="nav-item sub" data-view="online-users"><i class="material-icons">online_prediction</i> Online Users</div>
                         <div class="nav-item sub" data-view="announcement"><i class="material-icons">campaign</i> Announce</div>
                         <div class="nav-item sub" id="maintenanceToggle"><i class="material-icons">build</i> System Maintenance</div>
@@ -2167,6 +2314,31 @@
                 </div>
                 <div id="cnAuditList">
                     <div class="cn-empty small"><p>No merge has been recorded yet.</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cashier Avatar View -->
+        <div id="cashier-avatarsView" class="view">
+            <p class="cn-sub">Manage cashier accounts — view their avatar, name and PIN, or remove an account.</p>
+
+            <div class="cn-panel">
+                <div class="cn-panel-head">
+                    <h3><i class="material-icons">face_retouching_natural</i> Cashiers</h3>
+                    <div style="display:flex;gap:10px;align-items:center;">
+                        <input type="text" id="caSearchInput" class="cn-search" placeholder="Filter by name…">
+                        <button type="button" id="caRefreshBtn" class="cn-mini-btn ghost">
+                            <i class="material-icons">refresh</i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div id="caBanner" class="cn-banner"></div>
+                <div id="caGrid" class="ca-grid">
+                    <div class="cn-empty">
+                        <i class="material-icons">group_off</i>
+                        <h4>No cashiers yet</h4>
+                        <p>Cashier accounts created on the POS will appear here.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3443,6 +3615,27 @@
                 </div>
             </div>
         </div>
+
+        <!-- Confirm cashier delete modal -->
+        <div id="caDeleteModal" class="cn-modal">
+            <div class="cn-modal-card">
+                <div class="cn-modal-head">
+                    <i class="material-icons">delete_forever</i>
+                    <h3>Delete cashier account</h3>
+                </div>
+                <div class="cn-modal-body">
+                    <div class="ca-del-target" id="caDeleteTarget"></div>
+                    <div class="cn-confirm-note">
+                        <i class="material-icons">info</i>
+                        <span>This removes the cashier's login account (name, PIN and avatar). Past sales records are not affected.</span>
+                    </div>
+                </div>
+                <div class="cn-modal-foot">
+                    <button type="button" id="caDeleteCancel" class="cn-btn-cancel">Cancel</button>
+                    <button type="button" id="caDeleteConfirm" class="cn-btn-confirm" style="background:#ef4444;">Delete</button>
+                </div>
+            </div>
+        </div>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -3455,5 +3648,6 @@
     <script src="../js/sw-helper.js"></script>
     <script src="../js/admin.js?v=4.0.34"></script>
     <script src="../js/cashier-names.js?v=1.0.0"></script>
+    <script src="../js/cashier-avatars.js?v=1.0.0"></script>
 </body>
 </html>

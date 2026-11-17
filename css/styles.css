@@ -283,8 +283,8 @@ button:hover {
     justify-content: center;
 }
 
-.sidebar.collapsed .small-btn {
-    margin-left: 0;
+.sidebar.collapsed .cashier-profile-name {
+    display: none;
 }
 
 .store-info h2 {
@@ -1324,11 +1324,117 @@ tr:hover {
     display: flex;
     align-items: center;
     margin-top: 10px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+}
+
+#currentCashier:hover {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+/* 收银员头像 + 名字 profile 区块（纵向：头像在上，名字在下） */
+.cashier-profile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    padding-top: 4px;
+}
+
+.cashier-profile-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: #fff;
+    font-size: 26px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    box-shadow: 0 3px 10px rgba(59, 130, 246, 0.3);
+}
+
+.cashier-profile-avatar .cashier-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.cashier-profile-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.2;
+    text-align: center;
+    word-break: break-word;
+}
+
+.store-details .store-name-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-top: 12px;
+}
+
+.store-name-line i {
+    font-size: 16px;
+    color: #94a3b8;
+}
+
+.store-details .store-shift-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-top: 6px;
+}
+
+.store-shift-line i {
+    font-size: 16px;
+    color: #94a3b8;
+}
+
+/* Shift History 图标按钮（角落） */
+.cashier-history-icon {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.cashier-history-icon:hover {
+    background: rgba(59, 130, 246, 0.25);
+    color: #ffffff;
+}
+
+.cashier-history-icon .material-icons {
+    font-size: 18px;
 }
 
 #cashierNameDisplay {
     font-weight: bold;
-    margin: 0 5px;
 }
 
 /* 侧边栏按钮样式 */
@@ -7505,6 +7611,706 @@ body {
 }
 
 /* =========================================================
+   CASHIER LOGIN MODAL (名字 + 4位密码 + 班次)
+   ========================================================= */
+/* 登录弹窗做成全屏：容器铺满，无遮罩 */
+#cashierNameModal {
+    background-color: #f8fafc;
+    backdrop-filter: none;
+    z-index: 3000;
+}
+
+.cashier-login-modal {
+    width: 100%;
+    max-width: 560px;
+    height: 100%;
+    max-height: 100vh;
+    padding: 40px 32px;
+    margin: 0 auto;
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 22px;
+    overflow-y: auto;
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    animation: none;
+}
+
+.cashier-login-header {
+    text-align: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* 右上角关闭按钮 */
+.cashier-close-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 3100;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.06);
+    color: #475569;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cashier-close-btn:hover {
+    background: rgba(0, 0, 0, 0.12);
+    color: #0f172a;
+}
+
+.cashier-close-btn i {
+    font-size: 26px;
+}
+
+.cashier-login-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 16px 0 6px 0;
+    font-family: 'Poppins', sans-serif;
+}
+
+.cashier-login-header p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+}
+
+.cashier-login-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.cashier-login-body.hidden,
+.cashier-pin-error.hidden {
+    display: none !important;
+}
+
+.cashier-name-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+/* 网格布局：3 列圆形头像 + 名字 */
+.cashier-name-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px 14px;
+    max-height: none;
+    overflow-y: visible;
+}
+
+.cashier-user-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 6px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 16px;
+    transition: all 0.2s ease;
+    font-family: 'Poppins', sans-serif;
+}
+
+.cashier-user-card:hover {
+    background: rgba(59, 130, 246, 0.06);
+    transform: translateY(-2px);
+}
+
+.cashier-user-avatar {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    font-size: 30px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+}
+
+.cashier-user-card:hover .cashier-user-avatar {
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+    transform: scale(1.04);
+}
+
+.cashier-user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    text-align: center;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+/* 顶部操作按钮 */
+.cashier-top-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.cashier-top-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 600;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Poppins', sans-serif;
+}
+
+.cashier-top-btn:hover {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.cashier-top-btn i {
+    font-size: 20px;
+}
+
+.cashier-loading,
+.cashier-empty {
+    text-align: center;
+    color: #64748b;
+    padding: 28px 12px;
+    font-size: 14px;
+}
+
+.cashier-loading i {
+    display: block;
+    font-size: 28px;
+    margin-bottom: 8px;
+    color: #94a3b8;
+}
+
+.cashier-empty i {
+    display: block;
+    font-size: 40px;
+    margin-bottom: 10px;
+    color: #cbd5e1;
+}
+
+.cashier-empty p {
+    margin: 0;
+    line-height: 1.6;
+}
+
+.cashier-name-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 14px 16px;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Poppins', sans-serif;
+    text-align: left;
+}
+
+.cashier-name-item:hover {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    transform: translateY(-1px);
+}
+
+.cashier-name-avatar,
+.cashier-edit-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.cashier-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.cashier-avatar-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cashier-name-label {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.cashier-name-item i {
+    color: #94a3b8;
+    font-size: 22px;
+}
+
+.cashier-add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    background: #ffffff;
+    color: #3b82f6;
+    font-size: 15px;
+    font-weight: 600;
+    border: 2px dashed #93c5fd;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Poppins', sans-serif;
+}
+
+.cashier-add-btn:hover {
+    background: #eff6ff;
+    border-color: #3b82f6;
+}
+
+/* Edit Avatar */
+.cashier-edit-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    text-align: center;
+    font-family: 'Poppins', sans-serif;
+}
+
+.cashier-edit-subtitle {
+    font-size: 13px;
+    color: #64748b;
+    margin: -8px 0 0 0;
+    text-align: center;
+}
+
+.cashier-edit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.cashier-edit-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Poppins', sans-serif;
+    text-align: left;
+}
+
+.cashier-edit-item:hover {
+    background: #eff6ff;
+    border-color: #3b82f6;
+}
+
+.cashier-edit-item .cashier-edit-avatar {
+    width: 40px;
+    height: 40px;
+}
+
+.cashier-edit-name {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.cashier-edit-item i {
+    color: #94a3b8;
+    font-size: 20px;
+}
+
+/* 头像编辑器 */
+.cashier-preview-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+}
+
+.cashier-edit-preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.cashier-preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.cashier-editor-scroll {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 40vh;
+    overflow-y: auto;
+    padding-right: 4px;
+    /* 隐藏滚动条（保留滚动能力） */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.cashier-editor-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.cashier-edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cashier-edit-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+}
+
+/* < > picker 选择器 */
+.cashier-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* 组件 + 关联颜色 并排一行 */
+.cashier-edit-line {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.cashier-edit-line .cashier-picker-comp {
+    flex: 1;
+    min-width: 160px;
+}
+
+/* 颜色选择器（< > + 色块） */
+.cashier-color-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.cashier-picker-btn {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    color: #475569;
+    border: 2px solid #e2e8f0;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.cashier-picker-btn:hover {
+    background: #3b82f6;
+    color: #ffffff;
+    border-color: #2563eb;
+}
+
+.cashier-picker-btn .material-icons {
+    font-size: 20px;
+}
+
+.cashier-picker-value {
+    flex: 1;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    color: #0f172a;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    text-transform: capitalize;
+}
+
+.cashier-picker-swatch {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 2px solid #e2e8f0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* PIN step */
+.cashier-pin-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    font-size: 44px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin: 0 auto 12px;
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.25);
+}
+
+.cashier-pin-who {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.cashier-pin-dots {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    margin: 8px 0;
+}
+
+.cashier-pin-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    transition: all 0.15s ease;
+}
+
+.cashier-pin-dot.filled {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    transform: scale(1.1);
+}
+
+.cashier-pin-input {
+    /* 使用软键盘输入，原生输入框视觉隐藏（保留 DOM 作桌面实体键盘后备） */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+    opacity: 0;
+}
+
+.cashier-pin-error {
+    padding: 10px 14px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    border-radius: 10px;
+    font-size: 13px;
+    text-align: center;
+}
+
+/* PIN 数字键盘（复用虚拟键盘按键风格） */
+.cashier-pin-keypad {
+    margin: 12px 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cashier-pin-keypad-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.cashier-pin-key {
+    flex: 1;
+    max-width: 84px;
+    height: 58px;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    font-size: 22px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.05);
+    transition: all 0.1s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.cashier-pin-key:active {
+    transform: translateY(2px);
+    box-shadow: none;
+    background: #e5e7eb;
+}
+
+.cashier-pin-key-empty {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    cursor: default;
+}
+
+.cashier-pin-key-empty:active {
+    transform: none;
+    background: transparent;
+}
+
+.cashier-pin-key-back {
+    color: #ef4444;
+    background: #f3f4f6;
+}
+
+.cashier-pin-key-back .material-icons {
+    font-size: 26px;
+}
+
+.cashier-pin-key-back:active {
+    background: #e5e7eb;
+}
+
+/* Shift step */
+.cashier-shift-who {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.cashier-shift-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.cashier-shift-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 18px 20px;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    transition: all 0.2s ease;
+    font-family: 'Poppins', sans-serif;
+    text-align: left;
+}
+
+.cashier-shift-btn:hover {
+    background: #eff6ff;
+    border-color: #3b82f6;
+    transform: translateY(-1px);
+}
+
+.cashier-shift-btn i {
+    font-size: 26px;
+    color: #3b82f6;
+}
+
+.cashier-back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px;
+    background: transparent;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    font-family: 'Poppins', sans-serif;
+}
+
+.cashier-back-btn:hover {
+    color: #1e293b;
+}
+
+.cashier-back-btn i {
+    font-size: 18px;
+}
+
+/* =========================================================
    DARK MODE STYLES
    ========================================================= */
 body.dark-mode {
@@ -7655,6 +8461,205 @@ body.dark-mode .cashier-tip-container {
 body.dark-mode .cashier-tip-container .tip-header,
 body.dark-mode .cashier-tip-container ul {
     color: #fbbf24;
+}
+
+/* Dark mode — cashier login */
+body.dark-mode #cashierNameModal {
+    background-color: #0f172a;
+}
+
+body.dark-mode .cashier-close-btn {
+    background: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+}
+
+body.dark-mode .cashier-close-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    color: #f1f5f9;
+}
+
+body.dark-mode .cashier-login-modal {
+    background: transparent;
+}
+
+body.dark-mode .cashier-login-header {
+    border-bottom-color: #334155;
+}
+
+body.dark-mode .cashier-login-header h2 {
+    color: #f8fafc;
+}
+
+body.dark-mode .cashier-name-item {
+    background: #0f172a;
+    border-color: #334155;
+}
+
+body.dark-mode .cashier-name-item:hover {
+    background: #1e293b;
+    border-color: #3b82f6;
+}
+
+body.dark-mode .cashier-name-label {
+    color: #f1f5f9;
+}
+
+body.dark-mode .cashier-add-btn {
+    background: #1e293b;
+    color: #60a5fa;
+    border-color: #475569;
+}
+
+body.dark-mode .cashier-add-btn:hover {
+    background: #334155;
+    border-color: #60a5fa;
+}
+
+body.dark-mode .cashier-pin-who,
+body.dark-mode .cashier-shift-who {
+    color: #e2e8f0;
+}
+
+body.dark-mode .cashier-pin-dot {
+    background: #1e293b;
+    border-color: #64748b;
+}
+
+body.dark-mode .cashier-pin-dot.filled {
+    background: #3b82f6;
+    border-color: #60a5fa;
+}
+
+body.dark-mode .cashier-shift-btn {
+    background: #0f172a;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+body.dark-mode .cashier-shift-btn:hover {
+    background: #1e293b;
+    border-color: #3b82f6;
+}
+
+body.dark-mode .cashier-back-btn {
+    color: #94a3b8;
+}
+
+body.dark-mode .cashier-back-btn:hover {
+    color: #f1f5f9;
+}
+
+body.dark-mode .cashier-pin-error {
+    background: #3b1f1f;
+    border-color: #7f1d1d;
+    color: #fca5a5;
+}
+
+body.dark-mode .cashier-pin-key {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f8fafc;
+    box-shadow: 0 3px 0 #0f172a;
+}
+
+body.dark-mode .cashier-pin-key:active {
+    background: #334155;
+    box-shadow: none;
+}
+
+body.dark-mode .cashier-pin-key-empty {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+body.dark-mode .cashier-pin-key-back {
+    background: #0f172a;
+    color: #f87171;
+}
+
+body.dark-mode .cashier-form-group input {
+    background: #0f172a;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+body.dark-mode .cashier-form-group input:focus {
+    background: #1e293b;
+    border-color: #3b82f6;
+}
+
+/* Dark mode — cashier login 网格 + 编辑 */
+body.dark-mode .cashier-user-card:hover {
+    background: rgba(59, 130, 246, 0.12);
+}
+
+body.dark-mode .cashier-user-name {
+    color: #f1f5f9;
+}
+
+body.dark-mode .cashier-top-btn {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+body.dark-mode .cashier-top-btn:hover {
+    background: #334155;
+    border-color: #3b82f6;
+    color: #60a5fa;
+}
+
+body.dark-mode .cashier-edit-title {
+    color: #f8fafc;
+}
+
+body.dark-mode .cashier-edit-subtitle {
+    color: #94a3b8;
+}
+
+body.dark-mode .cashier-edit-item {
+    background: #0f172a;
+    border-color: #334155;
+}
+
+body.dark-mode .cashier-edit-item:hover {
+    background: #1e293b;
+    border-color: #3b82f6;
+}
+
+body.dark-mode .cashier-edit-name {
+    color: #f1f5f9;
+}
+
+body.dark-mode .cashier-edit-preview {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+}
+
+body.dark-mode .cashier-edit-label {
+    color: #cbd5e1;
+}
+
+body.dark-mode .cashier-picker-btn {
+    background: #334155;
+    color: #cbd5e1;
+    border-color: #475569;
+}
+
+body.dark-mode .cashier-picker-btn:hover {
+    background: #3b82f6;
+    color: #ffffff;
+    border-color: #60a5fa;
+}
+
+body.dark-mode .cashier-picker-value {
+    color: #f1f5f9;
+    background: #1e293b;
+    border-color: #475569;
+}
+
+body.dark-mode .cashier-picker-swatch {
+    border-color: #475569;
 }
 
 body.dark-mode .history-table th,

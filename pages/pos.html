@@ -130,7 +130,7 @@
         }
 
         .store-info {
-            padding: 24px 20px;
+            padding: 8px 20px 16px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
             flex-direction: column;
@@ -169,7 +169,7 @@
         .store-title {
             text-align: center;
             width: 100%;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
 
         .store-title h2 {
@@ -193,6 +193,7 @@
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.03);
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
         }
 
         .store-details p {
@@ -208,117 +209,22 @@
             color: #6366f1;
         }
 
-        .shift-history-container {
-            margin-top: 16px;
-            width: 100%;
-        }
-
-        .modern-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 10px 14px;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            color: white;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            width: 100%;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            gap: 8px;
-            font-family: 'Poppins', sans-serif;
-        }
-
-        .modern-btn:hover {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .modern-btn:active {
-            transform: translateY(0);
-            box-shadow: none;
-        }
-
-        .modern-btn i {
-            font-size: 18px;
-        }
-
-        /* 1st Shift Cashier Name Style */
+        /* 1st Shift Cashier Name Style（已取消动画，统一纯色粗体） */
         .first-shift-name {
-            background: linear-gradient(to right, #ffcc00, #ff9900);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            font-weight: 600;
-            animation: first-shift-blink 2s infinite;
+            color: #ffffff;
+            font-weight: 700;
         }
 
-        @keyframes first-shift-blink {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.7;
-            }
-        }
-
-        /* 2nd Shift Cashier Name Style */
+        /* 2nd Shift Cashier Name Style（已取消动画，统一纯色粗体） */
         .second-shift-name {
-            background: linear-gradient(to right, #9966cc, #888888);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            font-weight: 600;
-            animation: second-shift-wave 3s infinite;
+            color: #ffffff;
+            font-weight: 700;
         }
 
-        @keyframes second-shift-wave {
-            0% {
-                transform: translateY(0);
-            }
-
-            25% {
-                transform: translateY(-3px);
-            }
-
-            50% {
-                transform: translateY(0);
-            }
-
-            75% {
-                transform: translateY(3px);
-            }
-
-            100% {
-                transform: translateY(0);
-            }
-        }
-
-        /* 3rd Shift Cashier Name Style */
+        /* 3rd Shift Cashier Name Style（已取消动画，统一纯色粗体） */
         .third-shift-name {
-            background: linear-gradient(to right, #00c6ff, #0072ff);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            font-weight: 600;
-            animation: third-shift-pulse 2.5s infinite;
-            display: inline-block;
-        }
-
-        @keyframes third-shift-pulse {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.05);
-            }
+            color: #ffffff;
+            font-weight: 700;
         }
 
         /* Pending Transfers Styles */
@@ -1381,46 +1287,150 @@
 </head>
 
 <body>
-    <!-- Cashier name input modal -->
+    <!-- Cashier login modal -->
     <div id="cashierNameModal" class="modal">
-        <div class="modal-content cashier-modal">
-            <div class="cashier-modal-header">
-                <div class="cashier-icon-wrapper">
-                    <i class="material-icons">person_outline</i>
-                </div>
-                <h2>Cashier Information</h2>
-                <p>Welcome! Please set your identity for this session</p>
+        <div class="modal-content cashier-login-modal">
+            <button type="button" id="cashierCloseBtn" class="cashier-close-btn" title="Close">
+                <i class="material-icons">close</i>
+            </button>
+            <div class="cashier-login-header">
+                <h2>Who's working?</h2>
+                <p>Tap your profile to clock in</p>
             </div>
-            <form id="cashierNameForm" class="cashier-form">
-                <div class="cashier-form-group">
-                    <label for="cashierName"><i class="material-icons">badge</i> Full Name</label>
-                    <input type="text" id="cashierName" required placeholder="E.g. John Doe" autocomplete="off">
+
+            <!-- Step 1: pick a name (网格) -->
+            <div id="cashierPickStep" class="cashier-login-body">
+                <!-- 顶部操作按钮 -->
+                <div class="cashier-top-actions">
+                    <button type="button" id="cashierAddBtn" class="cashier-top-btn">
+                        <i class="material-icons">person_add</i>
+                        <span>Add Cashier</span>
+                    </button>
+                    <button type="button" id="cashierEditBtn" class="cashier-top-btn">
+                        <i class="material-icons">edit</i>
+                        <span>Edit Avatar</span>
+                    </button>
                 </div>
-                <div class="cashier-form-group">
-                    <label for="cashierShift"><i class="material-icons">schedule</i> Active Shift</label>
-                    <div class="cashier-select-wrapper">
-                        <select id="cashierShift" required>
-                            <option value="" disabled selected>Select your shift</option>
-                            <option value="1st Shift">1st Shift </option>
-                            <option value="2nd Shift">2nd Shift </option>
-                        </select>
-                        <i class="material-icons select-arrow">expand_more</i>
+                <div id="cashierNameList" class="cashier-name-list cashier-name-grid">
+                    <div class="cashier-loading"><i class="material-icons">hourglass_empty</i> Loading cashiers…</div>
+                </div>
+            </div>
+
+            <!-- Step 2: enter PIN -->
+            <div id="cashierPinStep" class="cashier-login-body hidden">
+                <div class="cashier-pin-avatar" id="cashierPinAvatar"></div>
+                <div class="cashier-pin-who" id="cashierPinWho"></div>
+                <div class="cashier-pin-dots" id="cashierPinDots"></div>
+                <input type="password" id="cashierPinInput" inputmode="numeric" pattern="[0-9]*" maxlength="4"
+                    class="cashier-pin-input" autocomplete="off" placeholder="Enter 4-digit PIN" tabindex="-1">
+                <div id="cashierPinError" class="cashier-pin-error hidden"></div>
+                <div class="cashier-pin-keypad" id="cashierPinKeypad">
+                    <div class="cashier-pin-keypad-row">
+                        <button type="button" class="cashier-pin-key" data-pin="1">1</button>
+                        <button type="button" class="cashier-pin-key" data-pin="2">2</button>
+                        <button type="button" class="cashier-pin-key" data-pin="3">3</button>
+                    </div>
+                    <div class="cashier-pin-keypad-row">
+                        <button type="button" class="cashier-pin-key" data-pin="4">4</button>
+                        <button type="button" class="cashier-pin-key" data-pin="5">5</button>
+                        <button type="button" class="cashier-pin-key" data-pin="6">6</button>
+                    </div>
+                    <div class="cashier-pin-keypad-row">
+                        <button type="button" class="cashier-pin-key" data-pin="7">7</button>
+                        <button type="button" class="cashier-pin-key" data-pin="8">8</button>
+                        <button type="button" class="cashier-pin-key" data-pin="9">9</button>
+                    </div>
+                    <div class="cashier-pin-keypad-row">
+                        <button type="button" class="cashier-pin-key cashier-pin-key-empty" disabled></button>
+                        <button type="button" class="cashier-pin-key" data-pin="0">0</button>
+                        <button type="button" class="cashier-pin-key cashier-pin-key-back" id="cashierPinKeyBack" aria-label="Delete">
+                            <i class="material-icons">backspace</i>
+                        </button>
                     </div>
                 </div>
-                <button type="submit" class="cashier-submit-btn">
-                    <span>Confirm Identity</span>
-                    <i class="material-icons">check_circle_outline</i>
+                <button type="button" id="cashierPinBack" class="cashier-back-btn">
+                    <i class="material-icons">arrow_back</i> Back
                 </button>
-            </form>
-            <div class="cashier-tip-container">
-                <div class="tip-header">
-                    <i class="material-icons">lightbulb_outline</i>
-                    <span>Tips</span>
+            </div>
+
+            <!-- Step 3: pick shift -->
+            <div id="cashierShiftStep" class="cashier-login-body hidden">
+                <div class="cashier-shift-who" id="cashierShiftWho"></div>
+                <div class="cashier-shift-options">
+                    <button type="button" class="cashier-shift-btn" data-shift="1st Shift">
+                        <i class="material-icons">wb_sunny</i>
+                        <span>1st Shift</span>
+                    </button>
+                    <button type="button" class="cashier-shift-btn" data-shift="2nd Shift">
+                        <i class="material-icons">nightlight</i>
+                        <span>2nd Shift</span>
+                    </button>
+                    <button type="button" class="cashier-shift-btn" data-shift="3rd Shift">
+                        <i class="material-icons">bedtime</i>
+                        <span>3rd Shift</span>
+                    </button>
                 </div>
-                <ul>
-                    <li>Need to change shifts? Click the <i class="material-icons inline-icon">edit</i> button next to your name in the sidebar later.</li>
-                    <li>Cashier names are actively recorded on all digital receipts and sales history.</li>
-                </ul>
+                <button type="button" id="cashierShiftBack" class="cashier-back-btn">
+                    <i class="material-icons">arrow_back</i> Back
+                </button>
+            </div>
+
+            <!-- Add new cashier form -->
+            <div id="cashierAddStep" class="cashier-login-body hidden">
+                <form id="cashierAddForm" class="cashier-form">
+                    <div class="cashier-form-group">
+                        <label for="cashierNewName"><i class="material-icons">badge</i> Full Name</label>
+                        <input type="text" id="cashierNewName" required placeholder="E.g. John Doe" autocomplete="off">
+                    </div>
+                    <div class="cashier-form-group">
+                        <label for="cashierNewPin"><i class="material-icons">pin</i> 4-digit PIN</label>
+                        <input type="password" id="cashierNewPin" required inputmode="numeric" pattern="[0-9]*"
+                            maxlength="4" placeholder="Create a 4-digit PIN" autocomplete="off">
+                    </div>
+                    <div class="cashier-form-group">
+                        <label for="cashierNewPin2"><i class="material-icons">verified</i> Confirm PIN</label>
+                        <input type="password" id="cashierNewPin2" required inputmode="numeric" pattern="[0-9]*"
+                            maxlength="4" placeholder="Repeat the PIN" autocomplete="off">
+                    </div>
+                    <div id="cashierAddError" class="cashier-pin-error hidden"></div>
+                    <button type="submit" class="cashier-submit-btn">
+                        <span>Create Account</span>
+                        <i class="material-icons">check_circle_outline</i>
+                    </button>
+                    <button type="button" id="cashierAddBack" class="cashier-back-btn">
+                        <i class="material-icons">arrow_back</i> Back
+                    </button>
+                </form>
+            </div>
+
+            <!-- Edit Avatar: 选择要编辑的用户 -->
+            <div id="cashierEditPickStep" class="cashier-login-body hidden">
+                <h3 class="cashier-edit-title">Edit Avatar</h3>
+                <p class="cashier-edit-subtitle">Choose a cashier to customize their avatar</p>
+                <div id="cashierEditPickList" class="cashier-edit-list"></div>
+                <button type="button" id="cashierEditPickBack" class="cashier-back-btn">
+                    <i class="material-icons">arrow_back</i> Back
+                </button>
+            </div>
+
+            <!-- Edit Avatar: 头像编辑器 -->
+            <div id="cashierEditorStep" class="cashier-login-body hidden">
+                <h3 class="cashier-edit-title">Edit Avatar</h3>
+                <p class="cashier-edit-subtitle" id="cashierEditWho"></p>
+                <div class="cashier-preview-wrap">
+                    <div id="cashierEditPreview" class="cashier-edit-preview"></div>
+                </div>
+                <div class="cashier-editor-scroll">
+                    <div id="cashierEditComponents"></div>
+                </div>
+                <div id="cashierEditError" class="cashier-pin-error hidden"></div>
+                <button type="button" id="cashierEditSaveBtn" class="cashier-submit-btn">
+                    <span>Save Avatar</span>
+                    <i class="material-icons">save</i>
+                </button>
+                <button type="button" id="cashierEditBack" class="cashier-back-btn">
+                    <i class="material-icons">arrow_back</i> Back
+                </button>
             </div>
         </div>
     </div>
@@ -1436,25 +1446,22 @@
         <div class="sidebar" id="sidebar">
             <div class="sidebar-content">
                 <div class="store-info">
-                    <div class="store-logo">
-                        <img src="../icons/pos.png" alt="SmartProfits Logo">
-                    </div>
                     <div class="store-title">
-                        <h2>SmartProfits</h2>
+                        <h2>SmartProfits POS</h2>
                     </div>
                     <div class="store-details">
-                        <p><i class="material-icons">store</i><span id="userName">User</span></p>
-                        <p id="currentCashier"><i class="material-icons">person</i> Cashier: <span
-                                id="cashierNameDisplay" style="margin-left: 4px;">Not set</span> <button
-                                id="changeCashierBtn" class="small-btn"><i class="material-icons">edit</i></button></p>
-                        <p id="currentShift"><i class="material-icons">schedule</i> On Duty: <span
-                                id="cashierShiftDisplay" style="margin-left: 4px;">Not set</span></p>
-                        <div class="shift-history-container">
-                            <button id="viewCashierHistoryBtn" class="modern-btn">
-                                <i class="material-icons">history</i>
-                                <span>Shift History</span>
-                            </button>
+                        <div class="cashier-profile" id="currentCashier">
+                            <div class="cashier-profile-avatar" id="cashierProfileAvatar" title="Edit avatar">
+                                <span class="cashier-avatar-fallback" id="cashierProfileFallback">?</span>
+                            </div>
+                            <div class="cashier-profile-name" id="cashierNameDisplay">Not set</div>
                         </div>
+                        <p class="store-name-line"><i class="material-icons">store</i><span id="userName">User</span></p>
+                        <p class="store-shift-line" id="currentShift"><i class="material-icons">schedule</i><span
+                                id="cashierShiftDisplay">Not set</span></p>
+                        <button id="viewCashierHistoryBtn" class="cashier-history-icon" title="Shift History">
+                            <i class="material-icons">history</i>
+                        </button>
                     </div>
                 </div>
                 <div class="nav-menu">
@@ -2292,37 +2299,28 @@
     <script>
         // 
         document.addEventListener('DOMContentLoaded', function () {
-            const cashierNameForm = document.getElementById('cashierNameForm');
             const cashierNameDisplay = document.getElementById('cashierNameDisplay');
-            const cashierShiftDisplay = document.getElementById('cashierShiftDisplay');
 
             // 从本地存储中获取当前班次信息
             function updateCashierNameStyle() {
+                if (!cashierNameDisplay) return;
                 const currentShift = localStorage.getItem('cashierShift');
 
                 // 移除所有样式类
-                cashierNameDisplay.classList.remove('first-shift-name', 'second-shift-name');
+                cashierNameDisplay.classList.remove('first-shift-name', 'second-shift-name', 'third-shift-name');
 
                 // 根据班次添加相应的样式类
                 if (currentShift === '1st Shift') {
                     cashierNameDisplay.classList.add('first-shift-name');
                 } else if (currentShift === '2nd Shift') {
                     cashierNameDisplay.classList.add('second-shift-name');
+                } else if (currentShift === '3rd Shift') {
+                    cashierNameDisplay.classList.add('third-shift-name');
                 }
             }
 
             // 初始化时应用样式
             updateCashierNameStyle();
-
-            // 当提交收银员信息表单时
-            if (cashierNameForm) {
-                cashierNameForm.addEventListener('submit', function (e) {
-                    // 原有的表单处理逻辑会在pos.js中执行
-
-                    // 在表单提交后延迟一点应用样式，确保localStorage已更新
-                    setTimeout(updateCashierNameStyle, 100);
-                });
-            }
 
             // 监听本地存储变化
             window.addEventListener('storage', function (e) {
@@ -2330,15 +2328,6 @@
                     updateCashierNameStyle();
                 }
             });
-
-            // 添加一个变更收银员按钮的事件监听器
-            const changeCashierBtn = document.getElementById('changeCashierBtn');
-            if (changeCashierBtn) {
-                changeCashierBtn.addEventListener('click', function () {
-                    // 按钮点击后延迟应用样式，确保modal处理完成
-                    setTimeout(updateCashierNameStyle, 500);
-                });
-            }
         });
     </script>
 

@@ -770,7 +770,7 @@ function initEventListeners() {
 }
 
 // 仅超级管理员 (sadmin) 可访问的视图
-const SADMIN_ONLY_VIEWS = ['cashier-names', 'online-users', 'announcement'];
+const SADMIN_ONLY_VIEWS = ['cashier-names', 'cashier-avatars', 'online-users', 'announcement'];
 
 // 切换视图
 function switchView(viewName) {
@@ -898,6 +898,9 @@ function performViewSwitch(viewName) {
         case 'cashier-names':
             viewTitle.textContent = 'Cashier Name Cleanup';
             break;
+        case 'cashier-avatars':
+            viewTitle.textContent = 'Cashier Avatar';
+            break;
     }
     
     // 显示对应的视图
@@ -932,6 +935,11 @@ function performViewSwitch(viewName) {
                 // 收银员名字批量整理工具（js/cashier-names.js）
                 if (typeof window.loadCashierNamesView === 'function') {
                     window.loadCashierNamesView();
+                }
+            } else if (viewName === 'cashier-avatars') {
+                // 收银员头像管理工具（js/cashier-avatars.js）
+                if (typeof window.loadCashierAvatarsView === 'function') {
+                    window.loadCashierAvatarsView();
                 }
             }
         } else {

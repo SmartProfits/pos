@@ -129,7 +129,6 @@ const cashierNameForm = document.getElementById('cashierNameForm');
 const cashierNameDisplay = document.getElementById('cashierNameDisplay');
 const cashierShiftDisplay = document.getElementById('cashierShiftDisplay');
 const cashierShiftSelect = document.getElementById('cashierShift');
-const changeCashierBtn = document.getElementById('changeCashierBtn');
 const viewCashierHistoryBtn = document.getElementById('viewCashierHistoryBtn');
 const sidebar = document.getElementById('sidebar');
 const sidebarToggle = document.getElementById('sidebarToggle');
@@ -390,6 +389,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
     if (cashierName) {
         cashierNameDisplay.textContent = cashierName;
+        // 从 localStorage 恢复头像
+        let savedAvatar = null;
+        try {
+            savedAvatar = JSON.parse(localStorage.getItem('cashierAvatar') || 'null');
+        } catch (e) { savedAvatar = null; }
+        updateCashierProfileAvatar(cashierName, savedAvatar);
     } else {
         cashierNameDisplay.textContent = 'Not set';
     }
@@ -401,8 +406,8 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!cashierName || !cashierShift) {
-        // 如果没有设置，显示输入模态框
-        showModal(cashierNameModal);
+        // 如果没有设置，显示登录模态框
+        openCashierLogin();
     }
 
     // 初始化事件监听器
@@ -756,8 +761,7 @@ function initEventListeners() {
     checkoutBtn.addEventListener('click', checkout);
 
     // 收银员相关
-    cashierNameForm.addEventListener('submit', handleCashierNameSubmit);
-    changeCashierBtn.addEventListener('click', () => showModal(cashierNameModal));
+    initCashierLogin();
     viewCashierHistoryBtn.addEventListener('click', showCashierHistory);
 
     // 侧边栏折叠相关
@@ -2544,9 +2548,6 @@ function initializeShiftDropdown() {
 
 // 显示模态框
 function showModal(modal) {
-    if (modal === cashierNameModal) {
-        initializeShiftDropdown();
-    }
     modal.style.display = 'block';
 }
 
@@ -4945,40 +4946,839 @@ function updateProductInventory(storeId, cartItems) {
         });
 }
 
-// 处理收银员姓名表单提交
-function handleCashierNameSubmit(e) {
-    e.preventDefault();
-    const nameInput = document.getElementById('cashierName');
-    const shiftInput = document.getElementById('cashierShift');
-    const newCashierName = nameInput.value.trim();
-    const newCashierShift = shiftInput.value;
+// =============================================================================
+//  CASHIER LOGIN  —  名字 + 4位密码 + 班次
+//  账号存 Firebase RTDB:  cashiers/{nameKey} = { name, pin, createdAt }
+//  所有店铺共用同一份账号（不按 storeId 区分）
+// =============================================================================
 
-    if (newCashierName) {
-        // 记录收银员换班
-        recordCashierShift(newCashierName, newCashierShift);
+let cashierAccounts = [];      // [{ key, name, pin }]
+let cashierLoginTarget = null; // 当前正在登录的账号
+let cashierPinBuffer = '';     // 4位密码缓存（软键盘/实体键盘通用）
 
-        // 更新当前收银员信息
-        cashierName = newCashierName;
-        cashierShift = newCashierShift;
-        cashierNameDisplay.textContent = cashierName;
-        cashierShiftDisplay.textContent = cashierShift;
+const CASHIER_NODE = 'cashiers';
 
-        // 应用班次样式
-        cashierNameDisplay.classList.remove('first-shift-name', 'second-shift-name', 'third-shift-name');
-        if (newCashierShift === '1st Shift') {
-            cashierNameDisplay.classList.add('first-shift-name');
-        } else if (newCashierShift === '2nd Shift') {
-            cashierNameDisplay.classList.add('second-shift-name');
-        } else if (newCashierShift === '3rd Shift') {
-            cashierNameDisplay.classList.add('third-shift-name');
+// DiceBear 免费头像 API（Avataaars 风格）。seed 用名字，保证同一个人头像稳定。
+const CASHIER_AVATAR_STYLE = 'avataaars';
+
+// avataaars 可自定义的组件及其可选变体（来自 DiceBear 官方定义）
+const CASHIER_AVATAR_COMPONENTS = {
+    top: ['bigHair', 'bob', 'bun', 'curly', 'curvy', 'dreads', 'frida', 'frizzle', 'fro', 'hat', 'hijab', 'longButNotTooLong', 'miaWallace', 'shaggy', 'shaggyMullet', 'shavedSides', 'shortCurly', 'shortFlat', 'shortRound', 'shortWaved', 'sides', 'straight01', 'straight02', 'straightAndStrand', 'theCaesar', 'theCaesarAndSidePart', 'turban', 'winterHat02', 'winterHat03', 'winterHat04'],
+    accessories: ['eyepatch', 'kurt', 'prescription01', 'prescription02', 'round', 'sunglasses', 'wayfarers'],
+    facialHair: ['beardLight', 'beardMajestic', 'beardMedium', 'moustacheFancy', 'moustacheMagnum'],
+    eyebrows: ['angry', 'angryNatural', 'default', 'defaultNatural', 'flatNatural', 'frownNatural', 'raisedExcited', 'raisedExcitedNatural', 'sadConcerned', 'sadConcernedNatural', 'unibrowNatural', 'upDown', 'upDownNatural'],
+    eyes: ['closed', 'cry', 'default', 'eyeRoll', 'happy', 'hearts', 'side', 'squint', 'surprised', 'wink', 'winkWacky', 'xDizzy'],
+    mouth: ['concerned', 'default', 'disbelief', 'eating', 'grimace', 'sad', 'screamOpen', 'serious', 'smile', 'tongue', 'twinkle', 'vomit'],
+    clothes: ['blazerAndShirt', 'blazerAndSweater', 'collarAndSweater', 'graphicShirt', 'hoodie', 'overall', 'shirtCrewNeck', 'shirtScoopNeck', 'shirtVNeck'],
+    clothesGraphic: ['bat', 'bear', 'cumbia', 'deer', 'diamond', 'hola', 'pizza', 'resist', 'skull', 'skullOutline']
+};
+
+// 颜色选项（来自 DiceBear 官方定义，UI 色块用）
+// 每个 key 对应：皮肤 skin / 头发 hair / 衣服 clothes / 背景 background / 眼镜 accessories / 帽子 hat
+const CASHIER_AVATAR_COLORS = {
+    skin: ['#614335', '#d08b5b', '#ae5d29', '#edb98a', '#ffdbb4', '#fd9841', '#f8d25c'],
+    hair: ['#a55728', '#2c1b18', '#b58143', '#d6b370', '#724133', '#4a312c', '#f59797', '#ecdcbf', '#c93305', '#e8e1e1'],
+    clothes: ['#262e33', '#65c9ff', '#5199e4', '#25557c', '#e6e6e6', '#929598', '#3c4f5c', '#b1e2ff', '#a7ffc4', '#ffafb9', '#ffffb1', '#ff488e', '#ff5c5c', '#ffffff'],
+    accessories: ['#262e33', '#65c9ff', '#5199e4', '#25557c', '#e6e6e6', '#929598', '#3c4f5c', '#b1e2ff', '#a7ffc4', '#ffdeb5', '#ffafb9', '#ffffb1', '#ff488e', '#ff5c5c', '#ffffff'],
+    hat: ['#262e33', '#65c9ff', '#5199e4', '#25557c', '#e6e6e6', '#929598', '#3c4f5c', '#b1e2ff', '#a7ffc4', '#ffdeb5', '#ffafb9', '#ffffb1', '#ff488e', '#ff5c5c', '#ffffff'],
+    background: ['#b6e3f4', '#c0aede', '#d1d4f9', '#ffd5dc', '#ffdfbf', '#ffffff', '#e2e8f0', '#d0f4de', '#fff3b0']
+};
+
+// 默认头像配置（新建账号时用它）
+function cashierDefaultAvatar() {
+    return {
+        top: 'shortFlat',
+        accessories: 'none',
+        facialHair: 'none',
+        eyebrows: 'default',
+        eyes: 'happy',
+        mouth: 'smile',
+        clothes: 'shirtCrewNeck',
+        clothesGraphic: 'none',
+        skin: '#edb98a',
+        hairColor: '#2c1b18',
+        clothesColor: '#5199e4',
+        accessoriesColor: '#262e33',
+        hatColor: '#5199e4',
+        background: '#b6e3f4'
+    };
+}
+
+// 生成头像 URL。avatar 为可选配置对象（缺省则用随机默认）。
+function cashierAvatarUrl(name, avatar) {
+    const seed = encodeURIComponent(String(name || '?'));
+    const a = avatar || cashierDefaultAvatar();
+
+    const params = new URLSearchParams();
+    params.set('seed', seed);
+
+    // 组件变体（'none' 表示隐藏该部位，跳过该参数让 DiceBear 不渲染）
+    // 注意：DiceBear 10.x 的 avataaars 组件参数名是 `<组件名>Variant`（如 topVariant）
+    // 额外校验：只传合法值，避免旧数据里的无效值导致 400
+    Object.keys(CASHIER_AVATAR_COMPONENTS).forEach(comp => {
+        const val = a[comp];
+        if (!val || val === 'none') return;
+        if (CASHIER_AVATAR_COMPONENTS[comp].indexOf(val) === -1) return;
+        // clothesGraphic 只在衣服是 graphicShirt 时才显示
+        if (comp === 'clothesGraphic' && a.clothes !== 'graphicShirt') return;
+        params.set(comp + 'Variant', val);
+    });
+
+    // accessories 和 facialHair 默认 probability 只有 10%（随机可能不显示），
+    // 必须显式设为 100 才能稳定渲染出来。
+    if (a.accessories && a.accessories !== 'none') params.set('accessoriesProbability', '100');
+    if (a.facialHair && a.facialHair !== 'none') params.set('facialHairProbability', '100');
+
+    // 颜色（DiceBear 要求纯 6 位 hex，不含 # 前缀，这里统一去掉 #）
+    // 额外校验：必须是 6 位 hex 才传，否则跳过
+    function cleanHex(c) {
+        const h = String(c || '').replace('#', '');
+        return /^[a-fA-F0-9]{6}$/.test(h) ? h : '';
+    }
+    const skinHex = cleanHex(a.skin);
+    const hairHex = cleanHex(a.hairColor);
+    const clothesHex = cleanHex(a.clothesColor);
+    const accessoriesHex = cleanHex(a.accessoriesColor);
+    const hatHex = cleanHex(a.hatColor);
+    const bgHex = cleanHex(a.background);
+    if (skinHex) params.set('skinColor', skinHex);
+    if (hairHex) params.set('hairColor', hairHex);
+    if (clothesHex) params.set('clothesColor', clothesHex);
+    // 眼镜颜色只在有眼镜配件时才有意义（无配件时参数无害，但统一跟随配件）
+    if (accessoriesHex && a.accessories && a.accessories !== 'none') params.set('accessoriesColor', accessoriesHex);
+    // 帽子颜色只在发型/帽子是 hat/turban/winterHat/hijab 等帽类时才生效
+    if (hatHex) params.set('hatColor', hatHex);
+    if (bgHex) params.set('backgroundColor', bgHex);
+
+    return `https://api.dicebear.com/10.x/${CASHIER_AVATAR_STYLE}/svg?${params.toString()}`;
+}
+
+// 名字 → RTDB key（去掉 Firebase 不支持的字符，转小写去空格）
+function cashierNameKey(name) {
+    return String(name).trim()
+        .replace(/[.#$\[\]]/g, '')
+        .replace(/\s+/g, '_')
+        .toLowerCase();
+}
+
+// 读取收银员账号列表（所有店铺共用同一份，存 cashiers/{nameKey}）
+function loadCashierAccounts() {
+    if (typeof database === 'undefined' || !database) {
+        return Promise.resolve([]);
+    }
+    return database.ref(`${CASHIER_NODE}`).once('value')
+        .then(snap => {
+            const data = snap.val() || {};
+            cashierAccounts = Object.keys(data).map(k => ({
+                key: k,
+                name: data[k].name || k,
+                pin: data[k].pin || '',
+                // 旧版用的是 toon-head 结构（含 hair 字段）；新版 avataaars 用 top 字段。
+                // 检测到旧结构则视为无 avatar，走 avataaars 默认值。
+                avatar: (data[k].avatar && data[k].avatar.top !== undefined) ? data[k].avatar : null
+            }));
+            return cashierAccounts;
+        })
+        .catch(err => {
+            console.warn('[CashierLogin] 读取账号失败', err);
+            cashierAccounts = [];
+            return cashierAccounts;
+        });
+}
+
+// 查找名字匹配的账号（忽略大小写、首尾空格）
+function findCashierAccount(name) {
+    const n = String(name).trim().toLowerCase();
+    return cashierAccounts.find(a => String(a.name).trim().toLowerCase() === n) || null;
+}
+
+// 登录流程 UI 状态管理
+function cashierShowStep(step) {
+    const steps = ['cashierPickStep', 'cashierPinStep', 'cashierShiftStep', 'cashierAddStep', 'cashierEditPickStep', 'cashierEditorStep'];
+    steps.forEach(s => {
+        const el = document.getElementById(s);
+        if (el) el.classList.add('hidden');
+    });
+    const active = document.getElementById(step);
+    if (active) active.classList.remove('hidden');
+}
+
+// 渲染名字列表（网格：3列圆形头像 + 名字）
+function renderCashierNameList() {
+    const host = document.getElementById('cashierNameList');
+    if (!host) return;
+
+    if (!cashierAccounts.length) {
+        host.innerHTML = `
+            <div class="cashier-empty">
+                <i class="material-icons">group_off</i>
+                <p>No cashiers yet.<br>Tap <strong>Add Cashier</strong> to create one.</p>
+            </div>`;
+        return;
+    }
+
+    host.innerHTML = cashierAccounts
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(a => {
+            const initial = (a.name || '?').charAt(0).toUpperCase();
+            return `
+            <button type="button" class="cashier-user-card" data-name="${escapePosText(a.name)}">
+                <span class="cashier-user-avatar">
+                    <img src="${cashierAvatarUrl(a.name, a.avatar)}" alt="" class="cashier-avatar-img"
+                        onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <span class="cashier-avatar-fallback" style="display:none;">${escapePosText(initial)}</span>
+                </span>
+                <span class="cashier-user-name">${escapePosText(a.name)}</span>
+            </button>`;
+        }).join('');
+
+    host.querySelectorAll('.cashier-user-card').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const name = btn.dataset.name;
+            cashierLoginTarget = findCashierAccount(name);
+            if (!cashierLoginTarget) return;
+            cashierPinBuffer = '';
+            const who = document.getElementById('cashierPinWho');
+            if (who) who.textContent = 'Logging in as ' + name;
+            // 在 PIN 界面显示该用户头像
+            const avatarHost = document.getElementById('cashierPinAvatar');
+            if (avatarHost) {
+                const acc = cashierLoginTarget;
+                const initial = (acc.name || '?').charAt(0).toUpperCase();
+                avatarHost.innerHTML = `
+                    <img src="${cashierAvatarUrl(acc.name, acc.avatar)}" alt="" class="cashier-avatar-img"
+                        onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <span class="cashier-avatar-fallback" style="display:none;">${escapePosText(initial)}</span>`;
+            }
+            const err = document.getElementById('cashierPinError');
+            if (err) err.classList.add('hidden');
+            const pinInput = document.getElementById('cashierPinInput');
+            if (pinInput) pinInput.value = '';
+            renderPinDots();
+            cashierShowStep('cashierPinStep');
+        });
+    });
+}
+
+// 渲染密码圆点
+function renderPinDots() {
+    const dots = document.getElementById('cashierPinDots');
+    if (!dots) return;
+    let html = '';
+    for (let i = 0; i < 4; i++) {
+        html += `<span class="cashier-pin-dot ${i < cashierPinBuffer.length ? 'filled' : ''}"></span>`;
+    }
+    dots.innerHTML = html;
+}
+
+// 检查4位密码是否正确，正确则进入班次选择
+function cashierCheckPin() {
+    if (!cashierLoginTarget) return;
+    const pin = cashierPinBuffer;
+    const err = document.getElementById('cashierPinError');
+    const input = document.getElementById('cashierPinInput');
+
+    if (pin.length !== 4) {
+        if (err) { err.textContent = 'Enter 4 digits.'; err.classList.remove('hidden'); }
+        return;
+    }
+    if (pin !== cashierLoginTarget.pin) {
+        if (err) { err.textContent = 'Incorrect PIN. Try again.'; err.classList.remove('hidden'); }
+        cashierPinBuffer = '';
+        if (input) input.value = '';
+        renderPinDots();
+        return;
+    }
+
+    // 密码正确 → 根据模式分流
+    if (err) err.classList.add('hidden');
+    if (cashierPinMode === 'edit') {
+        // 编辑头像模式：进入编辑器
+        renderCashierEditor();
+        cashierShowStep('cashierEditorStep');
+        return;
+    }
+    const who = document.getElementById('cashierShiftWho');
+    if (who) who.textContent = cashierLoginTarget.name;
+    renderShiftOptions();
+    cashierShowStep('cashierShiftStep');
+}
+
+// 根据门店 shiftCount 渲染班次按钮
+function renderShiftOptions() {
+    const host = document.querySelector('.cashier-shift-options');
+    if (!host) return;
+    const shiftCount = (storeData && storeData.shiftCount !== undefined) ? parseInt(storeData.shiftCount) : 2;
+    host.querySelectorAll('.cashier-shift-btn').forEach(btn => {
+        const shift = btn.dataset.shift;
+        if (shift === '3rd Shift' && shiftCount !== 3) {
+            btn.style.display = 'none';
+        } else {
+            btn.style.display = '';
         }
+    });
+}
 
-        // 保存到本地存储
-        localStorage.setItem('cashierName', cashierName);
-        localStorage.setItem('cashierShift', cashierShift);
+// 更新侧边栏的收银员头像（avatar 为 null 时显示首字母）
+function updateCashierProfileAvatar(name, avatar) {
+    const host = document.getElementById('cashierProfileAvatar');
+    if (!host) return;
+    const initial = (name || '?').charAt(0).toUpperCase();
+    if (avatar) {
+        host.innerHTML = `
+            <img src="${cashierAvatarUrl(name, avatar)}" alt="" class="cashier-avatar-img"
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <span class="cashier-avatar-fallback" style="display:none;">${escapePosText(initial)}</span>`;
+    } else {
+        host.innerHTML = `<span class="cashier-avatar-fallback">${escapePosText(initial)}</span>`;
+    }
+}
 
-        // 隐藏模态框
-        hideModal(cashierNameModal);
+// 完成登录：选中班次后进入收银台
+function cashierFinishLogin(shift) {
+    if (!cashierLoginTarget) return;
+    const name = cashierLoginTarget.name;
+    const avatar = cashierLoginTarget.avatar || null;
+
+    cashierName = name;
+    cashierShift = shift;
+
+    // 记录换班
+    recordCashierShift(name, shift);
+
+    // 更新界面
+    cashierNameDisplay.textContent = name;
+    cashierShiftDisplay.textContent = shift;
+    updateCashierProfileAvatar(name, avatar);
+
+    cashierNameDisplay.classList.remove('first-shift-name', 'second-shift-name', 'third-shift-name');
+    if (shift === '1st Shift') cashierNameDisplay.classList.add('first-shift-name');
+    else if (shift === '2nd Shift') cashierNameDisplay.classList.add('second-shift-name');
+    else if (shift === '3rd Shift') cashierNameDisplay.classList.add('third-shift-name');
+
+    // 保存到本地存储（头像 URL 也存下来，刷新后恢复）
+    localStorage.setItem('cashierName', name);
+    localStorage.setItem('cashierShift', shift);
+    if (avatar) {
+        localStorage.setItem('cashierAvatar', JSON.stringify(avatar));
+    } else {
+        localStorage.removeItem('cashierAvatar');
+    }
+
+    // 复位状态并关闭
+    cashierLoginTarget = null;
+    cashierPinBuffer = '';
+    hideModal(cashierNameModal);
+}
+
+// 处理创建账号表单提交
+function handleCashierAddSubmit(e) {
+    e.preventDefault();
+    const nameInput = document.getElementById('cashierNewName');
+    const pinInput = document.getElementById('cashierNewPin');
+    const pin2Input = document.getElementById('cashierNewPin2');
+    const err = document.getElementById('cashierAddError');
+
+    const name = nameInput.value.trim();
+    const pin = pinInput.value.trim();
+    const pin2 = pin2Input.value.trim();
+
+    if (err) err.classList.add('hidden');
+
+    if (!name) {
+        if (err) { err.textContent = 'Please enter a name.'; err.classList.remove('hidden'); }
+        return;
+    }
+    if (!/^\d{4}$/.test(pin)) {
+        if (err) { err.textContent = 'PIN must be exactly 4 digits.'; err.classList.remove('hidden'); }
+        return;
+    }
+    if (pin !== pin2) {
+        if (err) { err.textContent = 'PINs do not match.'; err.classList.remove('hidden'); }
+        return;
+    }
+
+    if (typeof database === 'undefined' || !database) {
+        if (err) { err.textContent = 'Cannot reach server. Check your connection.'; err.classList.remove('hidden'); }
+        return;
+    }
+
+    // 防止同名重复创建（全局唯一，所有店铺共用）
+    if (findCashierAccount(name)) {
+        if (err) { err.textContent = 'This name already exists. Go back and log in.'; err.classList.remove('hidden'); }
+        return;
+    }
+
+    const key = cashierNameKey(name);
+    const btn = document.querySelector('#cashierAddForm .cashier-submit-btn');
+    if (btn) btn.disabled = true;
+
+    database.ref(`${CASHIER_NODE}/${key}`).set({
+        name: name,
+        pin: pin,
+        avatar: cashierDefaultAvatar(),
+        createdAt: firebase.database.ServerValue.TIMESTAMP
+    }).then(() => {
+        // 重新加载并直接登录
+        return loadCashierAccounts().then(() => {
+            cashierLoginTarget = findCashierAccount(name);
+            if (!cashierLoginTarget) throw new Error('account not found');
+            cashierPinBuffer = pin;
+            renderPinDots();
+            const who = document.getElementById('cashierShiftWho');
+            if (who) who.textContent = name;
+            renderShiftOptions();
+            cashierShowStep('cashierShiftStep');
+            nameInput.value = '';
+            pinInput.value = '';
+            pin2Input.value = '';
+        });
+    }).catch(er => {
+        console.error('[CashierLogin] 创建账号失败', er);
+        if (err) { err.textContent = 'Failed to create account: ' + (er && er.message ? er.message : er); err.classList.remove('hidden'); }
+    }).finally(() => {
+        if (btn) btn.disabled = false;
+    });
+}
+
+// =============================================================================
+//  EDIT PROFILE  —  修改头像组件和颜色
+// =============================================================================
+
+let cashierEditTarget = null;   // 正在编辑的账号
+let cashierEditDraft = null;    // 编辑中的头像配置草稿
+let cashierPinMode = 'login';   // 'login' 登录 | 'edit' 编辑头像
+
+// 打开 Edit Avatar：先选用户
+function openCashierEdit() {
+    cashierEditTarget = null;
+    cashierEditDraft = null;
+    cashierPinMode = 'login';
+    cashierShowStep('cashierEditPickStep');
+    renderCashierEditPickList();
+}
+
+// 进入某个账号的头像编辑流程（先 PIN 验证）
+function startCashierEdit(acc) {
+    if (!acc) return;
+    cashierEditTarget = acc;
+    cashierEditDraft = Object.assign(cashierDefaultAvatar(), acc.avatar || {});
+    // 编辑头像前需要验证密码
+    cashierLoginTarget = acc;
+    cashierPinMode = 'edit';
+    cashierPinBuffer = '';
+    const who = document.getElementById('cashierPinWho');
+    if (who) who.textContent = 'Enter PIN for ' + acc.name;
+    // 在 PIN 界面显示该用户头像
+    const avatarHost = document.getElementById('cashierPinAvatar');
+    if (avatarHost) {
+        const initial = (acc.name || '?').charAt(0).toUpperCase();
+        avatarHost.innerHTML = `
+            <img src="${cashierAvatarUrl(acc.name, acc.avatar)}" alt="" class="cashier-avatar-img"
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <span class="cashier-avatar-fallback" style="display:none;">${escapePosText(initial)}</span>`;
+    }
+    const err = document.getElementById('cashierPinError');
+    if (err) err.classList.add('hidden');
+    const pinInput = document.getElementById('cashierPinInput');
+    if (pinInput) pinInput.value = '';
+    renderPinDots();
+    cashierShowStep('cashierPinStep');
+    // 确保模态框打开（从侧边栏直接点击进入时，模态框可能处于关闭状态）
+    showModal(cashierNameModal);
+}
+
+// 渲染"选择要编辑的用户"列表
+function renderCashierEditPickList() {
+    const host = document.getElementById('cashierEditPickList');
+    if (!host) return;
+
+    if (!cashierAccounts.length) {
+        host.innerHTML = '<div class="cashier-empty"><p>No cashiers to edit.</p></div>';
+        return;
+    }
+
+    host.innerHTML = cashierAccounts
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(a => {
+            const initial = (a.name || '?').charAt(0).toUpperCase();
+            return `
+            <button type="button" class="cashier-edit-item" data-name="${escapePosText(a.name)}">
+                <span class="cashier-edit-avatar">
+                    <img src="${cashierAvatarUrl(a.name, a.avatar)}" alt="" class="cashier-avatar-img"
+                        onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <span class="cashier-avatar-fallback" style="display:none;">${escapePosText(initial)}</span>
+                </span>
+                <span class="cashier-edit-name">${escapePosText(a.name)}</span>
+                <i class="material-icons">edit</i>
+            </button>`;
+        }).join('');
+
+    host.querySelectorAll('.cashier-edit-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const name = btn.dataset.name;
+            const acc = findCashierAccount(name);
+            if (!acc) return;
+            startCashierEdit(acc);
+        });
+    });
+}
+
+// 渲染头像编辑器（组件选择 + 颜色选择 + 实时预览，用 < > 切换）
+// 颜色选择器直接放在对应组件选项的右边（同一行），skin/background 无对应组件则独立成行。
+function renderCashierEditor() {
+    const who = document.getElementById('cashierEditWho');
+    if (who) who.textContent = cashierEditTarget ? ('Editing: ' + cashierEditTarget.name) : '';
+
+    // 预览
+    renderCashierEditPreview();
+
+    // 组件名 → draft 字段名（颜色）
+    const colorKeyMap = {
+        skin: 'skin',
+        hair: 'hairColor',
+        clothes: 'clothesColor',
+        accessories: 'accessoriesColor',
+        hat: 'hatColor',
+        background: 'background'
+    };
+    const colorLabels = {
+        skin: 'Skin',
+        hair: 'Hair',
+        clothes: 'Clothes',
+        accessories: 'Glasses',
+        hat: 'Hat',
+        background: 'Background'
+    };
+    const compLabels = {
+        top: 'Hair / Hat',
+        accessories: 'Accessories',
+        facialHair: 'Facial Hair',
+        eyebrows: 'Eyebrows',
+        eyes: 'Eyes',
+        mouth: 'Mouth',
+        clothes: 'Clothes',
+        clothesGraphic: 'Clothes Graphic'
+    };
+
+    // 决定要渲染哪些组件：clothesGraphic 只在衣服是 graphicShirt 时出现
+    const compsToRender = Object.keys(CASHIER_AVATAR_COMPONENTS).filter(comp => {
+        if (comp === 'clothesGraphic') {
+            return (cashierEditDraft.clothes === 'graphicShirt');
+        }
+        return true;
+    });
+
+    // 组件 → 关联的颜色（放在该组件行右侧）
+    // - top：普通发型显示发色 hair；帽类发型显示帽子色 hat（二选一）
+    // - accessories：眼镜色（仅配件非 none）
+    // - clothes：衣服色
+    function colorsForComp(comp) {
+        if (comp === 'top') {
+            const hatStyles = ['hat', 'turban', 'winterHat02', 'winterHat03', 'winterHat04', 'hijab'];
+            return (hatStyles.indexOf(cashierEditDraft.top) !== -1) ? ['hat'] : ['hair'];
+        }
+        if (comp === 'accessories') {
+            return (cashierEditDraft.accessories && cashierEditDraft.accessories !== 'none') ? ['accessories'] : [];
+        }
+        if (comp === 'clothes') return ['clothes'];
+        return [];
+    }
+
+    // 生成一个颜色选择器（< > 切换色块）
+    function colorPickerHtml(colorName) {
+        const values = CASHIER_AVATAR_COLORS[colorName];
+        const key = colorKeyMap[colorName] || colorName;
+        const cur = cashierEditDraft[key] || values[0];
+        return `
+            <div class="cashier-color-picker" data-color="${escapePosText(colorName)}">
+                <button type="button" class="cashier-picker-btn cashier-picker-prev" data-color="${escapePosText(colorName)}">
+                    <i class="material-icons">chevron_left</i>
+                </button>
+                <span class="cashier-picker-swatch" style="background-color: ${escapePosText(cur)};"></span>
+                <button type="button" class="cashier-picker-btn cashier-picker-next" data-color="${escapePosText(colorName)}">
+                    <i class="material-icons">chevron_right</i>
+                </button>
+            </div>`;
+    }
+
+    // 渲染到组件容器（组件 + 关联颜色并排）
+    const compHost = document.getElementById('cashierEditComponents');
+    if (compHost) {
+        let html = '';
+
+        // 组件行（含关联颜色）
+        compsToRender.forEach(comp => {
+            const label = compLabels[comp] || (comp.charAt(0).toUpperCase() + comp.slice(1));
+            const options = ['none'].concat(CASHIER_AVATAR_COMPONENTS[comp]);
+            const cur = cashierEditDraft[comp] || 'none';
+            const colors = colorsForComp(comp);
+            const colorHtml = colors.map(colorPickerHtml).join('');
+            html += `
+            <div class="cashier-edit-field">
+                <label class="cashier-edit-label">${escapePosText(label)}</label>
+                <div class="cashier-edit-line">
+                    <div class="cashier-picker-row cashier-picker-comp" data-comp="${escapePosText(comp)}">
+                        <button type="button" class="cashier-picker-btn cashier-picker-prev" data-comp="${escapePosText(comp)}">
+                            <i class="material-icons">chevron_left</i>
+                        </button>
+                        <span class="cashier-picker-value">${escapePosText(cur === 'none' ? 'None' : cur)}</span>
+                        <button type="button" class="cashier-picker-btn cashier-picker-next" data-comp="${escapePosText(comp)}">
+                            <i class="material-icons">chevron_right</i>
+                        </button>
+                    </div>
+                    ${colorHtml}
+                </div>
+            </div>`;
+        });
+
+        // 独立颜色行：skin、background（无对应组件）
+        ['skin', 'background'].forEach(colorName => {
+            const label = colorLabels[colorName];
+            html += `
+            <div class="cashier-edit-field">
+                <label class="cashier-edit-label">${escapePosText(label)}</label>
+                <div class="cashier-edit-line">
+                    <div class="cashier-color-picker" data-color="${escapePosText(colorName)}">
+                        <button type="button" class="cashier-picker-btn cashier-picker-prev" data-color="${escapePosText(colorName)}">
+                            <i class="material-icons">chevron_left</i>
+                        </button>
+                        <span class="cashier-picker-swatch" style="background-color: ${escapePosText(cashierEditDraft[colorKeyMap[colorName]] || CASHIER_AVATAR_COLORS[colorName][0])};"></span>
+                        <button type="button" class="cashier-picker-btn cashier-picker-next" data-color="${escapePosText(colorName)}">
+                            <i class="material-icons">chevron_right</i>
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        });
+
+        compHost.innerHTML = html;
+
+        // 组件切换事件
+        compHost.querySelectorAll('.cashier-picker-btn[data-comp]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const comp = btn.dataset.comp;
+                const options = ['none'].concat(CASHIER_AVATAR_COMPONENTS[comp]);
+                const cur = cashierEditDraft[comp] || 'none';
+                let idx = options.indexOf(cur);
+                if (btn.classList.contains('cashier-picker-next')) {
+                    idx = (idx + 1) % options.length;
+                } else {
+                    idx = (idx - 1 + options.length) % options.length;
+                }
+                cashierEditDraft[comp] = options[idx];
+                // 如果切换的是衣服，且不再是 graphicShirt，则重置衣服图案
+                if (comp === 'clothes' && options[idx] !== 'graphicShirt') {
+                    cashierEditDraft.clothesGraphic = 'none';
+                }
+                renderCashierEditor();
+            });
+        });
+
+        // 颜色切换事件
+        compHost.querySelectorAll('.cashier-picker-btn[data-color]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const colorName = btn.dataset.color;
+                const values = CASHIER_AVATAR_COLORS[colorName];
+                const key = colorKeyMap[colorName] || colorName;
+                const cur = cashierEditDraft[key] || values[0];
+                let idx = values.indexOf(cur);
+                if (btn.classList.contains('cashier-picker-next')) {
+                    idx = (idx + 1) % values.length;
+                } else {
+                    idx = (idx - 1 + values.length) % values.length;
+                }
+                cashierEditDraft[key] = values[idx];
+                renderCashierEditor();
+            });
+        });
+    }
+}
+
+// 实时预览头像
+function renderCashierEditPreview() {
+    const preview = document.getElementById('cashierEditPreview');
+    if (!preview || !cashierEditTarget) return;
+    const name = cashierEditTarget.name;
+    preview.innerHTML = `
+        <img src="${cashierAvatarUrl(name, cashierEditDraft)}" alt="" class="cashier-preview-img"
+            onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <span class="cashier-avatar-fallback" style="display:none;">${escapePosText((name || '?').charAt(0).toUpperCase())}</span>`;
+}
+
+// 保存头像配置
+function saveCashierProfile() {
+    if (!cashierEditTarget) return;
+    const err = document.getElementById('cashierEditError');
+    if (err) err.classList.add('hidden');
+
+    if (typeof database === 'undefined' || !database) {
+        if (err) { err.textContent = 'Cannot reach server.'; err.classList.remove('hidden'); }
+        return;
+    }
+
+    const btn = document.getElementById('cashierEditSaveBtn');
+    if (btn) btn.disabled = true;
+
+    const editedName = cashierEditTarget.name;
+    const savedAvatar = cashierEditDraft;
+
+    database.ref(`${CASHIER_NODE}/${cashierEditTarget.key}`).update({
+        avatar: savedAvatar
+    }).then(() => {
+        // 更新本地缓存
+        if (cashierEditTarget) cashierEditTarget.avatar = savedAvatar;
+        cashierEditTarget = null;
+        cashierEditDraft = null;
+        cashierLoginTarget = null;
+        cashierPinMode = 'login';
+        if (btn) btn.disabled = false;
+        // 若编辑的是当前登录的收银员，同步刷新主页头像与本地缓存
+        if (cashierName === editedName) {
+            updateCashierProfileAvatar(cashierName, savedAvatar);
+            localStorage.setItem('cashierAvatar', JSON.stringify(savedAvatar));
+        }
+        // 返回用户列表
+        renderCashierNameList();
+        cashierShowStep('cashierPickStep');
+    }).catch(er => {
+        console.error('[CashierLogin] 保存头像失败', er);
+        if (err) { err.textContent = 'Failed to save: ' + (er && er.message ? er.message : er); err.classList.remove('hidden'); }
+        if (btn) btn.disabled = false;
+    });
+}
+
+// 打开收银员登录弹窗（每次打开都刷新名单）
+function openCashierLogin() {
+    cashierLoginTarget = null;
+    cashierPinBuffer = '';
+    cashierPinMode = 'login';
+    cashierEditTarget = null;
+    cashierEditDraft = null;
+    cashierShowStep('cashierPickStep');
+    const nameList = document.getElementById('cashierNameList');
+    if (nameList) nameList.innerHTML = '<div class="cashier-loading"><i class="material-icons">hourglass_empty</i> Loading cashiers…</div>';
+    showModal(cashierNameModal);
+    loadCashierAccounts().then(() => renderCashierNameList());
+}
+
+// 初始化收银员登录相关事件监听
+function initCashierLogin() {
+    const addBtn = document.getElementById('cashierAddBtn');
+    if (addBtn) addBtn.addEventListener('click', () => cashierShowStep('cashierAddStep'));
+
+    const editBtn = document.getElementById('cashierEditBtn');
+    if (editBtn) editBtn.addEventListener('click', openCashierEdit);
+
+    const addForm = document.getElementById('cashierAddForm');
+    if (addForm) addForm.addEventListener('submit', handleCashierAddSubmit);
+
+    const addBack = document.getElementById('cashierAddBack');
+    if (addBack) addBack.addEventListener('click', () => cashierShowStep('cashierPickStep'));
+
+    const pinBack = document.getElementById('cashierPinBack');
+    if (pinBack) pinBack.addEventListener('click', () => {
+        if (cashierPinMode === 'edit') {
+            cashierEditTarget = null;
+            cashierEditDraft = null;
+            cashierLoginTarget = null;
+            cashierPinBuffer = '';
+            cashierPinMode = 'login';
+            cashierShowStep('cashierEditPickStep');
+        } else {
+            cashierShowStep('cashierPickStep');
+        }
+    });
+
+    const shiftBack = document.getElementById('cashierShiftBack');
+    if (shiftBack) shiftBack.addEventListener('click', () => cashierShowStep('cashierPickStep'));
+
+    const editPickBack = document.getElementById('cashierEditPickBack');
+    if (editPickBack) editPickBack.addEventListener('click', () => cashierShowStep('cashierPickStep'));
+
+    const editorBack = document.getElementById('cashierEditBack');
+    if (editorBack) editorBack.addEventListener('click', () => {
+        cashierEditTarget = null;
+        cashierEditDraft = null;
+        cashierLoginTarget = null;
+        cashierPinMode = 'login';
+        cashierShowStep('cashierEditPickStep');
+    });
+
+    const editSaveBtn = document.getElementById('cashierEditSaveBtn');
+    if (editSaveBtn) editSaveBtn.addEventListener('click', saveCashierProfile);
+
+    // 密码输入：实体键盘输入
+    const pinInput = document.getElementById('cashierPinInput');
+    if (pinInput) {
+        pinInput.addEventListener('input', () => {
+            cashierPinBuffer = pinInput.value.replace(/\D/g, '').slice(0, 4);
+            pinInput.value = cashierPinBuffer;
+            renderPinDots();
+            const err = document.getElementById('cashierPinError');
+            if (err) err.classList.add('hidden');
+            if (cashierPinBuffer.length === 4) cashierCheckPin();
+        });
+        pinInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); cashierCheckPin(); }
+        });
+    }
+
+    // PIN 数字键盘按钮
+    const pinKeypad = document.getElementById('cashierPinKeypad');
+    if (pinKeypad) {
+        pinKeypad.querySelectorAll('.cashier-pin-key[data-pin]').forEach(key => {
+            key.addEventListener('click', () => {
+                if (!cashierLoginTarget) return;
+                if (cashierPinBuffer.length >= 4) return;
+                cashierPinBuffer += key.dataset.pin;
+                renderPinDots();
+                const err = document.getElementById('cashierPinError');
+                if (err) err.classList.add('hidden');
+                if (cashierPinBuffer.length === 4) cashierCheckPin();
+            });
+        });
+        const pinBack = document.getElementById('cashierPinKeyBack');
+        if (pinBack) {
+            pinBack.addEventListener('click', () => {
+                if (!cashierLoginTarget) return;
+                cashierPinBuffer = cashierPinBuffer.slice(0, -1);
+                renderPinDots();
+                const err = document.getElementById('cashierPinError');
+                if (err) err.classList.add('hidden');
+            });
+        }
+    }
+
+    // 班次按钮
+    document.querySelectorAll('.cashier-shift-btn').forEach(btn => {
+        btn.addEventListener('click', () => cashierFinishLogin(btn.dataset.shift));
+    });
+
+    // 点击头像/名字 → 直接跳去 "Who's working?" 选用户页面
+    const avatarBtn = document.getElementById('cashierProfileAvatar');
+    if (avatarBtn) {
+        avatarBtn.addEventListener('click', openCashierLogin);
+    }
+
+    const nameDisplay = document.getElementById('cashierNameDisplay');
+    if (nameDisplay) {
+        nameDisplay.addEventListener('click', openCashierLogin);
+    }
+
+    // 右上角关闭按钮
+    const closeBtn = document.getElementById('cashierCloseBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            cashierLoginTarget = null;
+            cashierPinBuffer = '';
+            cashierPinMode = 'login';
+            cashierEditTarget = null;
+            cashierEditDraft = null;
+            hideModal(cashierNameModal);
+        });
     }
 }
 
