@@ -3464,6 +3464,7 @@ function renderCart() {
                     ${item.name} 
                     ${isWeightSale ? '<span class="weight-indicator"><i class="material-icons">monitor_weight</i></span>' : ''}
                 </div>
+                <span class="cart-item-qty-badge">\u00d7${quantityDisplay}</span>
                 <div class="cart-item-actions">
                     ${!isWeightSale && item.quantity > 1 ?
                 `<button class="split-quantity-btn" data-index="${index}">

@@ -282,4 +282,9 @@
         hideBanner();
         loadAccounts();
     };
+
+    // 供 dashboard 卡片复用：根据收银员名字/头像配置生成 DiceBear 头像地址
+    window.cashierAvatarUrl = cashierAvatarUrl;
+    // 默认头像配置（未命中 cashiers 节点时使用，保证同一名字头像稳定）
+    window.cashierDefaultAvatar = cashierDefaultAvatar;
 })();

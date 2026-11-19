@@ -433,8 +433,8 @@ function initEventListeners() {
         loadStats();
     });
     
-    // 初始化默认的All Stores按钮点击事件
-    const allStoresButton = storeButtons.querySelector('[data-store="all"]');
+    // 店铺筛选栏已从 dashboard 移除（改为点击店铺卡片进入），保留空值保护
+    const allStoresButton = storeButtons ? storeButtons.querySelector('[data-store="all"]') : null;
     if (allStoresButton) {
         allStoresButton.addEventListener('click', function() {
             // 更新选中状态
@@ -449,6 +449,12 @@ function initEventListeners() {
             // 重新加载统计数据
             loadStats();
         });
+    }
+
+    // 单店视图：返回「全部店铺」（店铺筛选栏已移除，改由卡片点击进入）
+    const backToAllStoresBtn = document.getElementById('backToAllStoresBtn');
+    if (backToAllStoresBtn) {
+        backToAllStoresBtn.addEventListener('click', () => selectDashboardStore('all'));
     }
     
     // 添加店铺按钮
@@ -840,11 +846,7 @@ function performViewSwitch(viewName) {
     // 更新视图标题
     switch (viewName) {
         case 'dashboard':
-            if (selectedStoreInDashboard) {
-                viewTitle.textContent = `Sales Dashboard - ${stores[selectedStoreInDashboard].name}`;
-            } else {
-                viewTitle.textContent = 'Sales Dashboard - All Stores';
-            }
+            updateDashboardStoreNav();
             break;
         case 'stores':
             viewTitle.textContent = 'Store Management';
@@ -1099,12 +1101,13 @@ function populateStoreDropdowns() {
     console.log("已填充所有下拉菜单和店铺按钮");
 }
 
-// 填充店铺按钮
+// 填充店铺按钮（dashboard 已不再显示该栏，保留函数兼容其它调用）
 function populateStoreButtons() {
+    if (!storeButtons) return;
     // 清空除了"All Stores"按钮外的所有按钮
     const allStoresButton = storeButtons.querySelector('[data-store="all"]');
     storeButtons.innerHTML = '';
-    storeButtons.appendChild(allStoresButton);
+    if (allStoresButton) storeButtons.appendChild(allStoresButton);
     
     // 添加店铺按钮
     Object.keys(stores).forEach(storeId => {
@@ -1139,6 +1142,26 @@ function populateStoreButtons() {
         });
         currentButton.classList.add('active');
     }
+}
+
+/* ---------- Dashboard 店铺导航：点击卡片进入 / 返回全部店铺 ---------- */
+function updateDashboardStoreNav() {
+    const backBtn = document.getElementById('backToAllStoresBtn');
+    if (backBtn) backBtn.style.display = (selectedStoreId === 'all') ? 'none' : 'inline-flex';
+
+    const storeName = stores[selectedStoreId] ? stores[selectedStoreId].name : selectedStoreId;
+    viewTitle.textContent = (selectedStoreId === 'all')
+        ? 'Sales Dashboard - All Stores'
+        : `Sales Dashboard - ${storeName}`;
+}
+
+// 切换 dashboard 的店铺范围并刷新数据
+function selectDashboardStore(storeId) {
+    const nextId = storeId || 'all';
+    selectedStoreId = nextId;
+    selectedStoreInDashboard = (nextId === 'all') ? null : nextId;
+    updateDashboardStoreNav();
+    loadStats();
 }
 
 // 店铺子菜单功能已被移除
@@ -1311,6 +1334,18 @@ function loadSingleStoreData(storeId, date) {
             });
     }
 
+// 从「收银员 -> {sales, txns}」映射中挑出主要收银员（先按交易数，再按销售额）
+function pickTopCashier(cashierMap) {
+    let top = null;
+    Object.keys(cashierMap).forEach(name => {
+        const cur = cashierMap[name];
+        if (!top || cur.txns > top.txns || (cur.txns === top.txns && cur.sales > top.sales)) {
+            top = { name: name, sales: cur.sales, txns: cur.txns };
+        }
+    });
+    return top;
+}
+
 // 计算销售统计
 function calculateStatsFromSales(sales) {
     let totalSales = 0;
@@ -1319,33 +1354,64 @@ function calculateStatsFromSales(sales) {
     let firstShiftTransactions = 0;
     let secondShiftSales = 0;
     let secondShiftTransactions = 0;
-    
+    let thirdShiftSales = 0;
+    let thirdShiftTransactions = 0;
+
+    // 收银员聚合：全店 / 一班 / 二班 / 三班，供 dashboard 卡片展示头像+名字
+    const cashierMap = {};
+    const firstShiftCashierMap = {};
+    const secondShiftCashierMap = {};
+    const thirdShiftCashierMap = {};
+
+    const bump = (map, name, amount) => {
+        if (!name) return;
+        if (!map[name]) map[name] = { sales: 0, txns: 0 };
+        map[name].sales += amount;
+        map[name].txns += 1;
+    };
+
     // 计算总销售额和交易数，以及各班次销售数据
     Object.keys(sales).forEach(saleId => {
         if (sales[saleId]) {
             const saleAmount = Number(sales[saleId].total_amount || 0);
+            const cashierName = String(sales[saleId].cashierName || '').trim();
             totalSales += saleAmount;
             transactionCount++;
-            
+            bump(cashierMap, cashierName, saleAmount);
+
             // 根据班次统计数据
             const shift = sales[saleId].cashierShift || "";
             if (shift.includes("1st Shift")) {
                 firstShiftSales += saleAmount;
                 firstShiftTransactions++;
+                bump(firstShiftCashierMap, cashierName, saleAmount);
             } else if (shift.includes("2nd Shift")) {
                 secondShiftSales += saleAmount;
                 secondShiftTransactions++;
+                bump(secondShiftCashierMap, cashierName, saleAmount);
+            } else if (shift.includes("3rd Shift")) {
+                thirdShiftSales += saleAmount;
+                thirdShiftTransactions++;
+                bump(thirdShiftCashierMap, cashierName, saleAmount);
             }
         }
     });
-    
+
     return {
         total_sales: totalSales,
         transaction_count: transactionCount,
         first_shift_sales: firstShiftSales,
         first_shift_transactions: firstShiftTransactions,
         second_shift_sales: secondShiftSales,
-        second_shift_transactions: secondShiftTransactions
+        second_shift_transactions: secondShiftTransactions,
+        third_shift_sales: thirdShiftSales,
+        third_shift_transactions: thirdShiftTransactions,
+        // 主要收银员（用于统计卡「收银员 头像+名字」区域）
+        cashier_count: Object.keys(cashierMap).length,
+        top_cashier: pickTopCashier(cashierMap),
+        first_shift_cashier: pickTopCashier(firstShiftCashierMap),
+        second_shift_cashier: pickTopCashier(secondShiftCashierMap),
+        third_shift_cashier: pickTopCashier(thirdShiftCashierMap)
     };
 }
 
@@ -1393,21 +1459,96 @@ function compareStoreId(a, b) {
     return sa.localeCompare(sb, undefined, { numeric: true, sensitivity: 'base' });
 }
 
-// 渲染统计数据
+/* ---------- Dashboard 收银员头像（懒加载一次 cashiers 节点） ---------- */
+let cashierAvatarMap = {};          // 小写名字/key -> 头像配置
+let cashierAvatarMapPromise = null;
+
+function ensureCashierAvatarMap() {
+    if (cashierAvatarMapPromise) return cashierAvatarMapPromise;
+    if (typeof database === 'undefined' || !database) {
+        cashierAvatarMapPromise = Promise.resolve(cashierAvatarMap);
+        return cashierAvatarMapPromise;
+    }
+    cashierAvatarMapPromise = database.ref('cashiers').once('value')
+        .then(snap => {
+            const data = snap.val() || {};
+            Object.keys(data).forEach(k => {
+                const rec = data[k] || {};
+                const name = String(rec.name || k).trim();
+                const avatar = (rec.avatar && rec.avatar.top !== undefined) ? rec.avatar : null;
+                cashierAvatarMap[name.toLowerCase()] = avatar;
+                cashierAvatarMap[k.toLowerCase()] = avatar;
+            });
+            return cashierAvatarMap;
+        })
+        .catch(err => {
+            console.warn('[Dashboard] 读取收银员头像配置失败，使用默认头像', err);
+            return cashierAvatarMap;
+        });
+    return cashierAvatarMapPromise;
+}
+
+function dashboardAvatarUrl(name) {
+    const raw = String(name || '').trim();
+    const normalized = raw.replace(/[.#$\[\]]/g, '').replace(/\s+/g, '_').toLowerCase();
+    const avatar = cashierAvatarMap[raw.toLowerCase()] || cashierAvatarMap[normalized] || null;
+    if (typeof window.cashierAvatarUrl === 'function') {
+        return window.cashierAvatarUrl(raw || '?', avatar);
+    }
+    return 'https://api.dicebear.com/10.x/avataaars/svg?seed=' + encodeURIComponent(raw || '?');
+}
+
+// 单个头像 <img> + 加载失败时的首字母占位
+function dashboardAvatarImg(name, sizeClass) {
+    const initial = name ? escapeHtml(String(name).charAt(0).toUpperCase()) : '?';
+    const url = escapeHtml(dashboardAvatarUrl(name));
+    return `
+        <span class="stat-avatar ${sizeClass || ''}">
+            <img src="${url}" alt="" loading="lazy"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <span class="stat-avatar-fallback" style="display:none;">${initial}</span>
+        </span>`;
+}
+
+// 卡片底部「收银员 + 交易数」信息栏
+function dashboardCardFooter(cashier, txns) {
+    const name = cashier && cashier.name ? String(cashier.name) : '';
+    const txnCount = parseInt(txns) || 0;
+    return `
+        <div class="stat-card-foot">
+            <div class="stat-cashier">
+                ${dashboardAvatarImg(name, '')}
+                <span class="stat-cashier-text">
+                    <span class="stat-cashier-label">Cashier</span>
+                    <span class="stat-cashier-name" title="${escapeHtml(name)}">${name ? escapeHtml(name) : '—'}</span>
+                </span>
+            </div>
+            <div class="stat-txn">
+                <i class="material-icons">receipt_long</i>
+                <span><b>${txnCount}</b> transaction${txnCount === 1 ? '' : 's'}</span>
+            </div>
+        </div>`;
+}
+
+// 渲染统计数据（先确保头像映射已加载，再渲染卡片）
 function renderStats(salesData, isAllStores) {
+    ensureCashierAvatarMap().then(() => renderStatsCards(salesData, isAllStores));
+}
+
+function renderStatsCards(salesData, isAllStores) {
     statsContainer.innerHTML = '';
     console.log("Rendering stats with data:", salesData);
-    
+
     if (!salesData || Object.keys(salesData).length === 0) {
         statsContainer.innerHTML = '<div class="no-data"><i class="material-icons">bar_chart</i><strong>No sales data for this date</strong><small>Pick another date or store to see totals.</small></div>';
         return;
     }
-    
+
     // 如果是所有店铺视图，更新销售评级
     if (isAllStores) {
         updateSalesRateStars(salesData);
     }
-    
+
     // 计算总销售额和总交易数
     let totalSales = 0;
     let totalTransactions = 0;
@@ -1415,31 +1556,41 @@ function renderStats(salesData, isAllStores) {
     let firstShiftTransactions = 0;
     let secondShiftSales = 0;
     let secondShiftTransactions = 0;
-    
+    let thirdShiftSales = 0;
+    let thirdShiftTransactions = 0;
+    let topCashierAll = null;
+
     Object.keys(salesData).forEach(storeId => {
         const storeData = salesData[storeId];
         if (storeData) {
-            // 确保数值正确转换
             totalSales += parseFloat(storeData.total_sales) || 0;
             totalTransactions += parseInt(storeData.transaction_count) || 0;
-            
-            // 如果有班次数据，累加班次销售额
+
+            // 找出全店范围内交易数最多的收银员，用于 Hero 展示
+            const c = storeData.top_cashier;
+            if (c && c.name && (!topCashierAll || (parseInt(c.txns) || 0) > (parseInt(topCashierAll.txns) || 0))) {
+                topCashierAll = c;
+            }
+
             if (!isAllStores) {
                 firstShiftSales += parseFloat(storeData.first_shift_sales) || 0;
                 firstShiftTransactions += parseInt(storeData.first_shift_transactions) || 0;
                 secondShiftSales += parseFloat(storeData.second_shift_sales) || 0;
                 secondShiftTransactions += parseInt(storeData.second_shift_transactions) || 0;
+                thirdShiftSales += parseFloat(storeData.third_shift_sales) || 0;
+                thirdShiftTransactions += parseInt(storeData.third_shift_transactions) || 0;
             }
         }
     });
-    
+
     console.log("Total sales calculated:", totalSales, "from data:", salesData);
-    
+
     const fmtMoney = (v) => 'RM' + (Math.round(v * 100) / 100).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-    // ===== 1. 顶部 Hero 大卡：总计 =====
+    // ===== 1. 顶部 Hero 大卡：总计 + 主要收银员 =====
     const hero = document.createElement('div');
     hero.className = 'stat-hero';
+    const heroCashierName = topCashierAll ? topCashierAll.name : '';
     hero.innerHTML = `
         <div class="stat-hero-icon"><i class="material-icons">trending_up</i></div>
         <div class="stat-hero-body">
@@ -1449,30 +1600,50 @@ function renderStats(salesData, isAllStores) {
         <div class="stat-hero-meta">
             <span class="stat-hero-metric"><i class="material-icons">receipt_long</i> ${totalTransactions} transactions</span>
             <span class="stat-hero-metric"><i class="material-icons">store</i> ${Object.keys(salesData).length} store${Object.keys(salesData).length === 1 ? '' : 's'}</span>
+            <span class="stat-hero-metric stat-hero-cashier">
+                ${dashboardAvatarImg(heroCashierName, 'xs')}
+                <span>Top cashier <b>${heroCashierName ? escapeHtml(heroCashierName) : '—'}</b></span>
+            </span>
         </div>
     `;
     statsContainer.appendChild(hero);
 
-    // ===== 2. 班次卡（单店视图）=====
+    // ===== 2. 班次卡（单店视图）：每班主要收银员 + 交易数 =====
     if (!isAllStores) {
-        const makeShiftCard = (title, icon, sales, txns, barClass) => `
-            <div class="stat-card stat-card-shift">
+        const storeId = Object.keys(salesData)[0];
+        const storeStats = salesData[storeId] || {};
+        const makeShiftCard = (title, icon, sales, txns, barClass, cashier, extraClass) => `
+            <div class="stat-card stat-card-shift ${extraClass || ''}">
                 <div class="stat-card-top">
                     <span class="stat-card-icon ${barClass}"><i class="material-icons">${icon}</i></span>
                     <span class="stat-card-label">${title}</span>
                 </div>
                 <div class="stat-card-value">${fmtMoney(sales)}</div>
-                <div class="stat-card-sub"><i class="material-icons">receipt_long</i> ${txns} transactions</div>
+                ${dashboardCardFooter(cashier, txns)}
             </div>`;
+
+        // 店铺配置了 3 个班次、或当天存在三班销售/收银员记录时，显示 3rd Shift 卡
+        const configuredShiftCount = parseInt(stores[storeId] && stores[storeId].shiftCount) || 0;
+        const thirdCashier = storeStats.third_shift_cashier;
+        const hasThirdShift = configuredShiftCount >= 3 ||
+            thirdShiftTransactions > 0 || thirdShiftSales > 0 ||
+            !!(thirdCashier && thirdCashier.name);
+
+        const shiftCards = [
+            makeShiftCard('1st Shift', 'wb_sunny', firstShiftSales, firstShiftTransactions, 'shift-1', storeStats.first_shift_cashier),
+            makeShiftCard('2nd Shift', 'nights_stay', secondShiftSales, secondShiftTransactions, 'shift-2', storeStats.second_shift_cashier)
+        ];
+        if (hasThirdShift) {
+            shiftCards.push(makeShiftCard('3rd Shift', 'looks_3', thirdShiftSales, thirdShiftTransactions, 'shift-3', thirdCashier, 'shift-3-card'));
+        }
+
         const shiftWrap = document.createElement('div');
-        shiftWrap.className = 'stat-shift-row';
-        shiftWrap.innerHTML =
-            makeShiftCard('1st Shift', 'wb_sunny', firstShiftSales, firstShiftTransactions, 'shift-1') +
-            makeShiftCard('2nd Shift', 'nights_stay', secondShiftSales, secondShiftTransactions, 'shift-2');
+        shiftWrap.className = 'stat-shift-row' + (hasThirdShift ? ' three-shifts' : '');
+        shiftWrap.innerHTML = shiftCards.join('');
         statsContainer.appendChild(shiftWrap);
     }
 
-    // ===== 3. 分店卡（所有店铺视图）：按 Store ID 升序，零销售额降灰 =====
+    // ===== 3. 分店卡（所有店铺视图）：店名 + 销售额 + 收银员头像/名字 + 交易数 =====
     if (isAllStores) {
         const entries = Object.keys(salesData).map(storeId => {
             const d = salesData[storeId] || {};
@@ -1480,7 +1651,8 @@ function renderStats(salesData, isAllStores) {
                 storeId,
                 name: stores[storeId]?.name || `Store ${storeId}`,
                 sales: parseFloat(d.total_sales) || 0,
-                txns: parseInt(d.transaction_count) || 0
+                txns: parseInt(d.transaction_count) || 0,
+                cashier: d.top_cashier || null
             };
         }).sort((a, b) => compareStoreId(a.storeId, b.storeId));
 
@@ -1492,19 +1664,34 @@ function renderStats(salesData, isAllStores) {
             grid.innerHTML = entries.map(e => {
                 const pct = maxSales > 0 ? Math.max(0, Math.round((e.sales / maxSales) * 100)) : 0;
                 const isZero = e.sales <= 0;
+                const storeIdAttr = escapeHtml(String(e.storeId));
                 return `
-                    <div class="stat-card stat-card-store ${isZero ? 'is-zero' : ''}">
+                    <div class="stat-card stat-card-store ${isZero ? 'is-zero' : ''}"
+                         data-store-id="${storeIdAttr}" role="button" tabindex="0"
+                         aria-label="View sales for ${escapeHtml(e.name)}">
                         <div class="stat-card-top">
                             <span class="stat-card-icon ${isZero ? '' : 'icon-store'}"><i class="material-icons">${isZero ? 'remove' : 'storefront'}</i></span>
-                            <span class="stat-card-label" title="${e.name}">${e.name}</span>
+                            <span class="stat-card-label" title="${escapeHtml(e.name)}">${escapeHtml(e.name)}</span>
                             ${isZero ? '<span class="stat-zero-badge">No sales</span>' : ''}
                         </div>
                         <div class="stat-card-value">${fmtMoney(e.sales)}</div>
                         <div class="stat-card-bar"><span style="width:${pct}%"></span></div>
-                        <div class="stat-card-sub"><i class="material-icons">receipt_long</i> ${e.txns} transaction${e.txns === 1 ? '' : 's'}</div>
+                        ${dashboardCardFooter(e.cashier, e.txns)}
                     </div>`;
             }).join('');
             statsContainer.appendChild(grid);
+
+            // 点击店铺卡片 = 进入该店仪表盘；支持键盘 Enter / Space
+            grid.querySelectorAll('.stat-card-store').forEach(card => {
+                const storeId = card.getAttribute('data-store-id');
+                card.addEventListener('click', () => selectDashboardStore(storeId));
+                card.addEventListener('keydown', (ev) => {
+                    if (ev.key === 'Enter' || ev.key === ' ') {
+                        ev.preventDefault();
+                        selectDashboardStore(storeId);
+                    }
+                });
+            });
         }
     }
 }

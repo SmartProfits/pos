@@ -1326,26 +1326,37 @@
             border: 1px solid #d8e0ea;
         }
 
+        /* Dashboard 顶部左侧：返回按钮 + 日期选择器成组，保持 header 两端对齐 */
+        .dashboard-nav-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        @media (max-width: 768px) {
+            .dashboard-nav-left { width: 100%; }
+        }
+
         /* ---------- 2. 统计卡（Hero 总计 + 班次 + 分店） ---------- */
         .stats-container {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 18px;
             margin-bottom: 26px;
         }
 
-        /* ---- Hero 大卡：总计 ---- */
+        /* ---- Hero 大卡：总计 + 主要收银员 ---- */
         .stat-hero {
             position: relative;
             display: flex;
             align-items: center;
             gap: 20px;
-            padding: 24px 28px;
+            padding: 24px 30px;
             border-radius: 18px;
             color: #fff;
             overflow: hidden;
             background: linear-gradient(120deg, #2563eb 0%, #3b82f6 42%, #0ea5e9 100%);
-            box-shadow: 0 10px 30px -12px rgba(37, 99, 235, .55);
+            box-shadow: 0 12px 32px -12px rgba(37, 99, 235, .55);
         }
         .stat-hero::after {
             content: '';
@@ -1359,188 +1370,344 @@
             pointer-events: none;
         }
         .stat-hero-icon {
+            position: relative;
+            z-index: 1;
             flex: 0 0 auto;
-            width: 56px;
-            height: 56px;
+            width: 58px;
+            height: 58px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 14px;
+            border-radius: 16px;
             background: rgba(255, 255, 255, .18);
+            border: 1px solid rgba(255, 255, 255, .28);
             backdrop-filter: blur(2px);
         }
         .stat-hero-icon .material-icons { font-size: 30px; }
         .stat-hero-body {
+            position: relative;
+            z-index: 1;
             display: flex;
             flex-direction: column;
             gap: 4px;
             min-width: 0;
         }
         .stat-hero-label {
-            font-size: 13px;
+            font-size: 12.5px;
             font-weight: 600;
-            letter-spacing: .04em;
+            letter-spacing: .07em;
             text-transform: uppercase;
-            color: rgba(255, 255, 255, .82);
+            color: rgba(255, 255, 255, .85);
         }
         .stat-hero-value {
-            font-size: 2.4rem;
+            font-size: 2.5rem;
             line-height: 1.05;
-            font-weight: 800;
+            font-weight: 700;
             letter-spacing: -.02em;
             font-variant-numeric: tabular-nums;
+            text-shadow: 0 1px 8px rgba(15, 23, 42, .12);
         }
         .stat-hero-meta {
+            position: relative;
+            z-index: 1;
             margin-left: auto;
             display: flex;
-            gap: 12px;
+            gap: 10px;
             flex-wrap: wrap;
             justify-content: flex-end;
         }
         .stat-hero-metric {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
             padding: 8px 14px;
             border-radius: 999px;
             background: rgba(255, 255, 255, .16);
+            border: 1px solid rgba(255, 255, 255, .22);
             font-size: 12.5px;
             font-weight: 600;
             white-space: nowrap;
         }
         .stat-hero-metric .material-icons { font-size: 16px; }
+        .stat-hero-cashier b { font-weight: 700; }
+        .stat-hero .stat-avatar {
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, .28);
+            border-color: rgba(255, 255, 255, .65);
+        }
+        .stat-hero .stat-avatar-fallback { color: #fff; background: transparent; font-size: 11px; }
 
-        /* ---- 班次行 ---- */
+        /* ---- 班次行 / 分店网格 ---- */
         .stat-shift-row {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 16px;
         }
-
-        /* ---- 分店网格 ---- */
+        /* 三班店铺：班次卡三列排布 */
+        .stat-shift-row.three-shifts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         .stat-store-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 16px;
         }
 
-        /* ---- 通用卡片 ---- */
+        /* ---- 通用卡片：店名 → 销售额 → 进度 → 收银员/交易数 ---- */
         .stat-card {
+            --accent: #2563eb;
             position: relative;
+            overflow: hidden;
             background: #fff;
-            border: 1px solid #eef2f7;
+            border: 1px solid #e6ecf3;
             border-radius: 16px;
-            padding: 18px 20px;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 14px 30px -24px rgba(15, 23, 42, .55);
-            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+            padding: 20px 22px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 10px 28px -20px rgba(15, 23, 42, .45);
+            transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
         }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), transparent 82%);
+            pointer-events: none;
+        }
+        /* 分店卡可点击：进入该店仪表盘 */
+        .stat-card-store { --accent: #059669; cursor: pointer; }
+        .stat-card-store:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+        .stat-card-store .stat-card-top::after {
+            content: 'chevron_right';
+            font-family: 'Material Icons';
+            font-size: 19px;
+            line-height: 1;
+            margin-left: auto;
+            flex: 0 0 auto;
+            color: #cbd5e1;
+            transition: transform .2s ease, color .2s ease;
+        }
+        .stat-card-store:hover .stat-card-top::after,
+        .stat-card-store:focus-visible .stat-card-top::after {
+            color: #059669;
+            transform: translateX(3px);
+        }
+        .stat-card-shift { --accent: #6366f1; }
         .stat-card:hover {
             transform: translateY(-3px);
-            border-color: #dbeafe;
-            box-shadow: 0 2px 4px rgba(15, 23, 42, .06), 0 22px 40px -24px rgba(37, 99, 235, .45);
+            border-color: #cfe0ff;
+            box-shadow: 0 4px 8px rgba(15, 23, 42, .05), 0 22px 40px -22px rgba(37, 99, 235, .5);
         }
         .stat-card-top {
+            position: relative;
+            z-index: 1;
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
+            gap: 11px;
+            margin-bottom: 14px;
         }
         .stat-card-icon {
+            flex: 0 0 auto;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 11px;
+            font-size: 18px;
+            background: #eff6ff;
+            color: #2563eb;
+        }
+        .stat-card-icon .material-icons { font-size: 20px; }
+        .stat-card-icon.icon-store { background: #e7f8f1; color: #059669; }
+        .stat-card-icon.shift-1 { background: #fff5e6; color: #d97706; }
+        .stat-card-icon.shift-2 { background: #f1edff; color: #7c3aed; }
+        .stat-card-icon.shift-3 { background: #fff1e8; color: #ea580c; }
+        .stat-card-shift.shift-3-card { --accent: #ea580c; }
+        .stat-card-label {
+            position: relative;
+            z-index: 1;
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+            line-height: 1.35;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .stat-card-value {
+            position: relative;
+            z-index: 1;
+            font-size: 1.8rem;
+            line-height: 1.1;
+            font-weight: 700;
+            letter-spacing: -.02em;
+            color: #2563eb;
+            font-variant-numeric: tabular-nums;
+            margin-bottom: 14px;
+        }
+        .stat-card-bar {
+            position: relative;
+            z-index: 1;
+            height: 7px;
+            border-radius: 999px;
+            background: #eef2f7;
+            overflow: hidden;
+        }
+        .stat-card-bar span {
+            display: block;
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #34d399, #059669);
+            transition: width .4s ease;
+        }
+
+        /* ---- 卡片底部：收银员（头像+名字） | 交易数 ---- */
+        .stat-card-foot {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 14px;
+            padding-top: 13px;
+            border-top: 1px solid #eef2f7;
+        }
+        .stat-cashier {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            min-width: 0;
+        }
+        .stat-avatar {
             flex: 0 0 auto;
             width: 34px;
             height: 34px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 10px;
-            font-size: 18px;
-            background: #eff6ff;
-            color: #2563eb;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #eef2f7;
+            border: 1px solid #e2e8f0;
         }
-        .stat-card-icon .material-icons { font-size: 18px; }
-        .stat-card-icon.icon-store { background: #ecfdf5; color: #059669; }
-        .stat-card-icon.shift-1 { background: #fffbeb; color: #d97706; }
-        .stat-card-icon.shift-2 { background: #f5f3ff; color: #7c3aed; }
-        .stat-card-label {
+        .stat-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .stat-avatar-fallback {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: #64748b;
+            background: #eef2f7;
+        }
+        .stat-cashier-text {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            line-height: 1.25;
+        }
+        .stat-cashier-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+        .stat-cashier-name {
+            max-width: 130px;
             font-size: 13px;
             font-weight: 600;
             color: #334155;
-            line-height: 1.3;
-            min-width: 0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-        .stat-card-value {
-            font-size: 1.65rem;
-            line-height: 1.1;
-            font-weight: 700;
-            letter-spacing: -.01em;
-            color: #0f172a;
+        .stat-txn {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11.5px;
+            font-weight: 500;
+            color: #64748b;
             font-variant-numeric: tabular-nums;
-            margin-bottom: 12px;
+            white-space: nowrap;
         }
-        .stat-card-bar {
-            height: 6px;
-            border-radius: 999px;
-            background: #eef2f7;
-            overflow: hidden;
-            margin-bottom: 10px;
-        }
-        .stat-card-bar span {
-            display: block;
-            height: 100%;
-            border-radius: 999px;
-            background: linear-gradient(90deg, #60a5fa, #2563eb);
-            transition: width .4s ease;
-        }
+        .stat-txn .material-icons { font-size: 15px; color: #94a3b8; }
+        .stat-txn b { font-size: 13px; font-weight: 700; color: #1e293b; }
+
+        /* ---- 兼容旧类名（若其它脚本仍在使用） ---- */
         .stat-card-sub {
             display: flex;
             align-items: center;
             gap: 5px;
             font-size: 12.5px;
             font-weight: 500;
-            color: #94a3b8;
+            color: #64748b;
             font-variant-numeric: tabular-nums;
         }
         .stat-card-sub .material-icons { font-size: 15px; }
 
         /* ---- 零销售额分店：降灰，弱化但不删除 ---- */
         .stat-card.is-zero {
-            background: #fafbfc;
-            border-color: #f0f2f5;
+            background: #fbfcfd;
+            border-color: #eef1f5;
             box-shadow: none;
         }
-        .stat-card.is-zero:hover {
-            transform: none;
-            border-color: #f0f2f5;
-            box-shadow: none;
-        }
-        .stat-card.is-zero .stat-card-icon {
-            background: #f1f5f9;
-            color: #cbd5e1;
-        }
-        .stat-card.is-zero .stat-card-value { color: #cbd5e1; }
+        .stat-card.is-zero::before { background: linear-gradient(90deg, #cbd5e1, transparent 82%); }
+        .stat-card.is-zero:hover { transform: none; border-color: #eef1f5; box-shadow: none; }
+        .stat-card.is-zero .stat-card-icon { background: #f1f5f9; color: #94a3b8; }
+        .stat-card.is-zero .stat-card-value { color: #94a3b8; }
         .stat-card.is-zero .stat-card-bar { background: #f1f5f9; }
-        .stat-card.is-zero .stat-card-bar span { background: #e2e8f0; }
+        .stat-card.is-zero .stat-card-bar span { background: #cbd5e1; }
+        .stat-card.is-zero .stat-avatar { filter: grayscale(1); opacity: .6; }
+        .stat-card.is-zero .stat-card-top::after,
+        .stat-card.is-zero:hover .stat-card-top::after { color: #cbd5e1; transform: none; }
+        .stat-card.is-zero .stat-cashier-name,
+        .stat-card.is-zero .stat-txn b { color: #94a3b8; }
+        .stat-card.is-zero .stat-card-foot { border-top-color: #f1f5f9; }
         .stat-zero-badge {
+            position: relative;
+            z-index: 1;
             margin-left: auto;
             flex: 0 0 auto;
-            font-size: 10.5px;
+            font-size: 10px;
             font-weight: 700;
-            letter-spacing: .03em;
+            letter-spacing: .04em;
             text-transform: uppercase;
-            color: #94a3b8;
+            color: #64748b;
             background: #f1f5f9;
+            border: 1px solid #e2e8f0;
             padding: 3px 8px;
             border-radius: 999px;
         }
 
         @media (max-width: 720px) {
-            .stat-hero { flex-wrap: wrap; padding: 20px; }
+            .stat-hero { flex-wrap: wrap; padding: 20px; gap: 14px; }
+            .stat-hero-icon { width: 48px; height: 48px; border-radius: 13px; }
+            .stat-hero-icon .material-icons { font-size: 26px; }
             .stat-hero-meta { margin-left: 0; width: 100%; justify-content: flex-start; }
             .stat-hero-value { font-size: 2rem; }
-            .stat-shift-row { grid-template-columns: minmax(0, 1fr); }
+            .stat-shift-row,
+            .stat-shift-row.three-shifts { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+            .stat-store-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+            .stat-card { padding: 18px; }
+            .stat-card-value { font-size: 1.6rem; }
+        }
+        @media (max-width: 460px) {
+            .stat-store-grid { grid-template-columns: minmax(0, 1fr); }
+            .stat-card-top { gap: 9px; margin-bottom: 12px; }
+            .stat-card-label { font-size: 15px; }
+            .stat-cashier-name { max-width: 110px; }
         }
 
         /* ---------- 3. 表格数字对齐 ---------- */
@@ -1746,11 +1913,17 @@
             <!-- Dashboard View -->
             <div id="dashboardView" class="view active">
                 <div class="dashboard-header">
-                    <div class="date-selector">
-                        <label for="dateFilter"><i class="material-icons">event</i></label>
-                    <input type="date" id="dateFilter" value="">
+                    <div class="dashboard-nav-left">
+                        <button id="backToAllStoresBtn" class="action-button secondary action-button-sm" style="display:none;" title="Back to all stores">
+                            <i class="material-icons">arrow_back</i>
+                            <span>All Stores</span>
+                        </button>
+                        <div class="date-selector">
+                            <label for="dateFilter"><i class="material-icons">event</i></label>
+                            <input type="date" id="dateFilter" value="">
+                        </div>
                     </div>
-                    
+
                     <div class="dashboard-actions">
                         <button id="refreshStatsBtn" class="icon-button" title="Refresh data">
                             <i class="material-icons">refresh</i>
@@ -1761,15 +1934,7 @@
                         </button>
                     </div>
                 </div>
-                
-                <div class="store-buttons-container">
-                    <div class="store-buttons-label"><i class="material-icons">store</i> Store:</div>
-                    <div class="store-buttons" id="storeButtons">
-                        <button class="store-button active" data-store="all">All Stores</button>
-                        <!-- Store buttons will be loaded dynamically -->
-                    </div>
-                </div>
-                
+
                 <div class="stats-container" id="statsContainer">
                     <!-- Stat cards will be loaded dynamically -->
                 </div>

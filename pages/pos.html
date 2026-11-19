@@ -1283,6 +1283,565 @@
         body.dark-mode .payment-badge .material-icons {
             color: #94a3b8;
         }
+
+        /* ==========================================================================
+           RECEIPT-STYLE CART
+           Visual-only restyle of the Sales cart, mirroring the Sales History
+           receipt (white paper, torn edges, dashed rules, monospaced line items).
+           Scoped to #salesView .cart-container with high specificity so it wins
+           over the legacy styles.css rules and the runtime style injected by pos.js.
+           No JS hooks, IDs, classes used by logic, or data attributes are changed.
+           ========================================================================== */
+
+        /* ---- The paper ---- */
+        #salesView .cart-container {
+            background: #ffffff !important;
+            background-image: none !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            box-shadow: 0 10px 34px rgba(15, 23, 42, 0.12) !important;
+            padding: 18px 16px 20px !important;
+            overflow: visible !important;
+            font-family: 'Courier New', 'SF Mono', 'Menlo', 'Consolas', monospace !important;
+            color: #1f2937 !important;
+        }
+
+        /* Torn / perforated paper edges */
+        #salesView .cart-container::before,
+        #salesView .cart-container::after {
+            content: '' !important;
+            display: block !important;
+            position: absolute !important;
+            left: 0 !important;
+            right: 0 !important;
+            height: 10px !important;
+            background: radial-gradient(circle at 10px -5px, transparent 10px, #ffffff 10.5px) !important;
+            background-size: 20px 10px !important;
+            background-repeat: repeat-x !important;
+            z-index: 2 !important;
+        }
+
+        #salesView .cart-container::before {
+            top: -9px !important;
+        }
+
+        #salesView .cart-container::after {
+            bottom: -9px !important;
+            transform: rotate(180deg) !important;
+        }
+
+        /* ---- Staff-price toggle (no cart logo/title; items sit at the top) ---- */
+        #salesView .cart-container #cartStaffPriceToggleContainer {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
+            width: 100% !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        /* Empty toggle takes zero space so the first item name moves up */
+        #salesView .cart-container #cartStaffPriceToggleContainer:empty {
+            display: none !important;
+        }
+
+        #salesView .cart-container #cartStaffPriceToggleContainer:not(:empty) {
+            margin: 0 0 8px !important;
+        }
+
+        /* Override the global button { width:100%; margin-top:10px } for this pill */
+        #salesView .cart-container #cartStaffPriceToggleContainer .staff-price-toggle-btn {
+            width: auto !important;
+            margin: 0 !important;
+            flex: 0 0 auto !important;
+        }
+
+        /* ---- Line items ---- */
+        #salesView .cart-container .cart-items {
+            max-height: 420px !important;
+            margin: 0 0 12px !important;
+            padding: 6px 0 0 !important;
+            overflow-y: auto !important;
+        }
+
+        #salesView .cart-container .cart-item {
+            background: transparent !important;
+            background-image: none !important;
+            border: none !important;
+            border-bottom: 1px dashed #e2e8f0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 9px 2px !important;
+            transform: none !important;
+        }
+
+        #salesView .cart-container .cart-item::after {
+            display: none !important;
+        }
+
+        #salesView .cart-container .cart-item:hover {
+            background: rgba(15, 23, 42, 0.02) !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        #salesView .cart-container .cart-item-header {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 6px !important;
+            margin: 0 0 5px !important;
+            padding: 0 !important;
+            border: none !important;
+        }
+
+        #salesView .cart-container .cart-item-name {
+            flex: 1 !important;
+            font-family: 'Courier New', 'SF Mono', 'Menlo', 'Consolas', monospace !important;
+            font-size: 12.5px !important;
+            font-weight: 700 !important;
+            line-height: 1.35 !important;
+            color: #111827 !important;
+        }
+
+        #salesView .cart-container .cart-item-details {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
+        }
+
+        #salesView .cart-container .cart-item-price-qty {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 8px !important;
+            width: auto !important;
+        }
+
+        #salesView .cart-container .cart-item-price {
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            font-family: 'Courier New', 'SF Mono', 'Menlo', 'Consolas', monospace !important;
+            font-size: 11px !important;
+            font-weight: 400 !important;
+            color: #6b7280 !important;
+        }
+
+        #salesView .cart-container .cart-item-total {
+            background: none !important;
+            -webkit-background-clip: initial !important;
+            background-clip: initial !important;
+            -webkit-text-fill-color: #111827 !important;
+            color: #111827 !important;
+            font-family: 'Courier New', 'SF Mono', 'Menlo', 'Consolas', monospace !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
+            white-space: nowrap !important;
+            margin: 0 !important;
+            align-self: auto !important;
+        }
+
+        /* Quantity stepper */
+        #salesView .cart-container .cart-item-quantity {
+            background: #f8fafc !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 4px !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+        }
+
+        #salesView .cart-container .quantity-btn {
+            width: 20px !important;
+            height: 20px !important;
+            background: transparent !important;
+            color: #374151 !important;
+            border: none !important;
+            border-radius: 3px !important;
+            box-shadow: none !important;
+            font-size: 15px !important;
+        }
+
+        #salesView .cart-container .quantity-btn:hover {
+            background: #e5e7eb !important;
+            color: #111827 !important;
+            box-shadow: none !important;
+        }
+
+        #salesView .cart-container .quantity {
+            min-width: 22px !important;
+            padding: 0 3px !important;
+            font-size: 12px !important;
+            color: #111827 !important;
+        }
+
+        /* Row action buttons (split / free / remove / edit weight) */
+        #salesView .cart-container .cart-item-actions {
+            display: flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+        }
+
+        #salesView .cart-container .remove-btn {
+            width: 18px !important;
+            height: 18px !important;
+            margin: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            border-radius: 3px !important;
+            color: #9ca3af !important;
+            font-size: 16px !important;
+        }
+
+        #salesView .cart-container .remove-btn:hover {
+            background: #fee2e2 !important;
+            color: #dc2626 !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        #salesView .cart-container .free-item-btn,
+        #salesView .cart-container .split-quantity-btn,
+        #salesView .cart-container .edit-weight-btn {
+            font-family: 'Courier New', 'SF Mono', 'Menlo', 'Consolas', monospace !important;
+            font-size: 10px !important;
+            padding: 2px 6px !important;
+            border-radius: 4px !important;
+            white-space: nowrap !important;
+        }
+
+        /* "Mark Free" / "Split Free" -> a single compact FREE label (icon + text hidden) */
+        #salesView .cart-container .free-item-btn,
+        #salesView .cart-container .split-quantity-btn {
+            font-size: 0 !important;
+            gap: 0 !important;
+        }
+
+        #salesView .cart-container .free-item-btn i,
+        #salesView .cart-container .split-quantity-btn i {
+            display: none !important;
+        }
+
+        #salesView .cart-container .free-item-btn::before,
+        #salesView .cart-container .split-quantity-btn::before {
+            content: 'FREE' !important;
+            font-family: 'Courier New', 'SF Mono', 'Menlo', 'Consolas', monospace !important;
+            font-size: 10px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.5px !important;
+        }
+
+        /* Swap FREE and the line amount: the RM amount moves up beside the
+           item name, and the FREE tag drops to the amount's original row.
+           Flatten the wrapper containers so all pieces share one grid. */
+        #salesView .cart-container .cart-item {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) auto auto auto !important;
+            grid-template-rows: auto auto !important;
+            column-gap: 8px !important;
+            row-gap: 5px !important;
+            align-items: center !important;
+        }
+
+        #salesView .cart-container .cart-item-header,
+        #salesView .cart-container .cart-item-details,
+        #salesView .cart-container .cart-item-actions {
+            display: contents !important;
+        }
+
+        #salesView .cart-container .cart-item-name {
+            grid-area: 1 / 1 / 2 / 2 !important;
+        }
+
+        /* Quantity marker (×N) between the name and the amount, driven by +/- */
+        #salesView .cart-container .cart-item-qty-badge {
+            grid-area: 1 / 2 / 2 / 3 !important;
+            justify-self: end !important;
+            font-family: 'Courier New', 'SF Mono', 'Menlo', 'Consolas', monospace !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            color: #6b7280 !important;
+            white-space: nowrap !important;
+        }
+
+        #salesView .cart-container .cart-item-total {
+            grid-area: 1 / 3 / 2 / 4 !important;
+            justify-self: end !important;
+        }
+
+        #salesView .cart-container .cart-item .remove-btn {
+            grid-area: 1 / 4 / 2 / 5 !important;
+        }
+
+        #salesView .cart-container .cart-item-price-qty {
+            grid-area: 2 / 1 / 3 / 3 !important;
+        }
+
+        #salesView .cart-container .cart-item .free-item-btn,
+        #salesView .cart-container .cart-item .split-quantity-btn {
+            grid-area: 2 / 3 / 3 / 5 !important;
+            justify-self: end !important;
+            width: auto !important;
+            flex: 0 0 auto !important;
+        }
+
+        /* Free items: keep the marker, align it to the receipt "FREE" chip */
+        #salesView .cart-container .cart-item.free {
+            border-left: none !important;
+        }
+
+        #salesView .cart-container .cart-item.free .cart-item-total {
+            -webkit-text-fill-color: #16a34a !important;
+            color: #16a34a !important;
+            text-decoration: none !important;
+        }
+
+        #salesView .cart-container .cart-item.free .cart-item-total::after {
+            content: ' FREE' !important;
+            -webkit-text-fill-color: #16a34a !important;
+            color: #16a34a !important;
+            border: 1px solid #16a34a !important;
+            border-radius: 3px !important;
+            padding: 0 3px !important;
+            margin-left: 6px !important;
+            font-size: 9px !important;
+            text-decoration: none !important;
+        }
+
+        /* ---- Summary / totals ---- */
+        #salesView .cart-container .cart-summary {
+            background: transparent !important;
+            border: none !important;
+            border-top: 1px dashed #cbd5e1 !important;
+            padding: 10px 0 2px !important;
+            margin: 0 0 12px !important;
+        }
+
+        #salesView .cart-container .summary-row {
+            border-bottom: none !important;
+            margin-bottom: 5px !important;
+            padding: 1px 0 !important;
+            font-family: 'Courier New', 'SF Mono', 'Menlo', 'Consolas', monospace !important;
+            font-size: 12.5px !important;
+            color: #374151 !important;
+        }
+
+        #salesView .cart-container .summary-row.discount {
+            color: #dc2626 !important;
+        }
+
+        #salesView .cart-container .summary-row.total {
+            border-top: 2px solid #111827 !important;
+            margin-top: 8px !important;
+            padding-top: 8px !important;
+            font-size: 15px !important;
+            font-weight: 800 !important;
+            text-transform: uppercase !important;
+            color: #111827 !important;
+        }
+
+        /* Final total strip above the actions (double rule = receipt total) */
+        #salesView .cart-container > .cart-total {
+            font-family: 'Courier New', 'SF Mono', 'Menlo', 'Consolas', monospace !important;
+            border-top: 4px double #111827 !important;
+            border-bottom: 1px dashed #cbd5e1 !important;
+            padding: 8px 0 !important;
+            margin: 0 0 12px !important;
+            text-align: left !important;
+            font-size: 12px !important;
+            letter-spacing: 0.5px !important;
+            text-transform: uppercase !important;
+            color: #111827 !important;
+        }
+
+        #salesView .cart-container > .cart-total span {
+            font-weight: 800 !important;
+            font-size: 16px !important;
+        }
+
+        /* ---- Payment block: mirror receipt-payment ---- */
+        #salesView .cart-container .cart-payment {
+            margin: 0 0 12px !important;
+            padding: 12px !important;
+            background: #f8fafc !important;
+            border: 1px dashed #cbd5e1 !important;
+            border-radius: 6px !important;
+        }
+
+        #salesView .cart-container .cart-payment-header {
+            margin-bottom: 8px !important;
+        }
+
+        #salesView .cart-container .cart-payment-title {
+            font-family: 'Courier New', 'SF Mono', 'Menlo', 'Consolas', monospace !important;
+            font-size: 10px !important;
+            letter-spacing: 1.5px !important;
+        }
+
+        #salesView .cart-container .payment-method-btn {
+            font-family: 'Courier New', 'SF Mono', 'Menlo', 'Consolas', monospace !important;
+            border-radius: 6px !important;
+            font-size: 10.5px !important;
+            min-height: 48px !important;
+        }
+
+        /* Discount panel (display is intentionally untouched — JS toggles it) */
+        #salesView .cart-container .cart-discount {
+            background: #f8fafc !important;
+            border: 1px dashed #cbd5e1 !important;
+            border-radius: 6px !important;
+        }
+
+        /* ---- Actions ---- */
+        #salesView .cart-container .cart-actions {
+            margin-top: 4px !important;
+            gap: 8px !important;
+        }
+
+        #salesView .cart-container .checkout-btn {
+            border-radius: 6px !important;
+            font-family: inherit !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.5px !important;
+            background: linear-gradient(135deg, #2563eb, #4f46e5) !important;
+            flex: 1.6 !important;
+        }
+
+        #salesView .cart-container #clearCartBtn {
+            border-radius: 6px !important;
+            font-family: inherit !important;
+            background: transparent !important;
+            border: 1px dashed #cbd5e1 !important;
+            color: #6b7280 !important;
+            flex: 1 !important;
+        }
+
+        /* ---- Empty cart ---- */
+        #salesView .cart-container .empty-cart {
+            background: transparent !important;
+            border: 1px dashed #d1d5db !important;
+            border-radius: 6px !important;
+            color: #9ca3af !important;
+            font-family: 'Courier New', 'SF Mono', 'Menlo', 'Consolas', monospace !important;
+            font-size: 12px !important;
+            height: auto !important;
+            min-height: 150px !important;
+        }
+
+        /* ---- Dark mode: same receipt structure, inverted paper ---- */
+        body.dark-mode #salesView .cart-container {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            box-shadow: 0 10px 34px rgba(0, 0, 0, 0.4) !important;
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode #salesView .cart-container::before,
+        body.dark-mode #salesView .cart-container::after {
+            background: radial-gradient(circle at 10px -5px, transparent 10px, #1e293b 10.5px) !important;
+        }
+
+        body.dark-mode #salesView .cart-container .cart-item {
+            border-bottom-color: #334155 !important;
+        }
+
+        body.dark-mode #salesView .cart-container .cart-item:hover {
+            background: rgba(255, 255, 255, 0.03) !important;
+        }
+
+        body.dark-mode #salesView .cart-container .cart-item-name {
+            color: #f1f5f9 !important;
+        }
+
+        body.dark-mode #salesView .cart-container .cart-item-price {
+            color: #94a3b8 !important;
+        }
+
+        body.dark-mode #salesView .cart-container .cart-item-qty-badge {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-mode #salesView .cart-container .cart-item .free-item-btn:not(.active) {
+            color: #e2e8f0 !important;
+            border-color: #475569 !important;
+        }
+
+        body.dark-mode #salesView .cart-container .cart-item-total {
+            -webkit-text-fill-color: #f8fafc !important;
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode #salesView .cart-container .cart-item-quantity {
+            background: #0f172a !important;
+            border-color: #475569 !important;
+        }
+
+        body.dark-mode #salesView .cart-container .quantity-btn {
+            background: transparent !important;
+            color: #e2e8f0 !important;
+        }
+
+        body.dark-mode #salesView .cart-container .quantity-btn:hover {
+            background: #334155 !important;
+            color: #ffffff !important;
+        }
+
+        body.dark-mode #salesView .cart-container .quantity {
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode #salesView .cart-container .summary-row {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-mode #salesView .cart-container .summary-row.total {
+            border-top-color: #94a3b8 !important;
+            color: #ffffff !important;
+        }
+
+        body.dark-mode #salesView .cart-container > .cart-total {
+            border-top-color: #94a3b8 !important;
+            border-bottom-color: #475569 !important;
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode #salesView .cart-container .cart-payment {
+            background: #0f172a !important;
+            border-color: #475569 !important;
+        }
+
+        body.dark-mode #salesView .cart-container .cart-discount {
+            background: #0f172a !important;
+            border-color: #475569 !important;
+        }
+
+        body.dark-mode #salesView .cart-container .empty-cart {
+            border-color: #475569 !important;
+            color: #64748b !important;
+        }
+
+        /* ---- Mobile ---------------------------------------------------------- */
+        @media (max-width: 768px) {
+            #salesView .cart-container {
+                padding: 16px 12px 18px !important;
+            }
+
+            #salesView .cart-container .cart-items {
+                max-height: 380px !important;
+            }
+
+            /* Keep the two-line receipt item layout instead of stacking */
+            #salesView .cart-container .cart-item-details {
+                flex-direction: row !important;
+                align-items: center !important;
+                gap: 6px !important;
+            }
+        }
     </style>
 </head>
 
@@ -1551,17 +2110,9 @@
                     </div>
 
                     <div class="cart-container">
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; padding-bottom:12px; border-bottom:2px solid rgba(52,152,219,0.12); width:100%; justify-content:space-between;">
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <div style="background:linear-gradient(135deg,#3498db,#6c5ce7); border-radius:10px; padding:7px; display:flex; align-items:center;">
-                                    <i class="material-icons" style="color:white; font-size:20px;">shopping_cart</i>
-                                </div>
-                                <h2 style="margin:0; font-size:17px; font-weight:700; color:#1e293b;">Cart</h2>
-                            </div>
-                            <div id="cartStaffPriceToggleContainer" style="display:flex; align-items:center;">
-                                <!-- Staff price toggle switch will be rendered here dynamically -->
-                            </div>
-                        </div>
+                        <!-- Staff-price toggle is injected here by JS only when relevant.
+                             Kept as a slim, zero-height-when-empty row so item names sit at the top. -->
+                        <div id="cartStaffPriceToggleContainer"></div>
                         <div class="cart-header">
                             <div class="cart-header-item">Product</div>
                             <div class="cart-header-item">Price</div>
