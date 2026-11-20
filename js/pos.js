@@ -29,13 +29,13 @@ let announcementBanner = null; // 公告横幅元素
 let announcementScrollingText = null; // 公告滚动文本元素
 
 // 支付方式相关状态
-let selectedPaymentMethod = 'cash'; // cash | qr | card
-let selectedPaymentBank = ''; // 选中的银行（QR / Credit Card）
+let selectedPaymentMethod = 'cash'; // cash | qr | card | onlineBanking
+let selectedPaymentBank = ''; // 选中的银行（QR / Credit Card / Online Banking）
 
-// 分批付款（一部分现金 + 一部分 QR/Card）
+// 分批付款（一部分现金 + 一部分 QR/Card/Online Banking）
 let splitPaymentEnabled = false;
 let splitCashAmount = 0;      // 现金部分
-let splitNonCashAmount = 0;   // QR / Card 部分
+let splitNonCashAmount = 0;   // 非现金部分（QR / Card / Online Banking）
 let splitLastEdited = 'cash'; // 用户最后改的是哪一栏：cash | noncash
 let splitTouched = false;     // 用户是否手动改过金额（没改过就按总额对半）
 
@@ -371,6 +371,8 @@ window.addEventListener('DOMContentLoaded', () => {
     loadStoreInfo(userStoreId).then(() => {
         // 初始化支付方式（需读取店铺的支付配置）
         initPaymentSection();
+        // 实时监听 Admin 后台对支付方式的勾选/银行配置改动，POS cart 立即同步
+        watchStorePaymentSettings(userStoreId);
         loadProducts(userStoreId);
     });
 
@@ -458,6 +460,27 @@ function loadStoreInfo(storeId) {
             console.error('Failed to load store information:', error);
             return { name: 'Unknown Store' };
         });
+}
+
+// 实时监听 Admin 后台对店铺支付方式的勾选/银行配置。
+// Admin 在 admin.html 勾选某个支付方式（或增删银行）后，会写到 stores/{id}/paymentSettings；
+// 这里用 on('value') 订阅同一路径，改动即时同步到 POS，购物车支付区无需刷新即可重绘。
+function watchStorePaymentSettings(storeId) {
+    try {
+        const ref = database.ref(`stores/${storeId}/paymentSettings`);
+        if (!ref || typeof ref.on !== 'function') return;
+        ref.on('value', snapshot => {
+            const ps = snapshot.val() || {};
+            if (!storeData || typeof storeData !== 'object') storeData = {};
+            storeData.paymentSettings = ps;
+
+            // renderPaymentOptions 内部会按最新 enabled/banks 重绘支付按钮、银行下拉、
+            // 分批付款区与提示文案，并对已选但被禁用的方式自动回退，无需重复绑定事件。
+            if (typeof renderPaymentOptions === 'function') renderPaymentOptions();
+        }, err => console.warn('[PaymentSettings] listen failed:', err));
+    } catch (err) {
+        console.warn('[PaymentSettings] listen failed:', err);
+    }
 }
 
 // 加载店铺商品
@@ -1600,6 +1623,7 @@ function renderReceiptPaymentHTML(sale) {
     const methodLabel = (m) => {
         if (m === 'qr') return 'QR Pay';
         if (m === 'card') return 'Credit Card';
+        if (m === 'onlineBanking') return 'Online Banking';
         if (m === 'cash') return 'Cash';
         return '';
     };
@@ -1933,7 +1957,7 @@ let editPaySaving = false;
 function isSplitPaymentAvailable(settings) {
     const s = settings || getStorePaymentSettings();
     return isPaymentMethodAvailable('cash', s) &&
-        (isPaymentMethodAvailable('qr', s) || isPaymentMethodAvailable('card', s));
+        getNonCashMethods().some(m => isPaymentMethodAvailable(m, s));
 }
 
 // 打开「编辑支付方式」弹窗
@@ -1953,17 +1977,19 @@ function openEditPaymentModal(saleId) {
     const nonCashSplit = splits.filter(s => s.method && s.method !== 'cash')[0];
 
     // 分批时「非现金那半」用哪种方式
-    let nonCashMethod = 'qr';
+    let nonCashMethod = getNonCashMethods()[0] || 'qr';
     if (savedMethod === 'split') {
-        if (nonCashSplit && (nonCashSplit.method === 'qr' || nonCashSplit.method === 'card')) {
+        if (nonCashSplit && isBankPaymentMethod(nonCashSplit.method) && isPaymentMethodAvailable(nonCashSplit.method, settings)) {
             nonCashMethod = nonCashSplit.method;
-        } else if (!isPaymentMethodAvailable('qr', settings) && isPaymentMethodAvailable('card', settings)) {
-            nonCashMethod = 'card';
+        } else {
+            const availableNonCash = getNonCashMethods().filter(m => isPaymentMethodAvailable(m, settings));
+            nonCashMethod = availableNonCash[0] || 'qr';
         }
-    } else if (savedMethod === 'card') {
-        nonCashMethod = 'card';
-    } else if (savedMethod === 'cash' && !isPaymentMethodAvailable('qr', settings) && isPaymentMethodAvailable('card', settings)) {
-        nonCashMethod = 'card';
+    } else if (isBankPaymentMethod(savedMethod)) {
+        nonCashMethod = savedMethod;
+    } else if (savedMethod === 'cash') {
+        const availableNonCash = getNonCashMethods().filter(m => isPaymentMethodAvailable(m, settings));
+        nonCashMethod = availableNonCash[0] || 'qr';
     }
 
     editPaySaleId = saleId;
@@ -2050,12 +2076,12 @@ function renderEditPaymentModal() {
     if (isSplit) {
         const nonCashEl = document.getElementById('epayNonCashMethods');
         if (nonCashEl) {
-            nonCashEl.innerHTML = ['qr', 'card'].map(m => {
+            nonCashEl.innerHTML = getNonCashMethods().map(m => {
                 const usable = isPaymentMethodAvailable(m, settings);
                 const classes = ['epay-method'];
                 if (state.nonCashMethod === m) classes.push('is-active');
                 return `<button type="button" class="${classes.join(' ')}" data-noncash="${m}"${usable ? '' : ' disabled'}>
-                            <i class="material-icons">${PAYMENT_METHODS[m].icon}</i><span>${m === 'card' ? 'Credit Card' : 'QR'}</span>
+                            <i class="material-icons">${PAYMENT_METHODS[m].icon}</i><span>${PAYMENT_METHODS[m].label}</span>
                         </button>`;
             }).join('');
         }
@@ -2073,7 +2099,7 @@ function renderEditPaymentBanks() {
     if (!state || !group || !list) return;
 
     const method = state.method === 'split' ? state.nonCashMethod : state.method;
-    if (method !== 'qr' && method !== 'card') {
+    if (!isBankPaymentMethod(method)) {
         group.style.display = 'none';
         return;
     }
@@ -2133,7 +2159,7 @@ function renderEditPaymentSplit() {
     if (nonCashInput && document.activeElement !== nonCashInput) nonCashInput.value = state.nonCash.toFixed(2);
 
     const labelEl = document.getElementById('epaySplitNonCashLabel');
-    if (labelEl) labelEl.textContent = state.nonCashMethod === 'card' ? 'Credit Card' : 'QR';
+    if (labelEl) labelEl.textContent = PAYMENT_METHODS[state.nonCashMethod] ? PAYMENT_METHODS[state.nonCashMethod].label : 'QR';
     const iconEl = document.getElementById('epaySplitNonCashIcon');
     if (iconEl) iconEl.textContent = PAYMENT_METHODS[state.nonCashMethod].icon;
 
@@ -2146,7 +2172,7 @@ function updateEditSplitStatus() {
     const el = document.getElementById('epaySplitStatus');
     if (!state || !el) return;
 
-    const nonCashLabel = state.nonCashMethod === 'card' ? 'Card' : 'QR';
+    const nonCashLabel = PAYMENT_METHODS[state.nonCashMethod] ? PAYMENT_METHODS[state.nonCashMethod].short : 'QR';
     const sum = roundMoney2(state.cash + state.nonCash);
 
     if (!(state.cash > 0) || !(state.nonCash > 0)) {
@@ -2173,12 +2199,13 @@ function selectEditPaymentMethod(method) {
 
     if (method === 'cash') {
         state.bank = '';
-    } else if (method === 'qr' || method === 'card') {
+    } else if (isBankPaymentMethod(method)) {
         const banks = settings.banks[method] || [];
         if (banks.indexOf(state.bank) === -1) state.bank = banks[0] || '';
     } else if (method === 'split') {
         if (!isPaymentMethodAvailable(state.nonCashMethod, settings)) {
-            state.nonCashMethod = isPaymentMethodAvailable('card', settings) ? 'card' : 'qr';
+            const availableNonCash = getNonCashMethods().filter(m => isPaymentMethodAvailable(m, settings));
+            state.nonCashMethod = availableNonCash[0] || 'qr';
         }
         const banks = settings.banks[state.nonCashMethod] || [];
         if (banks.indexOf(state.bank) === -1) state.bank = banks[0] || '';
@@ -2190,7 +2217,7 @@ function selectEditPaymentMethod(method) {
 // 分批时切换非现金方式（QR / Credit Card）
 function selectEditNonCashMethod(method) {
     const state = editPayState;
-    if (!state || (method !== 'qr' && method !== 'card')) return;
+    if (!state || !isBankPaymentMethod(method)) return;
     const settings = getStorePaymentSettings();
     if (!isPaymentMethodAvailable(method, settings)) return;
 
@@ -2243,7 +2270,7 @@ function saveEditPayment() {
                 bank: bank
             }
         ];
-    } else if (method === 'qr' || method === 'card') {
+    } else if (isBankPaymentMethod(method)) {
         const banks = settings.banks[method] || [];
         if (!banks.length) {
             alert(`No bank configured for ${PAYMENT_METHODS[method].label}. Please set it up in Admin first.`);
@@ -2561,13 +2588,24 @@ function hideModal(modal) {
 const PAYMENT_METHODS = {
     cash: { label: 'Cash', short: 'Cash', icon: 'payments' },
     qr: { label: 'QR', short: 'QR', icon: 'qr_code_2' },
-    card: { label: 'Credit Card', short: 'Card', icon: 'credit_card' }
+    card: { label: 'Credit Card', short: 'Card', icon: 'credit_card' },
+    onlineBanking: { label: 'Online Banking', short: 'Online', icon: 'account_balance' }
 };
-const PAYMENT_METHOD_ORDER = ['cash', 'qr', 'card'];
+const PAYMENT_METHOD_ORDER = ['cash', 'qr', 'card', 'onlineBanking'];
+
+// 非现金（需要配银行）的支付方式列表，顺序与 PAYMENT_METHOD_ORDER 一致
+function getNonCashMethods() {
+    return PAYMENT_METHOD_ORDER.filter(m => m !== 'cash');
+}
+// 是否是需要配置银行的非现金支付方式
+function isBankPaymentMethod(method) {
+    return method !== 'cash' && PAYMENT_METHODS[method] !== undefined;
+}
 
 // 店铺未配置银行时不预填任何银行（由 Admin 为每家店设置）
 const DEFAULT_QR_BANKS = [];
 const DEFAULT_CARD_BANKS = [];
+const DEFAULT_ONLINE_BANKING_BANKS = [];
 
 /* ===================== 银行 Logo（与 Admin 共用） =====================
  * 来源有两个，按优先级取：
@@ -2755,11 +2793,13 @@ function getStorePaymentSettings() {
         enabled: {
             cash: isEnabled(ps.cash),
             qr: isEnabled(ps.qr),
-            card: isEnabled(ps.card)
+            card: isEnabled(ps.card),
+            onlineBanking: isEnabled(ps.onlineBanking)
         },
         banks: {
             qr: banksFor(ps.qr, DEFAULT_QR_BANKS),
-            card: banksFor(ps.card, DEFAULT_CARD_BANKS)
+            card: banksFor(ps.card, DEFAULT_CARD_BANKS),
+            onlineBanking: banksFor(ps.onlineBanking, DEFAULT_ONLINE_BANKING_BANKS)
         }
     };
 }
@@ -2865,7 +2905,7 @@ function getSelectedPaymentInfo() {
         ? selectedPaymentMethod
         : (availableMethods[0] || 'cash');
     let bank = '';
-    if (method === 'qr' || method === 'card') {
+    if (isBankPaymentMethod(method)) {
         const banks = settings.banks[method] || [];
         bank = selectedPaymentBank && banks.indexOf(selectedPaymentBank) !== -1
             ? selectedPaymentBank
@@ -3133,7 +3173,7 @@ function renderPaymentOptions() {
     // 一个都用不了（例如只开了 QR/Card 但两家银行都没配）：全部半透明禁用 + 提示
     if (availableMethods.length === 0) {
         container.innerHTML = enabledMethods.map(m => paymentMethodButtonHTML(m, false, false)).join('') +
-            '<div class="payment-empty">No bank configured for QR / Credit Card — ask admin to add a bank.</div>';
+            '<div class="payment-empty">No bank configured for QR / Credit Card / Online Banking — ask admin to add a bank.</div>';
         if (bankRow) bankRow.style.display = 'none';
         selectedPaymentBank = '';
         renderSplitSection();
@@ -4103,7 +4143,7 @@ function checkout() {
 
     // 一个可用方式都没有时不允许结账（例如只开了 QR/Card 但都没配银行）
     if (getAvailablePaymentMethods(paymentInfo.settings).length === 0) {
-        alert('No available payment method for this store. Please ask admin to add a bank for QR / Credit Card.');
+        alert('No available payment method for this store. Please ask admin to add a bank for QR / Credit Card / Online Banking.');
         return;
     }
 
@@ -4119,7 +4159,7 @@ function checkout() {
     const splitOn = splitPaymentEnabled && canUseSplitPayment();
     if (splitOn) {
         if (paymentInfo.method === 'cash') {
-            alert('Please choose QR or Credit Card for the non-cash part of the split payment.');
+            alert('Please choose a non-cash method (QR / Credit Card / Online Banking) for the split payment.');
             return;
         }
         const splitTotal = getCartTotals().total;

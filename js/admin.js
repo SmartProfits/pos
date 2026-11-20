@@ -2001,6 +2001,7 @@ function renderAdminReceiptPayment(sale) {
     const methodLabel = (m) => {
         if (m === 'qr') return 'QR Pay';
         if (m === 'card') return 'Credit Card';
+        if (m === 'onlineBanking') return 'Online Banking';
         if (m === 'cash') return 'Cash';
         return '';
     };
@@ -2051,21 +2052,27 @@ function renderAdminReceiptPayment(sale) {
 // 默认不预填任何银行：每家店由 Admin 自己选择要接受的银行
 const ADMIN_DEFAULT_QR_BANKS = [];
 const ADMIN_DEFAULT_CARD_BANKS = [];
+const ADMIN_DEFAULT_ONLINE_BANKING_BANKS = [];
+
+// 所有需要配置银行列表的支付方式（与 pos.js 的 PAYMENT_METHOD_ORDER 去掉 cash 保持一致）
+const ADMIN_BANK_METHODS = ['qr', 'card', 'onlineBanking'];
 
 const bankChipConfig = {
     add: {
         qr: { chips: 'storeQRBankChips', input: 'storeQRBankInput', button: 'storeQRBankAdd' },
-        card: { chips: 'storeCardBankChips', input: 'storeCardBankInput', button: 'storeCardBankAdd' }
+        card: { chips: 'storeCardBankChips', input: 'storeCardBankInput', button: 'storeCardBankAdd' },
+        onlineBanking: { chips: 'storeOnlineBankingBankChips', input: 'storeOnlineBankingBankInput', button: 'storeOnlineBankingBankAdd' }
     },
     edit: {
         qr: { chips: 'editQRBankChips', input: 'editQRBankInput', button: 'editQRBankAdd' },
-        card: { chips: 'editCardBankChips', input: 'editCardBankInput', button: 'editCardBankAdd' }
+        card: { chips: 'editCardBankChips', input: 'editCardBankInput', button: 'editCardBankAdd' },
+        onlineBanking: { chips: 'editOnlineBankingBankChips', input: 'editOnlineBankingBankInput', button: 'editOnlineBankingBankAdd' }
     }
 };
 
 const bankDrafts = {
-    add: { qr: [], card: [] },
-    edit: { qr: [], card: [] }
+    add: { qr: [], card: [], onlineBanking: [] },
+    edit: { qr: [], card: [], onlineBanking: [] }
 };
 
 // ===== 银行 Logo =====
@@ -2192,7 +2199,7 @@ function loadBankLogos() {
 function bankLogoKeysOfStore(store) {
     const ps = (store && store.paymentSettings) || {};
     const keys = {};
-    ['qr', 'card'].forEach(type => {
+    ADMIN_BANK_METHODS.forEach(type => {
         const banks = (ps[type] && Array.isArray(ps[type].banks)) ? ps[type].banks : [];
         banks.forEach(name => {
             const key = bankLogoKey(name);
@@ -2304,7 +2311,7 @@ function refreshBankLogoUIs() {
     renderBankLogoPanel('add');
     renderBankLogoPanel('edit');
     ['add', 'edit'].forEach(scope => {
-        ['qr', 'card'].forEach(type => renderBankChips(scope, type));
+        ADMIN_BANK_METHODS.forEach(type => renderBankChips(scope, type));
     });
     syncBankNameSuggestions();
     // 销售明细的 Bank 列重新渲染，让新 logo 立刻出现
@@ -2451,11 +2458,11 @@ function addBankChip(scope, type) {
 }
 
 // 设置银行草稿数据
-function setBankDrafts(scope, qrBanks, cardBanks) {
+function setBankDrafts(scope, qrBanks, cardBanks, onlineBankingBanks) {
     bankDrafts[scope].qr = Array.isArray(qrBanks) ? [...qrBanks] : [];
     bankDrafts[scope].card = Array.isArray(cardBanks) ? [...cardBanks] : [];
-    renderBankChips(scope, 'qr');
-    renderBankChips(scope, 'card');
+    bankDrafts[scope].onlineBanking = Array.isArray(onlineBankingBanks) ? [...onlineBankingBanks] : [];
+    ADMIN_BANK_METHODS.forEach(type => renderBankChips(scope, type));
 }
 
 // 从表单读取支付配置
@@ -2464,6 +2471,7 @@ function readStorePaymentSettings(scope) {
     const cashEl = document.getElementById(`${prefix}Cash`);
     const qrEl = document.getElementById(`${prefix}QR`);
     const cardEl = document.getElementById(`${prefix}Card`);
+    const onlineBankingEl = document.getElementById(`${prefix}OnlineBanking`);
 
     return {
         cash: { enabled: cashEl ? cashEl.checked : true },
@@ -2474,6 +2482,10 @@ function readStorePaymentSettings(scope) {
         card: {
             enabled: cardEl ? cardEl.checked : true,
             banks: [...bankDrafts[scope].card]
+        },
+        onlineBanking: {
+            enabled: onlineBankingEl ? onlineBankingEl.checked : true,
+            banks: [...bankDrafts[scope].onlineBanking]
         }
     };
 }
@@ -2481,7 +2493,7 @@ function readStorePaymentSettings(scope) {
 // 初始化支付设置编辑器
 function initStorePaymentEditors() {
     Object.keys(bankChipConfig).forEach(scope => {
-        ['qr', 'card'].forEach(type => {
+        ADMIN_BANK_METHODS.forEach(type => {
             const cfg = bankChipConfig[scope][type];
             const addBtn = document.getElementById(cfg.button);
             if (addBtn) {
@@ -2499,7 +2511,7 @@ function initStorePaymentEditors() {
         });
     });
 
-    ['storePayCash', 'storePayQR', 'storePayCard', 'editStorePayCash', 'editStorePayQR', 'editStorePayCard'].forEach(id => {
+    ['storePayCash', 'storePayQR', 'storePayCard', 'storePayOnlineBanking', 'editStorePayCash', 'editStorePayQR', 'editStorePayCard', 'editStorePayOnlineBanking'].forEach(id => {
         const checkbox = document.getElementById(id);
         if (!checkbox) return;
         const label = checkbox.closest('.payment-toggle');
@@ -2521,8 +2533,8 @@ function initStorePaymentEditors() {
         });
     });
 
-    setBankDrafts('add', ADMIN_DEFAULT_QR_BANKS, ADMIN_DEFAULT_CARD_BANKS);
-    setBankDrafts('edit', ADMIN_DEFAULT_QR_BANKS, ADMIN_DEFAULT_CARD_BANKS);
+    setBankDrafts('add', ADMIN_DEFAULT_QR_BANKS, ADMIN_DEFAULT_CARD_BANKS, ADMIN_DEFAULT_ONLINE_BANKING_BANKS);
+    setBankDrafts('edit', ADMIN_DEFAULT_QR_BANKS, ADMIN_DEFAULT_CARD_BANKS, ADMIN_DEFAULT_ONLINE_BANKING_BANKS);
 }
 
 // 重置“添加店铺”里的支付设置
@@ -2530,7 +2542,8 @@ function resetAddStorePaymentSettings() {
     const cashEl = document.getElementById('storePayCash');
     const qrEl = document.getElementById('storePayQR');
     const cardEl = document.getElementById('storePayCard');
-    [cashEl, qrEl, cardEl].forEach(el => {
+    const onlineBankingEl = document.getElementById('storePayOnlineBanking');
+    [cashEl, qrEl, cardEl, onlineBankingEl].forEach(el => {
         if (!el) return;
         el.checked = true;
         const label = el.closest('.payment-toggle');
@@ -2538,9 +2551,11 @@ function resetAddStorePaymentSettings() {
     });
     const qrInput = document.getElementById('storeQRBankInput');
     const cardInput = document.getElementById('storeCardBankInput');
+    const onlineBankingInput = document.getElementById('storeOnlineBankingBankInput');
     if (qrInput) qrInput.value = '';
     if (cardInput) cardInput.value = '';
-    setBankDrafts('add', ADMIN_DEFAULT_QR_BANKS, ADMIN_DEFAULT_CARD_BANKS);
+    if (onlineBankingInput) onlineBankingInput.value = '';
+    setBankDrafts('add', ADMIN_DEFAULT_QR_BANKS, ADMIN_DEFAULT_CARD_BANKS, ADMIN_DEFAULT_ONLINE_BANKING_BANKS);
 }
 
 // 分批付款明细：RTDB 里可能是数组，也可能变成 {0:..., 1:...}
@@ -2566,6 +2581,7 @@ function formatAdminPaymentLabel(sale) {
         const names = normalizeAdminPaymentSplits(sale.paymentSplits).map(s => {
             if (s.method === 'qr') return 'QR';
             if (s.method === 'card') return 'Credit Card';
+            if (s.method === 'onlineBanking') return 'Online Banking';
             if (s.method === 'cash') return 'Cash';
             return s.label || '';
         }).filter(Boolean);
@@ -2575,6 +2591,7 @@ function formatAdminPaymentLabel(sale) {
 
     if (method === 'qr') return 'QR';
     if (method === 'card') return 'Credit Card';
+    if (method === 'onlineBanking') return 'Online Banking';
     return 'Cash';
 }
 
@@ -2584,6 +2601,7 @@ function getAdminPaymentIcon(sale) {
     if (method === 'split') return 'call_split';
     if (method === 'qr') return 'qr_code_2';
     if (method === 'card') return 'credit_card';
+    if (method === 'onlineBanking') return 'account_balance';
     return 'payments';
 }
 
@@ -2593,6 +2611,7 @@ function getStorePaymentTags(store) {    const ps = (store && store.paymentSetti
     if (!ps.cash || ps.cash.enabled !== false) tags.push({ key: 'cash', label: 'Cash' });
     if (!ps.qr || ps.qr.enabled !== false) tags.push({ key: 'qr', label: 'QR' });
     if (!ps.card || ps.card.enabled !== false) tags.push({ key: 'card', label: 'Card' });
+    if (!ps.onlineBanking || ps.onlineBanking.enabled !== false) tags.push({ key: 'onlineBanking', label: 'Online Banking' });
     return tags;
 }
 
@@ -2676,11 +2695,13 @@ function editStore(storeId) {
     const cashEl = document.getElementById('editStorePayCash');
     const qrEl = document.getElementById('editStorePayQR');
     const cardEl = document.getElementById('editStorePayCard');
+    const onlineBankingEl = document.getElementById('editStorePayOnlineBanking');
 
     [
         { el: cashEl, node: ps.cash },
         { el: qrEl, node: ps.qr },
-        { el: cardEl, node: ps.card }
+        { el: cardEl, node: ps.card },
+        { el: onlineBankingEl, node: ps.onlineBanking }
     ].forEach(({ el, node }) => {
         if (!el) return;
         el.checked = !node || node.enabled !== false;
@@ -2690,10 +2711,15 @@ function editStore(storeId) {
 
     const qrBanks = (ps.qr && Array.isArray(ps.qr.banks)) ? ps.qr.banks : [];
     const cardBanks = (ps.card && Array.isArray(ps.card.banks)) ? ps.card.banks : [];
-    setBankDrafts('edit', qrBanks, cardBanks);
+    const onlineBankingBanks = (ps.onlineBanking && Array.isArray(ps.onlineBanking.banks)) ? ps.onlineBanking.banks : [];
+    setBankDrafts('edit', qrBanks, cardBanks, onlineBankingBanks);
 
-    document.getElementById('editQRBankInput').value = '';
-    document.getElementById('editCardBankInput').value = '';
+    const qrInput = document.getElementById('editQRBankInput');
+    const cardInput = document.getElementById('editCardBankInput');
+    const onlineBankingInput = document.getElementById('editOnlineBankingBankInput');
+    if (qrInput) qrInput.value = '';
+    if (cardInput) cardInput.value = '';
+    if (onlineBankingInput) onlineBankingInput.value = '';
 }
 
 // 处理编辑店铺表单提交
@@ -3646,7 +3672,8 @@ function addStore(storeId, name, address, posLayout = 'default', taxRate = 0, sh
         paymentSettings: paymentSettings || {
             cash: { enabled: true },
             qr: { enabled: true, banks: [] },
-            card: { enabled: true, banks: [] }
+            card: { enabled: true, banks: [] },
+            onlineBanking: { enabled: true, banks: [] }
         }
     });
 }

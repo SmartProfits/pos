@@ -2576,6 +2576,11 @@
                             <i class="material-icons">credit_card</i>
                             <span>Credit Card</span>
                         </label>
+                        <label class="payment-toggle active">
+                            <input type="checkbox" id="storePayOnlineBanking" checked>
+                            <i class="material-icons">account_balance</i>
+                            <span>Online Banking</span>
+                        </label>
                     </div>
                     <div class="bank-editor">
                         <div class="bank-editor-head">
@@ -2601,6 +2606,19 @@
                         <div class="bank-add-row">
                             <input type="text" id="storeCardBankInput" list="bankNameSuggestions" placeholder="e.g. CIMB Bank">
                             <button type="button" id="storeCardBankAdd">Add</button>
+                        </div>
+                    </div>
+                    <div class="bank-editor">
+                        <div class="bank-editor-head">
+                            <i class="material-icons">account_balance</i>
+                            <span>Online Banking Banks</span>
+                            
+                            <button type="button" class="bank-clear" data-scope="add" data-type="onlineBanking">Clear</button>
+                        </div>
+                        <div class="bank-chips" id="storeOnlineBankingBankChips"></div>
+                        <div class="bank-add-row">
+                            <input type="text" id="storeOnlineBankingBankInput" list="bankNameSuggestions" placeholder="e.g. Maybank">
+                            <button type="button" id="storeOnlineBankingBankAdd">Add</button>
                         </div>
                     </div>
                     <div class="bank-logo-block">
@@ -2682,6 +2700,11 @@
                             <i class="material-icons">credit_card</i>
                             <span>Credit Card</span>
                         </label>
+                        <label class="payment-toggle">
+                            <input type="checkbox" id="editStorePayOnlineBanking" checked>
+                            <i class="material-icons">account_balance</i>
+                            <span>Online Banking</span>
+                        </label>
                     </div>
                     <div class="bank-editor">
                         <div class="bank-editor-head">
@@ -2707,6 +2730,19 @@
                         <div class="bank-add-row">
                             <input type="text" id="editCardBankInput" list="bankNameSuggestions" placeholder="e.g. CIMB Bank">
                             <button type="button" id="editCardBankAdd">Add</button>
+                        </div>
+                    </div>
+                    <div class="bank-editor">
+                        <div class="bank-editor-head">
+                            <i class="material-icons">account_balance</i>
+                            <span>Online Banking Banks</span>
+                            
+                            <button type="button" class="bank-clear" data-scope="edit" data-type="onlineBanking">Clear</button>
+                        </div>
+                        <div class="bank-chips" id="editOnlineBankingBankChips"></div>
+                        <div class="bank-add-row">
+                            <input type="text" id="editOnlineBankingBankInput" list="bankNameSuggestions" placeholder="e.g. Maybank">
+                            <button type="button" id="editOnlineBankingBankAdd">Add</button>
                         </div>
                     </div>
                     <div class="bank-logo-block">
